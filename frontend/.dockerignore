@@ -1,0 +1,26 @@
+# Exclude dependencies and pnpm store to keep build context small
+node_modules
+.pnpm
+.pnpm-store
+
+# Build artifacts
+dist
+build
+
+# Editor and system files
+.vscode
+.DS_Store
+
+# Env and logs
+.env
+*.log
+
+# Git
+.git
+
+# Docker files not needed in build context
+docker-compose.yml
+docker-compose.*.yml
+
+# Optional: lockfile should be included so the image has deterministic deps
+# pnpm-lock.yaml
