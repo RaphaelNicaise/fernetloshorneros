@@ -1,7 +1,28 @@
 services:
+
+    backend:
+      build: ./backend
+      container_name: backend_fernet
+      ports:
+        - "3001:3001"
+      volumes:
+        - ./backend:/app:cached
+        - /app/node_modules
+      environment:
+        NODE_ENV: development
+        PORT: 3001
+        MYSQL_HOST: ${MYSQL_HOST}
+        MYSQL_USER: ${MYSQL_USER}
+        MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+        MYSQL_DATABASE: ${MYSQL_DATABASE}
+      depends_on:
+        - mysql
+      networks:
+        - app_network
+        
     mysql:
       image: mysql:8.0
-      container_name: mysql_db_fernetloshorneros
+      container_name: mysql_db_fernet
       ports:
         - "3306:3306"
       environment:
@@ -14,7 +35,6 @@ services:
         - ./db/sql/01-init.sql:/docker-entrypoint-initdb.d/01-init.sql    
       networks:
         - app_network
-
 
     phpmyadmin:
       image: phpmyadmin/phpmyadmin
@@ -40,8 +60,8 @@ services:
       environment:
         NODE_ENV: development
         VITE_API_URL: ${VITE_API_URL}   # Variable del .env raíz
-    #depends_on:
-     #  - backend
+      depends_on:
+        - backend
       networks:
         - app_network
 
