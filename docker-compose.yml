@@ -9,14 +9,33 @@ services:
         - ./backend:/app:cached
         - /app/node_modules
       environment:
+        TEST_MP_ACCESS_TOKEN: ${TEST_MP_ACCESS_TOKEN}
         NODE_ENV: development
         PORT: 3001
-        MYSQL_HOST: ${MYSQL_HOST}
-        MYSQL_USER: ${MYSQL_USER}
-        MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+        MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
         MYSQL_DATABASE: ${MYSQL_DATABASE}
+        MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+        MYSQL_HOST: ${MYSQL_HOST}
+        MYSQL_PORT: ${MYSQL_PORT}
+        MYSQL_USER: ${MYSQL_USER}
       depends_on:
         - mysql
+      networks:
+        - app_network
+
+    frontend:
+      build: ./frontend
+      container_name: frontend
+      ports:
+        - "5173:5173" # puerto por defecto de Vite
+      volumes:
+        - ./frontend:/app:cached
+        - /app/node_modules
+      environment:
+        NODE_ENV: development
+        VITE_API_URL: ${VITE_API_URL}   # Variable del .env raíz
+      depends_on:
+        - backend
       networks:
         - app_network
 
@@ -49,21 +68,6 @@ services:
       networks:
         - app_network
 
-    frontend:
-      build: ./frontend
-      container_name: frontend
-      ports:
-        - "5173:5173" # puerto por defecto de Vite
-      volumes:
-        - ./frontend:/app:cached
-        - /app/node_modules
-      environment:
-        NODE_ENV: development
-        VITE_API_URL: ${VITE_API_URL}   # Variable del .env raíz
-      depends_on:
-        - backend
-      networks:
-        - app_network
 
 networks:
   app_network:
