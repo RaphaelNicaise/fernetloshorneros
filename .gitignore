@@ -40,3 +40,5 @@ ssl/
 *.pem
 *.key
 *.crt
+
+doc

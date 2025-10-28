@@ -19,10 +19,10 @@ services:
         - mysql
       networks:
         - app_network
-        
+
     mysql:
       image: mysql:8.0
-      container_name: mysql_db_fernet
+      container_name: db_fernetloshorneros
       ports:
         - "3306:3306"
       environment:
