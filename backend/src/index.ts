@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { connectDB } from '@/config/database';
 import router from '@/routes/payments';
 
+import { enviarMailComprador } from '@/services/mailService';
 
 dotenv.config();
 
