@@ -38,6 +38,8 @@ services:
       environment:
         NODE_ENV: development
         VITE_API_URL: ${VITE_API_URL}   # Variable del .env raíz
+        CHOKIDAR_USEPOLLING: "true"    # mejora la detección de cambios en Docker/Windows
+        CHOKIDAR_INTERVAL: "100"
       depends_on:
         - backend
       networks:
