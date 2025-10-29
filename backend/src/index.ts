@@ -2,9 +2,8 @@ import express from 'express';
 import dotenv from 'dotenv';
 
 import { connectDB } from '@/config/database';
-import router from '@/routes/payments';
-
-import { enviarMailComprador } from '@/services/mailService';
+import paymentsRouter from '@/routes/payments';
+import waitlistRouter from '@/routes/waitlist';
 
 dotenv.config();
 
@@ -21,7 +20,8 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
-app.use('/payments', router);
+app.use('/waitlist', waitlistRouter);
+app.use('/payments', paymentsRouter);
 
 const startServer = async () => {
   try {
