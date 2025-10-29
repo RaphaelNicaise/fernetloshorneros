@@ -1,9 +1,9 @@
 import { Router } from "express";
 import { preferenceClient } from "@/config/mercadopago";
 
-const router = Router();
+const paymentsRouter = Router();
 
-router.post("/create-preference", async (req, res) => {
+paymentsRouter.post("/create-preference", async (req, res) => {
   try {
     const { title, quantity, unit_price } = req.body;
 
@@ -18,10 +18,11 @@ router.post("/create-preference", async (req, res) => {
         },
       ],
       back_urls: {
-        success: "http://localhost:3001/success",
-        failure: "http://localhost:3001/failure",
-        pending: "http://localhost:3001/pending",
+        success: "http://localhost:3001/payments/success",
+        failure: "http://localhost:3001/payments/failure",
+        pending: "http://localhost:3001/payments/pending",
       },
+      auto_return: "approved"
     };
 
     const result = await preferenceClient.create({ body });
@@ -38,4 +39,4 @@ router.post("/create-preference", async (req, res) => {
   }
 });
 
-export default router;
+export default paymentsRouter;
