@@ -1,29 +1,25 @@
+# Development image for Next.js with hot reload
 FROM node:20-alpine
 
-# Instalar pnpm
-RUN npm install -g pnpm@latest
-
-# Establecer directorio de trabajo
 WORKDIR /app
 
-# Instalar dependencias del sistema si son necesarias
-RUN apk add --no-cache git
+# Enable pnpm
+RUN corepack enable
 
-# Copiar package.json y pnpm-lock.yaml
+# Copy dependencies files
 COPY package.json pnpm-lock.yaml* ./
 
-# Limpiar caché de pnpm antes de instalar
-RUN pnpm store prune
+# Install dependencies
+RUN pnpm install --frozen-lockfile
 
-# Instalar dependencias con logs verbosos para debugging
-RUN pnpm install --frozen-lockfile --shamefully-hoist
-
-# Copiar archivos de configuración primero
-COPY postcss.config.js tailwind.config.js ./
-
-# Copiar el resto del código
+# Copy app source (can be overridden by bind mount)
 COPY . .
 
-EXPOSE 5173
+ENV HOST=0.0.0.0 \
+    PORT=3000 \
+    WATCHPACK_POLLING=true \
+    WATCHPACK_POLLING_INTERVAL=1000
 
-CMD ["pnpm", "dev", "--host", "0.0.0.0", "--port", "5173"]
+EXPOSE 3000
+
+CMD ["pnpm", "dev"]

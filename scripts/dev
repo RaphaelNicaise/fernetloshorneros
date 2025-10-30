@@ -1,0 +1,17 @@
+OS="$(uname -s 2>/dev/null || echo Windows)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [[ "$OS" == "Linux" || "$OS" == "Darwin" ]]; then
+    
+    exec bash "$SCRIPT_DIR/dev.sh" "$@"
+else
+    
+    if command -v pwsh > /dev/null 2>&1; then
+        pwsh -File "$SCRIPT_DIR/dev.ps1" @args
+    elif command -v powershell > /dev/null 2>&1; then
+        powershell -ExecutionPolicy Bypass -File "$SCRIPT_DIR/dev.ps1" @args
+    else
+        echo "No se encontró PowerShell instalado."
+        exit 1
+    fi
+fi

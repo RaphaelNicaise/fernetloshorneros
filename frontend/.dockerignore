@@ -1,3 +1,13 @@
+node_modules
+.next
+.git
+.gitignore
+npm-debug.log
+yarn-error.log
+.pnpm-store
+Dockerfile
+README.md
+
 # Exclude dependencies and pnpm store to keep build context small
 node_modules
 .pnpm
@@ -22,5 +32,5 @@ build
 docker-compose.yml
 docker-compose.*.yml
 
-# Optional: lockfile should be included so the image has deterministic deps
-# pnpm-lock.yaml
+# Keep the lockfile for deterministic installs
+# (do NOT ignore pnpm-lock.yaml)

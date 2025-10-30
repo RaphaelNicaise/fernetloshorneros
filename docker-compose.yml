@@ -1,91 +1,97 @@
-services:
+  services:
 
-    backend:
-      build: ./backend
-      container_name: backend_fernet
-      ports:
-        - "3001:3001"
-      volumes:
-        - ./backend:/app:cached
-        - /app/node_modules
-      environment:
-        TEST_MP_ACCESS_TOKEN: ${TEST_MP_ACCESS_TOKEN}
-        NODE_ENV: development
-        PORT: 3001
-        MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-        MYSQL_DATABASE: ${MYSQL_DATABASE}
-        MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-        MYSQL_HOST: ${MYSQL_HOST}
-        MYSQL_PORT: ${MYSQL_PORT}
-        MYSQL_USER: ${MYSQL_USER}
-        SMTP_HOST: ${SMTP_HOST}
-        SMTP_PORT: ${SMTP_PORT}
-        MAIL_USER: ${MAIL_USER}
-        MAIL_PASSWORD: ${MAIL_PASSWORD}
-      depends_on:
-        mysql:
-          condition: service_healthy
-      networks:
-        - app_network
+      backend:
+        build: ./backend
+        container_name: backend_fernet
+        ports:
+          - "3001:3001"
+        volumes:
+          - ./backend:/app:cached
+          - /app/node_modules
+        environment:
+          TEST_MP_ACCESS_TOKEN: ${TEST_MP_ACCESS_TOKEN}
+          NODE_ENV: development
+          PORT: 3001
+          MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+          MYSQL_DATABASE: ${MYSQL_DATABASE}
+          MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+          MYSQL_HOST: ${MYSQL_HOST}
+          MYSQL_PORT: ${MYSQL_PORT}
+          MYSQL_USER: ${MYSQL_USER}
+          SMTP_HOST: ${SMTP_HOST}
+          SMTP_PORT: ${SMTP_PORT}
+          MAIL_USER: ${MAIL_USER}
+          MAIL_PASSWORD: ${MAIL_PASSWORD}
+        depends_on:
+          mysql:
+            condition: service_healthy
+        networks:
+          - app_network
 
-    frontend:
-      build: ./frontend
-      container_name: frontend
-      ports:
-        - "5173:5173" # puerto por defecto de Vite
-      volumes:
-        - ./frontend:/app:cached
-        - /app/node_modules
-      environment:
-        NODE_ENV: development
-        VITE_API_URL: ${VITE_API_URL}   # Variable del .env raíz
-        CHOKIDAR_USEPOLLING: "true"    # mejora la detección de cambios en Docker/Windows
-        CHOKIDAR_INTERVAL: "100"
-      depends_on:
-        - backend
-      networks:
-        - app_network
-
-    mysql:
-      image: mysql:8.0
-      container_name: db_fernetloshorneros
-      ports:
-        - "3306:3306"
-      environment:
-        MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-        MYSQL_DATABASE: ${MYSQL_DATABASE}
-        MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-        MYSQL_HOST: ${MYSQL_HOST}
-      volumes:
-        - mysql_data:/var/lib/mysql
-        - ./db/sql/01-init.sql:/docker-entrypoint-initdb.d/01-init.sql    
-      networks:
-        - app_network
-      healthcheck:
-        test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD}"]
-        interval: 10s
-        timeout: 5s
-        retries: 5
-        start_period: 10s
-
-    phpmyadmin:
-      image: phpmyadmin/phpmyadmin
-      container_name: phpmyadmin_fernet
-      depends_on:
-        - mysql
-      ports:
-        - "8080:80"
-      environment:
-        PMA_HOST: mysql
-        PMA_PORT: 3306
-      networks:
-        - app_network
+      frontend:
+        build: ./frontend
+        container_name: frontend
+        ports:
+          - "3000:3000"
+        environment:
+          NODE_ENV: development
+          HOST: 0.0.0.0
+          WATCHPACK_POLLING: "true"
+          WATCHPACK_POLLING_INTERVAL: "1000"
+          CI: "true"
+          NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        volumes:
+          - ./frontend:/app
+          - /app/node_modules
+        command: pnpm dev
+        depends_on:
+          - backend
+        networks:
+          - app_network
 
 
-networks:
-  app_network:
-    driver: bridge
+      mysql:
+        image: mysql:8.0
+        container_name: db_fernetloshorneros
+        ports:
+          - "3306:3306"
+        environment:
+          MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+          MYSQL_DATABASE: ${MYSQL_DATABASE}
+          MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+          MYSQL_HOST: ${MYSQL_HOST}
+        volumes:
+          - mysql_data:/var/lib/mysql
+          - ./db/sql/01-init.sql:/docker-entrypoint-initdb.d/01-init.sql    
+        networks:
+          - app_network
+        healthcheck:
+          test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD}"]
+          interval: 10s
+          timeout: 5s
+          retries: 5
+          start_period: 10s
 
-volumes:
-  mysql_data:
-    driver: local
+      phpmyadmin:
+        image: phpmyadmin/phpmyadmin
+        container_name: phpmyadmin_fernet
+        depends_on:
+          - mysql
+        ports:
+          - "8080:80"
+        environment:
+          PMA_HOST: mysql
+          PMA_PORT: 3306
+        networks:
+          - app_network
+
+
+  networks:
+    app_network:
+      driver: bridge
+
+  volumes:
+    mysql_data:
+      driver: local
+    frontend_node_modules:
+      driver: local
