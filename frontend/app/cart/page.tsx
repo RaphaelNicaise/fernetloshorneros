@@ -4,11 +4,42 @@ import { useCart } from "@/lib/cart-context"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import Link from "next/link"
-import Image from "next/image"
 import { Instagram, Music } from "lucide-react"
+import { fetchProducts } from "@/lib/api"
+import { toast } from "@/hooks/use-toast"
 
 export default function CartPage() {
   const { items, removeItem, updateQuantity, clearCart, totalPrice } = useCart()
+
+  async function handleCheckout() {
+    try {
+      const catalog = await fetchProducts()
+      const byId = new Map(catalog.map((p) => [p.id, p]))
+      const removedNames: string[] = []
+      for (const it of items) {
+        const p = byId.get(it.id)
+        if (!p || p.status !== "disponible") {
+          removedNames.push(it.name)
+          removeItem(it.id)
+        }
+      }
+      if (removedNames.length > 0) {
+        toast({
+          title: "Lo sentimos",
+          description:
+            removedNames.length === 1
+              ? `El producto "${removedNames[0]}" no está más disponible y fue quitado del carrito.`
+              : `Estos productos ya no están disponibles y fueron quitados del carrito: ${removedNames.join(", ")}.`,
+        })
+        return
+      }
+
+      // TODO: integrar con flujo de pago real
+      toast({ title: "Perfecto", description: "Todos los productos están disponibles. Continuá con el pago." })
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message || "No se pudo validar disponibilidad" })
+    }
+  }
 
   if (items.length === 0) {
     return (
@@ -74,7 +105,8 @@ export default function CartPage() {
                 <div key={item.id} className="bg-card border border-border rounded-lg p-6">
                   <div className="flex gap-4">
                     <div className="relative w-24 h-24 bg-muted rounded-lg overflow-hidden flex-shrink-0">
-                      <Image src={item.image || "/placeholder.svg"} alt={item.name} fill className="object-cover" />
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={item.image || "/placeholder.svg"} alt={item.name} className="object-cover w-full h-full" />
                     </div>
                     <div className="flex-1">
                       <h3 className="font-serif text-lg font-bold text-foreground mb-1">{item.name}</h3>
@@ -129,7 +161,10 @@ export default function CartPage() {
                     <span className="font-bold text-foreground text-lg">${totalPrice.toFixed(2)}</span>
                   </div>
                 </div>
-                <button className="w-full py-3 bg-primary text-primary-foreground font-semibold rounded-lg transition-all duration-200 transform-gpu hover:bg-primary/90 hover:shadow-md hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 mb-3 cursor-pointer">
+                <button
+                  onClick={handleCheckout}
+                  className="w-full py-3 bg-primary text-primary-foreground font-semibold rounded-lg transition-all duration-200 transform-gpu hover:bg-primary/90 hover:shadow-md hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 mb-3 cursor-pointer"
+                >
                   Ir a pagar
                 </button>
                 <Link

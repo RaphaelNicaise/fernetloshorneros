@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { Playfair_Display, Montserrat } from "next/font/google"
 import "./globals.css"
 import { CartProvider } from "@/lib/cart-context"
+import { Toaster } from "@/components/ui/toaster"
 
 const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-serif" })
 const montserrat = Montserrat({ subsets: ["latin"], variable: "--font-sans" })
@@ -32,7 +33,10 @@ export default function RootLayout({
         />
       </head>
       <body className={`${playfair.variable} ${montserrat.variable} font-sans antialiased`}>
-        <CartProvider>{children}</CartProvider>
+        <CartProvider>
+          {children}
+          <Toaster />
+        </CartProvider>
       </body>
     </html>
   )

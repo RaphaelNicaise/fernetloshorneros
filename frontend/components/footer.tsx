@@ -32,6 +32,11 @@ export function Footer() {
                   Carrito
                 </Link>
               </li>
+              <li>
+                <Link href="/contactanos" className="hover:text-white transition-colors">
+                  Contáctanos
+                </Link>
+              </li>
             </ul>
           </div>
           <div>

@@ -1,13 +1,16 @@
+"use client"
+
 import { Navigation } from "@/components/navigation"
 import { ImageCarousel } from "@/components/image-carousel"
 import Image from "next/image"
-import { products } from "@/lib/products"
+import { fetchProducts, type Product } from "@/lib/api"
 import { ProductCard } from "@/components/product-card"
 import Link from "next/link"
 import { Footer } from "@/components/footer"
 import { TikTokEmbed } from "@/components/tiktok-embed"
 import { InstagramEmbed } from "../components/instagram-embed"
 import { SocialEmbedsWithLoading } from "@/components/social-embeds"
+import { useEffect, useState } from "react"
 
 const productionImages = [
   {
@@ -45,6 +48,28 @@ const heroImages = [
 ]
 
 export default function HomePage() {
+  const [items, setItems] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let alive = true
+    ;(async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const data = await fetchProducts()
+        if (alive) setItems(data)
+      } catch (e: any) {
+        if (alive) setError(e?.message || "Error al cargar productos")
+      } finally {
+        if (alive) setLoading(false)
+      }
+    })()
+    return () => {
+      alive = false
+    }
+  }, [])
   return (
     <div className="relative min-h-screen bg-primary overflow-hidden">
       <div className="relative z-10">
@@ -171,10 +196,16 @@ export default function HomePage() {
             <h2 className="font-serif text-3xl sm:text-4xl font-bold text-foreground mb-4">Nuestros Productos</h2>
             <p className="text-text text-lg">Fernet artesanal y cristalería de calidad premium</p>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {loading ? (
+              <p className="col-span-full text-center text-muted-foreground">Cargando…</p>
+            ) : error ? (
+              <p className="col-span-full text-center text-destructive">{error}</p>
+            ) : items.length === 0 ? (
+              <p className="col-span-full text-center text-muted-foreground">Pronto vas a ver nuestros productos aquí.</p>
+            ) : (
+              items.map((product) => <ProductCard key={product.id} product={product} />)
+            )}
           </div>
           <div className="text-center mt-12">
             <Link

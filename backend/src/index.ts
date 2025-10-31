@@ -1,4 +1,5 @@
 import express from 'express';
+import path from 'path';
 import dotenv from 'dotenv';
 
 import { connectDB } from '@/config/database';
@@ -8,6 +9,7 @@ import paymentsRouter from '@/routes/payments';
 import waitlistRouter from '@/routes/waitlist';
 import adminRouter from '@/routes/admin';
 import productsRouter from '@/routes/products';
+import uploadsRouter from '@/routes/uploads';
 
 dotenv.config();
 
@@ -18,6 +20,11 @@ app.use(cors);
 app.use(express.json());
 
 // routes
+// archivos estáticos subidos
+const uploadsDir = path.resolve(process.cwd(), 'uploads');
+app.use('/uploads', express.static(uploadsDir));
+app.use('/uploads', uploadsRouter);
+
 app.get('/', (req, res) => {res.json({ message: 'Backend funcionando' });});
 app.get('/health', (req, res) => {res.status(200).json({ status: 'ok' });});
 app.use('/waitlist', waitlistRouter);

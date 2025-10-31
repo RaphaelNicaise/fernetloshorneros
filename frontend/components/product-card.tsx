@@ -1,10 +1,10 @@
 "use client"
 
-import Image from "next/image"
 import { useCart } from "@/lib/cart-context"
 import { useState } from "react"
 import clsx from "clsx"
 import { Check } from "lucide-react"
+import { getImageSrc } from "@/lib/api"
 
 interface Product {
   id: string
@@ -13,6 +13,7 @@ interface Product {
   image: string
   description: string
   roastLevel?: string
+  status?: "disponible" | "proximamente" | "agotado"
 }
 
 interface ProductCardProps {
@@ -22,13 +23,16 @@ interface ProductCardProps {
 export function ProductCard({ product }: ProductCardProps) {
   const { addItem } = useCart()
   const [isAdding, setIsAdding] = useState(false)
+  const isAvailable = (product.status ?? "disponible") === "disponible"
+  const priceNumber = Number(product.price)
 
   const handleAddToCart = () => {
+    if (!isAvailable) return
     addItem({
       id: product.id,
       name: product.name,
-      price: product.price,
-      image: product.image,
+      price: Number.isFinite(priceNumber) ? priceNumber : 0,
+      image: getImageSrc(product.image),
     })
     setIsAdding(true)
     setTimeout(() => setIsAdding(false), 1000)
@@ -37,7 +41,8 @@ export function ProductCard({ product }: ProductCardProps) {
   return (
     <div className="bg-card rounded-lg overflow-hidden border border-border hover:shadow-lg transition-shadow flex flex-col h-full">
       <div className="relative h-64 bg-muted">
-        <Image src={product.image || "/placeholder.svg"} alt={product.name} fill className="object-cover" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={getImageSrc(product.image) || "/placeholder.svg"} alt={product.name} className="object-cover w-full h-full" />
         {product.roastLevel && (
           <div className="absolute top-3 right-3 bg-background/90 backdrop-blur px-3 py-1 rounded-full text-sm font-medium text-foreground">
             {product.roastLevel}
@@ -47,37 +52,48 @@ export function ProductCard({ product }: ProductCardProps) {
       <div className="p-6 flex flex-col flex-1">
         <h3 className="font-serif text-xl font-bold text-foreground mb-2">{product.name}</h3>
         <p className="text-muted-foreground text-sm leading-relaxed mb-4">{product.description}</p>
-        <div className="mt-auto flex items-center justify-between pt-2">
-          <span className="text-2xl font-bold text-foreground">${product.price.toFixed(2)}</span>
-          <button
-            onClick={handleAddToCart}
-            disabled={isAdding}
-            aria-label="Agregar al carrito"
-            className={`px-4 py-2 bg-primary text-primary-foreground font-semibold rounded-lg transition-colors duration-200 hover:bg-primary/90 hover:brightness-110 hover:shadow-lg disabled:opacity-50 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${isAdding ? "bg-green-600 hover:bg-green-600" : ""}`}
-          >
-            <span className="relative inline-flex items-center justify-center w-5 h-5">
-              {/* Carrito */}
-              <span
-                className={clsx(
-                  "absolute inset-0 flex items-center justify-center transition-all duration-200",
-                  isAdding ? "opacity-0 rotate-90 scale-75" : "opacity-100 rotate-0 scale-100"
-                )}
-                aria-hidden={isAdding}
-              >
-                <span className="material-symbols-outlined text-[20px] leading-none align-middle translate-y-[1px]">add_shopping_cart</span>
+        <div className="mt-auto flex items-center justify-between pt-2 gap-3">
+          <span className="text-2xl font-bold text-foreground">
+            {Number.isFinite(priceNumber)
+              ? priceNumber.toLocaleString("es-AR", { style: "currency", currency: "ARS" })
+              : "-"}
+          </span>
+          <div className="flex items-center gap-2">
+            {!isAvailable && (
+              <span className="text-sm rounded-full bg-muted px-2 py-1 text-muted-foreground">
+                {product.status === "proximamente" ? "Próximamente" : product.status === "agotado" ? "Agotado" : ""}
               </span>
-              {/* Check */}
-              <span
-                className={clsx(
-                  "absolute inset-0 flex items-center justify-center transition-all duration-200",
-                  isAdding ? "opacity-100 rotate-0 scale-100" : "opacity-0 -rotate-90 scale-75"
-                )}
-                aria-hidden={!isAdding}
-              >
-                <Check className="w-5 h-5 text-white translate-y-[1px]" />
+            )}
+            <button
+              onClick={handleAddToCart}
+              disabled={isAdding || !isAvailable}
+              aria-label="Agregar al carrito"
+              className={`px-4 py-2 bg-primary text-primary-foreground font-semibold rounded-lg transition-colors duration-200 hover:bg-primary/90 hover:brightness-110 hover:shadow-lg disabled:opacity-50 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${isAdding ? "bg-green-600 hover:bg-green-600" : ""}`}
+            >
+              <span className="relative inline-flex items-center justify-center w-5 h-5">
+                {/* Carrito */}
+                <span
+                  className={clsx(
+                    "absolute inset-0 flex items-center justify-center transition-all duration-200",
+                    isAdding ? "opacity-0 rotate-90 scale-75" : "opacity-100 rotate-0 scale-100"
+                  )}
+                  aria-hidden={isAdding}
+                >
+                  <span className="material-symbols-outlined text-[20px] leading-none align-middle translate-y-[1px]">add_shopping_cart</span>
+                </span>
+                {/* Check */}
+                <span
+                  className={clsx(
+                    "absolute inset-0 flex items-center justify-center transition-all duration-200",
+                    isAdding ? "opacity-100 rotate-0 scale-100" : "opacity-0 -rotate-90 scale-75"
+                  )}
+                  aria-hidden={!isAdding}
+                >
+                  <Check className="w-5 h-5 text-white translate-y-[1px]" />
+                </span>
               </span>
-            </span>
-          </button>
+            </button>
+          </div>
         </div>
       </div>
     </div>
