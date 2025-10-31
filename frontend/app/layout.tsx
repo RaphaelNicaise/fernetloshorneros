@@ -3,7 +3,6 @@ import type { Metadata } from "next"
 import { Playfair_Display, Montserrat } from "next/font/google"
 import "./globals.css"
 import { CartProvider } from "@/lib/cart-context"
-import { ViewTransitions } from "next-view-transitions"
 
 const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-serif" })
 const montserrat = Montserrat({ subsets: ["latin"], variable: "--font-sans" })
@@ -25,12 +24,16 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <ViewTransitions>
-      <html lang="es">
-        <body className={`${playfair.variable} ${montserrat.variable} font-sans antialiased`}>
-          <CartProvider>{children}</CartProvider>
-        </body>
-      </html>
-    </ViewTransitions>
+    <html lang="es">
+      <head>
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=add_shopping_cart"
+        />
+      </head>
+      <body className={`${playfair.variable} ${montserrat.variable} font-sans antialiased`}>
+        <CartProvider>{children}</CartProvider>
+      </body>
+    </html>
   )
 }

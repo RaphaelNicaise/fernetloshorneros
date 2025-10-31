@@ -4,9 +4,7 @@ import { products } from "@/lib/products"
 import { ProductCard } from "@/components/product-card"
 import { Navigation } from "@/components/navigation"
 import Link from "next/link"
-import { Link as VTLink } from "next-view-transitions"
 import { Footer } from "@/components/footer"
-import { Instagram, Music } from "lucide-react"
 
 export default function ProductsPage() {
   return (
@@ -43,12 +41,12 @@ export default function ProductsPage() {
               Nuestro fernet artesanal es perfecto para disfrutar solo con hielo o en tu cóctel favorito. La cristalería
               está diseñada específicamente para realzar la experiencia.
             </p>
-            <VTLink
+            <Link
               href="/lista-espera"
               className="inline-flex items-center justify-center px-6 py-3 bg-primary text-primary-foreground font-semibold rounded-lg transition-all duration-200 transform-gpu hover:bg-primary/90 hover:shadow-md hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             >
               Únete a la Lista de Espera
-            </VTLink>
+            </Link>
           </div>
         </div>
       </section>

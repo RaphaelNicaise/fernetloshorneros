@@ -12,12 +12,13 @@ export default function CartPage() {
 
   if (items.length === 0) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background flex flex-col">
         <Navigation />
 
         {/* Empty Cart */}
-        <div className="container mx-auto px-4 py-20">
-          <div className="max-w-md mx-auto text-center">
+        <main className="flex-1">
+          <div className="container mx-auto px-4 py-20">
+            <div className="max-w-md mx-auto text-center">
             <div className="w-24 h-24 bg-secondary rounded-full flex items-center justify-center mx-auto mb-6">
               <svg className="w-12 h-12 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -30,8 +31,7 @@ export default function CartPage() {
             </div>
             <h1 className="font-serif text-3xl font-bold text-foreground mb-4">Tu Carrito está Vacío</h1>
             <p className="text-muted-foreground mb-8">
-              Parece que aún no has agregado productos a tu carrito. Explora nuestra colección para encontrar tu fernet
-              perfecto.
+              Parece que aún no has agregado productos a tu carrito. Explora nuestra tienda.
             </p>
             <Link
               href="/productos"
@@ -39,8 +39,9 @@ export default function CartPage() {
             >
               Ver Productos
             </Link>
+            </div>
           </div>
-        </div>
+        </main>
 
         {/* Footer */}
         <Footer />
@@ -49,19 +50,20 @@ export default function CartPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Navigation />
 
       {/* Cart Content */}
-      <div className="container mx-auto px-4 py-12">
-        <div className="max-w-5xl mx-auto">
+      <main className="flex-1">
+        <div className="container mx-auto px-4 py-12">
+          <div className="max-w-5xl mx-auto">
           <div className="flex items-center justify-between mb-8">
-            <h1 className="font-serif text-4xl font-bold text-foreground">Shopping Cart</h1>
+            <h1 className="font-serif text-4xl font-bold text-foreground">Carrito</h1>
             <button
               onClick={clearCart}
               className="text-sm text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
             >
-              Clear Cart
+              Limpiar Carrito
             </button>
           </div>
 
@@ -76,7 +78,7 @@ export default function CartPage() {
                     </div>
                     <div className="flex-1">
                       <h3 className="font-serif text-lg font-bold text-foreground mb-1">{item.name}</h3>
-                      <p className="text-muted-foreground text-sm mb-3">${item.price.toFixed(2)} per bag</p>
+                      <p className="text-muted-foreground text-sm mb-3">${item.price.toFixed(2)} por articulo</p>
                       <div className="flex items-center gap-3">
                         <div className="flex items-center border border-border rounded-lg">
                           <button
@@ -97,7 +99,7 @@ export default function CartPage() {
                           onClick={() => removeItem(item.id)}
                           className="text-sm text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
                         >
-                          Remove
+                          Quitar
                         </button>
                       </div>
                     </div>
@@ -112,7 +114,7 @@ export default function CartPage() {
             {/* Order Summary */}
             <div className="lg:col-span-1">
               <div className="bg-card border border-border rounded-lg p-6 sticky top-24">
-                <h2 className="font-serif text-2xl font-bold text-foreground mb-6">Order Summary</h2>
+                <h2 className="font-serif text-2xl font-bold text-foreground mb-6">Resumen del Pedido</h2>
                 <div className="space-y-3 mb-6">
                   <div className="flex justify-between text-muted-foreground">
                     <span>Subtotal</span>
@@ -128,19 +130,20 @@ export default function CartPage() {
                   </div>
                 </div>
                 <button className="w-full py-3 bg-primary text-primary-foreground font-semibold rounded-lg transition-all duration-200 transform-gpu hover:bg-primary/90 hover:shadow-md hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 mb-3 cursor-pointer">
-                  Proceed to Checkout
+                  Ir a pagar
                 </button>
                 <Link
                   href="/productos"
                   className="block text-center text-sm text-muted-foreground hover:text-primary transition-colors"
                 >
-                  Continue Shopping
+                  Continuar comprando
                 </Link>
               </div>
             </div>
           </div>
+          </div>
         </div>
-      </div>
+      </main>
 
       {/* Footer */}
       <Footer />
