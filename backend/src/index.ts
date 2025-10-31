@@ -6,6 +6,8 @@ import cors from '@/config/cors';
 
 import paymentsRouter from '@/routes/payments';
 import waitlistRouter from '@/routes/waitlist';
+import adminRouter from '@/routes/admin';
+import productsRouter from '@/routes/products';
 
 dotenv.config();
 
@@ -20,6 +22,8 @@ app.get('/', (req, res) => {res.json({ message: 'Backend funcionando' });});
 app.get('/health', (req, res) => {res.status(200).json({ status: 'ok' });});
 app.use('/waitlist', waitlistRouter);
 app.use('/payments', paymentsRouter);
+app.use('/admin', adminRouter);
+app.use('/products', productsRouter);
 
 const startServer = async () => {
   try {

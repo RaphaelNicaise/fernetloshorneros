@@ -3,6 +3,8 @@
 import Image from "next/image"
 import { useCart } from "@/lib/cart-context"
 import { useState } from "react"
+import clsx from "clsx"
+import { Check } from "lucide-react"
 
 interface Product {
   id: string
@@ -50,9 +52,31 @@ export function ProductCard({ product }: ProductCardProps) {
           <button
             onClick={handleAddToCart}
             disabled={isAdding}
-            className="px-4 py-2 bg-primary text-primary-foreground font-semibold rounded-lg transition-all duration-200 transform-gpu hover:bg-primary/90 hover:shadow-md hover:scale-105 active:scale-95 disabled:opacity-50 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            aria-label="Agregar al carrito"
+            className={`px-4 py-2 bg-primary text-primary-foreground font-semibold rounded-lg transition-colors duration-200 hover:bg-primary/90 hover:brightness-110 hover:shadow-lg disabled:opacity-50 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${isAdding ? "bg-green-600 hover:bg-green-600" : ""}`}
           >
-            {isAdding ? "Added!" : "Add to Cart"}
+            <span className="relative inline-flex items-center justify-center w-5 h-5">
+              {/* Carrito */}
+              <span
+                className={clsx(
+                  "absolute inset-0 flex items-center justify-center transition-all duration-200",
+                  isAdding ? "opacity-0 rotate-90 scale-75" : "opacity-100 rotate-0 scale-100"
+                )}
+                aria-hidden={isAdding}
+              >
+                <span className="material-symbols-outlined text-[20px] leading-none align-middle translate-y-[1px]">add_shopping_cart</span>
+              </span>
+              {/* Check */}
+              <span
+                className={clsx(
+                  "absolute inset-0 flex items-center justify-center transition-all duration-200",
+                  isAdding ? "opacity-100 rotate-0 scale-100" : "opacity-0 -rotate-90 scale-75"
+                )}
+                aria-hidden={!isAdding}
+              >
+                <Check className="w-5 h-5 text-white translate-y-[1px]" />
+              </span>
+            </span>
           </button>
         </div>
       </div>

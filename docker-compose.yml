@@ -21,6 +21,8 @@
           SMTP_HOST: ${SMTP_HOST}
           SMTP_PORT: ${SMTP_PORT}
           MAIL_USER: ${MAIL_USER}
+          ADMIN_USER: ${ADMIN_USER}
+          ADMIN_PASSWORD: ${ADMIN_PASSWORD}
           MAIL_PASSWORD: ${MAIL_PASSWORD}
         depends_on:
           mysql:

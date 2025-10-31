@@ -140,22 +140,36 @@
   }
   body {
     @apply bg-background text-foreground;
+    margin: 0; /* elimina el margen por defecto del navegador que puede verse como un borde blanco */
   }
 }
 
-/* View Transitions: sutil fade para cambios de ruta */
-@keyframes vt-fade-in {
-  from { opacity: 0.92 }
-  to { opacity: 1 }
-}
-@keyframes vt-fade-out {
-  from { opacity: 1 }
-  to { opacity: 0.98 }
+/* View Transitions globales eliminadas a pedido del proyecto */
+
+/* Material Symbols Outlined helper class */
+.material-symbols-outlined {
+  font-family: "Material Symbols Outlined";
+  font-weight: normal;
+  font-style: normal;
+  font-size: 20px; /* adjust via utility classes if needed */
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  font-feature-settings: "liga";
+  -webkit-font-feature-settings: "liga";
+  -webkit-font-smoothing: antialiased;
+  font-variation-settings: "FILL" 0, "wght" 500, "GRAD" 0, "opsz" 24;
 }
 
-:root::view-transition-old(root) {
-  animation: vt-fade-out 240ms ease;
-}
-:root::view-transition-new(root) {
-  animation: vt-fade-in 300ms ease;
+/* Animación de bump para el carrito del header */
+@keyframes cart-bump {
+  0% { transform: scale(1); }
+  20% { transform: scale(1.15); }
+  40% { transform: scale(0.95); }
+  60% { transform: scale(1.08); }
+  100% { transform: scale(1); }
 }
