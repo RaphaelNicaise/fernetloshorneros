@@ -7,6 +7,14 @@ export type WaitlistInput = {
     provincia: string;
 };
 
+export type WaitlistRow = {
+    id: number;
+    nombre: string;
+    email: string;
+    provincia: string;
+    fecha_registro: string; // ISO string
+};
+
 export const PROVINCIAS_ARGENTINA = ["Buenos Aires", "Catamarca", "Chaco", "Chubut", "Córdoba", "Corrientes", "Entre Ríos", "Formosa", "Jujuy", "La Pampa", "La Rioja", "Mendoza", "Misiones", "Neuquén", "Río Negro", "Salta", "San Juan", "San Luis", "Santa Cruz", "Santa Fe", "Santiago del Estero", "Tierra del Fuego", "Tucumán", "Montevideo Uruguay"];
 
 export async function addToWaitlist({ nombre, email, provincia }: WaitlistInput): Promise<void> {
@@ -30,14 +38,15 @@ export async function addToWaitlist({ nombre, email, provincia }: WaitlistInput)
     }
 }
 
-export async function getWaitlistUsers(): Promise<WaitlistInput[]> {
-    const users = await sequelize.query<WaitlistInput>(
-        `SELECT nombre, email, provincia FROM usuario_lista_espera`,
+export async function getWaitlistUsers(): Promise<WaitlistRow[]> {
+    const users = await sequelize.query<WaitlistRow>(
+        `SELECT id, nombre, email, provincia, fecha_registro FROM usuario_lista_espera ORDER BY fecha_registro DESC`,
         {
             type: QueryTypes.SELECT,
         }
     );
-    return users;
+    // Normalizamos fecha a ISO string por simplicidad
+    return users.map(u => ({ ...u, fecha_registro: new Date(u.fecha_registro as unknown as string).toISOString() }));
 }
 
 export async function getCountWaitlistUsers(): Promise<number> {
