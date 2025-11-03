@@ -35,7 +35,6 @@ export default function CartPage() {
       }
 
       // TODO: integrar con flujo de pago real
-      toast({ title: "Perfecto", description: "Todos los productos están disponibles. Continuá con el pago." })
     } catch (e: any) {
       toast({ title: "Error", description: e?.message || "No se pudo validar disponibilidad" })
     }

@@ -44,7 +44,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const tabs = useMemo(() => [
     { href: "/admin/productos", label: "Productos" },
     { href: "/admin/pedidos", label: "Pedidos" },
-    { href: "/admin/imagenes", label: "Imágenes" },
     { href: "/admin/lista-espera", label: "Lista de espera" },
   ], [])
 
