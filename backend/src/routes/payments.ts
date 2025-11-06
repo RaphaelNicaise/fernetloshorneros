@@ -21,8 +21,7 @@ paymentsRouter.post("/create-preference", async (req, res) => {
         success: "http://localhost:3001/payments/success",
         failure: "http://localhost:3001/payments/failure",
         pending: "http://localhost:3001/payments/pending",
-      },
-      auto_return: "approved"
+      }
     };
 
     const result = await preferenceClient.create({ body });

@@ -4,7 +4,6 @@ import { useCart } from "@/lib/cart-context"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import Link from "next/link"
-import { Instagram, Music } from "lucide-react"
 import { fetchProducts } from "@/lib/api"
 import { toast } from "@/hooks/use-toast"
 

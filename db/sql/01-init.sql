@@ -17,3 +17,26 @@ CREATE TABLE IF NOT EXISTS productos (
     image VARCHAR(255) NOT NULL,
     status ENUM('disponible','proximamente','agotado') NOT NULL DEFAULT 'disponible'
 );
+
+CREATE TABLE IF NOT EXISTS pagos (
+    id INT AUTO_INCREMENT PRIMARY KEY
+);
+
+CREATE TABLE IF NOT EXISTS pedidos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_pago INT NOT NULL,
+    total DECIMAL(10, 2) NOT NULL,
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_pago) REFERENCES pagos(id),
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+);
+
+CREATE TABLE IF NOT EXISTS pedido_items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_pedido INT,
+    id_producto VARCHAR(50),
+    cantidad INT NOT NULL,
+    precio_unitario DECIMAL(10, 2) NOT NULL,
+    FOREIGN KEY (id_pedido) REFERENCES pedidos(id),
+    FOREIGN KEY (id_producto) REFERENCES productos(id)
+);

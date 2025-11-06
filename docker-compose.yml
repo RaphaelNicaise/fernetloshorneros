@@ -9,7 +9,7 @@
           - ./backend:/app:cached
           - /app/node_modules
         environment:
-          TEST_MP_ACCESS_TOKEN: ${TEST_MP_ACCESS_TOKEN}
+          MP_ACCESS_TOKEN: ${MP_ACCESS_TOKEN}
           NODE_ENV: development
           PORT: 3001
           MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}

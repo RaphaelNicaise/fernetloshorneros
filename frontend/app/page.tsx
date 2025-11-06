@@ -7,38 +7,9 @@ import { fetchProducts, type Product } from "@/lib/api"
 import { ProductCard } from "@/components/product-card"
 import Link from "next/link"
 import { Footer } from "@/components/footer"
-import { TikTokEmbed } from "@/components/tiktok-embed"
-import { InstagramEmbed } from "../components/instagram-embed"
 import { SocialEmbedsWithLoading } from "@/components/social-embeds"
 import { useEffect, useState } from "react"
 
-const productionImages = [
-  {
-    src: "/fernet-production-herbs.jpg",
-    alt: "Selección de hierbas aromáticas",
-    caption: "Seleccionamos cuidadosamente más de 20 hierbas aromáticas de la región",
-  },
-  {
-    src: "/fernet-production-maceration.jpg",
-    alt: "Proceso de maceración",
-    caption: "Maceración lenta durante semanas para extraer los sabores más profundos",
-  },
-  {
-    src: "/fernet-production-distillation.jpg",
-    alt: "Destilación artesanal",
-    caption: "Destilación artesanal en pequeños lotes para garantizar la calidad",
-  },
-  {
-    src: "/fernet-production-aging.jpg",
-    alt: "Añejamiento en barricas",
-    caption: "Reposo en barricas de roble para desarrollar complejidad y suavidad",
-  },
-  {
-    src: "/fernet-production-bottling.jpg",
-    alt: "Embotellado manual",
-    caption: "Cada botella es embotellada y etiquetada a mano con dedicación",
-  },
-]
 
 const heroImages = [
   { src: "/fernet1.jpg", alt: "Fernet 1" },
@@ -146,9 +117,7 @@ export default function HomePage() {
           </div>
           {/* Instagram a la izquierda, TikTok a la derecha, con carga simulada */}
           <SocialEmbedsWithLoading />
-          <div className="h-[400px] sm:h-[500px] md:h-[600px]">
-            <ImageCarousel images={productionImages} autoPlayInterval={12000} />
-          </div>
+          
         </div>
       </section>
 
