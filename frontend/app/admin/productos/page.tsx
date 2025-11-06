@@ -266,6 +266,7 @@ export default function AdminProductosPage() {
             <col className="w-[76px]" />
             <col className="w-[140px]" />
             <col />
+            <col className="w-[280px]" />
             <col className="w-[120px]" />
             <col className="w-[150px]" />
             <col className="w-[220px]" />
@@ -275,6 +276,7 @@ export default function AdminProductosPage() {
               <TableHead>Imagen</TableHead>
               <TableHead>ID</TableHead>
               <TableHead>Nombre</TableHead>
+              <TableHead>Descripción</TableHead>
               <TableHead>Precio</TableHead>
               <TableHead>Estado</TableHead>
               <TableHead>Acciones</TableHead>
@@ -283,11 +285,11 @@ export default function AdminProductosPage() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={6}>Cargando…</TableCell>
+                <TableCell colSpan={7}>Cargando…</TableCell>
               </TableRow>
             ) : items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6}>Sin productos</TableCell>
+                <TableCell colSpan={7}>Sin productos</TableCell>
               </TableRow>
             ) : (
               items.map((p) => (
@@ -311,6 +313,17 @@ export default function AdminProductosPage() {
                       />
                     ) : (
                       p.name
+                    )}
+                  </TableCell>
+                  <TableCell className="truncate" title={p.description}>
+                    {editingId === p.id ? (
+                      <Textarea
+                        rows={2}
+                        value={editForm.description}
+                        onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
+                      />
+                    ) : (
+                      <div className="truncate">{p.description}</div>
                     )}
                   </TableCell>
                   <TableCell>
