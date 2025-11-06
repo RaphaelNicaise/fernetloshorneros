@@ -9,6 +9,7 @@ import Link from "next/link"
 import { Footer } from "@/components/footer"
 import { SocialEmbedsWithLoading } from "@/components/social-embeds"
 import { useEffect, useState } from "react"
+import MapArgentina from "@/components/MapaArgentina"
 
 
 const heroImages = [
@@ -183,6 +184,18 @@ export default function HomePage() {
             >
               Ver Todos los Productos
             </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Mapa de Argentina (solo en la página principal) */}
+      <section className="py-16 sm:py-24 px-4 bg-white">
+        <div className="container mx-auto max-w-6xl text-center">
+          <h2 className="font-serif text-3xl sm:text-4xl font-bold text-foreground mb-4">¿Dónde estamos ubicados?</h2>
+          <p className="text-text text-lg mb-2">Bahía Blanca, Provincia de Buenos Aires, Argentina</p>
+          <p className="text-text text-sm mb-6 text-muted-foreground">Pero a futuro nos gustaría expandirnos a todo el país.</p>
+          <div className="mx-auto max-w-3xl">
+            <MapArgentina />
           </div>
         </div>
       </section>
