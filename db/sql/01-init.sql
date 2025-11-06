@@ -27,8 +27,7 @@ CREATE TABLE IF NOT EXISTS pedidos (
     id_pago INT NOT NULL,
     total DECIMAL(10, 2) NOT NULL,
     fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_pago) REFERENCES pagos(id),
-    FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+    FOREIGN KEY (id_pago) REFERENCES pagos(id)
 );
 
 CREATE TABLE IF NOT EXISTS pedido_items (
