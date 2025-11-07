@@ -44,6 +44,7 @@ export function Footer() {
             <ul className="space-y-2 text-sm text-text">
               <li>loshornerosbb@gmail.com</li>
               <li>+54 9 2916 41-5881</li>
+              <li> dev by <a href="https://github.com/RaphaelNicaise" target="_blank">Raphael Nicaise</a></li>
             </ul>
           </div>
           <div>
@@ -75,7 +76,7 @@ export function Footer() {
           </div>
         </div>
         <div className="border-t border-secondary pt-8 text-center text-sm text-text">
-          <p>&copy; 2025 Fernet Los Horneros. Todos los derechos reservados.</p>
+          <p>&copy; 2025 Fernet Los Horneros. Todos los derechos reservados. Prohibida la venta a menores de 18 años. </p>
         </div>
       </div>
     </footer>

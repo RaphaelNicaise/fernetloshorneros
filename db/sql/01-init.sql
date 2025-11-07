@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS productos (
     description TEXT NOT NULL,
     price DECIMAL(10, 2) NOT NULL,
     image VARCHAR(255) NOT NULL,
+    limit INT NOT NULL DEFAULT 0, -- 0 significa sin limite
     status ENUM('disponible','proximamente','agotado') NOT NULL DEFAULT 'disponible'
 );
 
