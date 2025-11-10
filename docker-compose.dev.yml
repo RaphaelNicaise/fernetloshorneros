@@ -90,7 +90,24 @@
           PMA_PORT: 3306
         networks:
           - app_network
-
+      # temporal porque el vps usa dev
+      nginx:
+        image: nginx:alpine
+        container_name: nginx_prod
+        restart: unless-stopped
+        ports:
+          - "80:80"
+          - "443:443"
+        volumes:
+          - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+          - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+          - uploads_data:/var/www/uploads:ro
+          - ./ssl:/etc/nginx/ssl:ro
+        depends_on:
+          - frontend
+          - backend
+        networks:
+          - app_network
 
 
   networks:
