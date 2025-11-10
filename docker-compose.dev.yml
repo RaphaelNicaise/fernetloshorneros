@@ -119,3 +119,5 @@
       driver: local
     frontend_node_modules:
       driver: local
+    uploads_data:
+      driver: local
