@@ -54,7 +54,7 @@ export default function HomePage() {
           src="/fontscreen.png"
           alt=""
           aria-hidden
-          className="pointer-events-none absolute inset-0 w-full h-full object-cover opacity-25"
+          className="pointer-events-none absolute inset-0 w-full h-full object-cover opacity-40 md:opacity-25"
         />
         <div className="container mx-auto max-w-6xl">
           <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
@@ -82,7 +82,7 @@ export default function HomePage() {
                 <p className="text-lg sm:text-xl text-muted-foreground mb-8 leading-relaxed">
                   El mejor Fernet Artesanal
                 </p>
-                <div className="flex flex-wrap gap-4">
+                <div className="flex flex-wrap gap-4 justify-center md:justify-start text-center md:text-left">
                   <Link
                     href="/productos"
                     className="inline-flex items-center justify-center px-6 sm:px-8 py-3 sm:py-4 bg-primary text-primary-foreground font-semibold rounded-lg transition-all duration-200 transform-gpu hover:bg-primary/90 hover:shadow-md hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
@@ -159,7 +159,7 @@ export default function HomePage() {
           src="/fontscreen.png"
           alt=""
           aria-hidden
-          className="pointer-events-none absolute inset-0 w-full h-full object-cover opacity-25"
+          className="pointer-events-none absolute inset-0 w-full h-full object-cover opacity-40 md:opacity-25"
         />
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-12">
