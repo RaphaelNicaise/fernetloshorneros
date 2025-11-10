@@ -1,6 +1,7 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import { toast } from "@/hooks/use-toast"
 
 export interface CartItem {
   id: string
@@ -8,6 +9,7 @@ export interface CartItem {
   price: number
   image: string
   quantity: number
+  limite?: number // 0 o undefined = sin límite
 }
 
 interface CartContextType {
@@ -39,13 +41,28 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [items])
 
   const addItem = (newItem: Omit<CartItem, "quantity">) => {
+    let showLimitToast: { limite: number } | null = null
     setItems((currentItems) => {
       const existingItem = currentItems.find((item) => item.id === newItem.id)
+      const limite = newItem.limite ?? existingItem?.limite ?? 0
       if (existingItem) {
+        if (limite > 0 && existingItem.quantity >= limite) {
+          showLimitToast = { limite }
+          return currentItems
+        }
         return currentItems.map((item) => (item.id === newItem.id ? { ...item, quantity: item.quantity + 1 } : item))
       }
-      return [...currentItems, { ...newItem, quantity: 1 }]
+      return [...currentItems, { ...newItem, limite, quantity: 1 }]
     })
+    if (showLimitToast) {
+      // Ejecutar toast fuera del ciclo de render del CartProvider
+      setTimeout(() => {
+        toast({
+          title: "Límite alcanzado",
+          description: `No podés agregar más de ${showLimitToast!.limite} unidad(es) de este producto.`,
+        })
+      }, 0)
+    }
   }
 
   const removeItem = (id: string) => {
@@ -53,11 +70,25 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }
 
   const updateQuantity = (id: string, quantity: number) => {
-    if (quantity <= 0) {
-      removeItem(id)
-      return
+    let showLimitToast: { limite: number } | null = null
+    setItems((currentItems) => {
+      const item = currentItems.find(i => i.id === id)
+      if (!item) return currentItems
+      const limite = item.limite ?? 0
+      if (quantity <= 0) {
+        return currentItems.filter(i => i.id !== id)
+      }
+      if (limite > 0 && quantity > limite) {
+        showLimitToast = { limite }
+        return currentItems.map(i => i.id === id ? { ...i, quantity: limite } : i)
+      }
+      return currentItems.map(i => i.id === id ? { ...i, quantity } : i)
+    })
+    if (showLimitToast) {
+      setTimeout(() => {
+        toast({ title: "Límite alcanzado", description: `Máximo permitido: ${showLimitToast!.limite}.` })
+      }, 0)
     }
-    setItems((currentItems) => currentItems.map((item) => (item.id === id ? { ...item, quantity } : item)))
   }
 
   const clearCart = () => {

@@ -14,6 +14,7 @@ type Product = {
   description: string
   price: number
   image: string
+  limite: number // 0 = sin límite
   status: "disponible" | "proximamente" | "agotado"
 }
 
@@ -34,6 +35,7 @@ export default function AdminProductosPage() {
       description: "",
       price: 0,
       image: "",
+      limite: 0,
       status: "disponible",
     },
   )
@@ -45,6 +47,7 @@ export default function AdminProductosPage() {
     description: "",
     price: 0,
     image: "",
+    limite: 0,
     status: "disponible",
   })
 
@@ -85,7 +88,7 @@ export default function AdminProductosPage() {
   }, [])
 
   const resetCreate = () =>
-    setForm({ id: "", name: "", description: "", price: 0, image: "", status: "disponible" })
+    setForm({ id: "", name: "", description: "", price: 0, image: "", limite: 0, status: "disponible" })
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
@@ -99,6 +102,7 @@ export default function AdminProductosPage() {
         description: form.description,
         price: Number(form.price),
         image: form.image,
+        limite: Number(form.limite) || 0,
         status: form.status,
       }
       const res = await fetch(`${API_URL}/products`, {
@@ -117,7 +121,7 @@ export default function AdminProductosPage() {
 
   function startEdit(p: Product) {
     setEditingId(p.id)
-    setEditForm({ name: p.name, description: p.description, price: p.price, image: p.image, status: p.status })
+    setEditForm({ name: p.name, description: p.description, price: p.price, image: p.image, limite: p.limite ?? 0, status: p.status })
   }
 
   async function handleUpdate(id: string) {
@@ -128,6 +132,7 @@ export default function AdminProductosPage() {
         description: editForm.description,
         price: Number(editForm.price),
         image: editForm.image,
+        limite: Number(editForm.limite) || 0,
         status: editForm.status,
       }
       const res = await fetch(`${API_URL}/products/${id}`, {
@@ -183,6 +188,15 @@ export default function AdminProductosPage() {
                     step="0.01"
                     value={form.price}
                     onChange={(e) => setForm((f) => ({ ...f, price: Number(e.target.value) }))}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-muted-foreground">Límite (0 = sin límite)</label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={form.limite}
+                    onChange={(e) => setForm((f) => ({ ...f, limite: Math.max(0, Number(e.target.value)) }))}
                   />
                 </div>
                 <div>
@@ -268,6 +282,7 @@ export default function AdminProductosPage() {
             <col />
             <col className="w-[280px]" />
             <col className="w-[120px]" />
+            <col className="w-[110px]" />
             <col className="w-[150px]" />
             <col className="w-[220px]" />
           </colgroup>
@@ -279,6 +294,7 @@ export default function AdminProductosPage() {
               <TableHead>Descripción</TableHead>
               <TableHead>Precio</TableHead>
               <TableHead>Estado</TableHead>
+              <TableHead>Límite</TableHead>
               <TableHead>Acciones</TableHead>
             </TableRow>
           </TableHeader>
@@ -355,6 +371,18 @@ export default function AdminProductosPage() {
                       </Select>
                     ) : (
                       p.status
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {editingId === p.id ? (
+                      <Input
+                        type="number"
+                        min={0}
+                        value={editForm.limite}
+                        onChange={(e) => setEditForm((f) => ({ ...f, limite: Math.max(0, Number(e.target.value)) }))}
+                      />
+                    ) : (
+                      (p.limite ?? 0)
                     )}
                   </TableCell>
                   <TableCell>

@@ -14,6 +14,7 @@ interface Product {
   description: string
   roastLevel?: string
   status?: "disponible" | "proximamente" | "agotado"
+  limite?: number
 }
 
 interface ProductCardProps {
@@ -33,6 +34,7 @@ export function ProductCard({ product }: ProductCardProps) {
       name: product.name,
       price: Number.isFinite(priceNumber) ? priceNumber : 0,
       image: getImageSrc(product.image),
+      limite: product.limite,
     })
     setIsAdding(true)
     setTimeout(() => setIsAdding(false), 1000)

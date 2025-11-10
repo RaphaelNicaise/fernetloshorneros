@@ -5,6 +5,7 @@ export type Product = {
   price: number
   image: string
   status: 'disponible' | 'proximamente' | 'agotado'
+  limite?: number // 0 = sin límite (ausente o 0 => ilimitado)
 }
 
 // URLs para cliente (navegador) y servidor (SSR)
@@ -23,10 +24,19 @@ export function getImageSrc(src: string) {
 export async function fetchProducts(): Promise<Product[]> {
   const res = await fetch(`${API_BASE_URL}/products`, { cache: 'no-store' })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  const data = (await res.json()) as Product[]
-  // Normalizar price a number por si viene como string (por ej. DECIMAL de MySQL)
-  return data.map((p) => ({
-    ...p,
-    price: typeof (p as any).price === 'string' ? Number((p as any).price) : p.price,
-  }))
+  const raw = await res.json()
+  // Aceptamos objetos parcialmente tipados y normalizamos
+  return (raw as any[]).map((p) => {
+    const priceRaw = (p as any).price
+    const limiteRaw = (p as any).limite
+    return {
+      id: String(p.id),
+      name: String(p.name),
+      description: String(p.description ?? ''),
+      image: String(p.image ?? ''),
+      status: ['disponible','proximamente','agotado'].includes(p.status) ? p.status : 'disponible',
+      price: typeof priceRaw === 'string' ? Number(priceRaw) : Number(priceRaw),
+      limite: limiteRaw === undefined || limiteRaw === null ? 0 : Number(limiteRaw) || 0,
+    }
+  })
 }

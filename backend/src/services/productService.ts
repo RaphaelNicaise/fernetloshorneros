@@ -7,33 +7,37 @@ export type Product = {
     description: string;
     price: number;
     image: string;
-    status: 'disponible' | 'proximamente' | 'agotado';    
+    limite: number; // 0 = sin límite
+    status: 'disponible' | 'proximamente' | 'agotado';
 }
 
 export async function getAllProducts(): Promise<Product[]> {
     const products = await sequelize.query<Product>(
-        `SELECT id, name, description, price, image, status FROM productos ORDER BY name ASC`,
+        `SELECT id, name, description, price, image, limite, status FROM productos ORDER BY name ASC`,
         {
             type: QueryTypes.SELECT,
         }
     );
-    return products;
+    // Aseguramos limite numérico
+    return products.map(p => ({ ...p, limite: Number(p.limite) || 0 }));
 }
 
 export async function getProductById(id: string): Promise<Product | null> {
     const products = await sequelize.query<Product>(
-        `SELECT id, name, description, price, image, status FROM productos WHERE id = :id`,
+        `SELECT id, name, description, price, image, limite, status FROM productos WHERE id = :id`,
         {
             replacements: { id },
             type: QueryTypes.SELECT,
         }
     );
-    return products.length > 0 ? products[0] : null;
+    if (products.length === 0) return null;
+    const p = products[0];
+    return { ...p, limite: Number(p.limite) || 0 };
 }
 
 export async function createProduct(product: Product): Promise<void> {
     await sequelize.query(
-        `INSERT INTO productos (id, name, description, price, image, status) VALUES (:id, :name, :description, :price, :image, :status)`,
+        `INSERT INTO productos (id, name, description, price, image, limite, status) VALUES (:id, :name, :description, :price, :image, :limite, :status)`,
         {
             replacements: product,
             type: QueryTypes.INSERT,
@@ -43,7 +47,7 @@ export async function createProduct(product: Product): Promise<void> {
 
 export async function updateProduct(product: Product): Promise<void> {
     await sequelize.query(
-        `UPDATE productos SET name = :name, description = :description, price = :price, image = :image, status = :status WHERE id = :id`,
+        `UPDATE productos SET name = :name, description = :description, price = :price, image = :image, limite = :limite, status = :status WHERE id = :id`,
         {
             replacements: product,
             type: QueryTypes.UPDATE,
