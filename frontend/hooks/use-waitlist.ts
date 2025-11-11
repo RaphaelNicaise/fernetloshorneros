@@ -20,7 +20,7 @@ export function useWaitlist(options: UseWaitlistOptions = { auto: true }) {
   const [error, setError] = useState<string | null>(null)
   const controllerRef = useRef<AbortController | null>(null)
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api'
   const endpoint = apiUrl ? `${apiUrl}/waitlist` : undefined
 
   const fetchWaitlist = useCallback(async () => {

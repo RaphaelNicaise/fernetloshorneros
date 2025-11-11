@@ -25,7 +25,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
     const verify = async () => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/verify`, {
+        const base = process.env.NEXT_PUBLIC_API_URL || '/api'
+        const res = await fetch(`${base}/admin/verify`, {
           headers: { Authorization: `Bearer ${token}` },
         })
         if (!res.ok) {

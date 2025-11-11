@@ -23,7 +23,8 @@ export default function WaitlistPage() {
     setError(null)
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/waitlist`, {
+      const base = process.env.NEXT_PUBLIC_API_URL || '/api'
+      const res = await fetch(`${base}/waitlist`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

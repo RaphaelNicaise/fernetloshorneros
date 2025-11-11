@@ -18,7 +18,7 @@ type Product = {
   status: "disponible" | "proximamente" | "agotado"
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api"
 
 export default function AdminProductosPage() {
   const [items, setItems] = useState<Product[]>([])
@@ -54,7 +54,7 @@ export default function AdminProductosPage() {
   function getImageSrc(src: string) {
     if (!src) return ""
     if (src.startsWith("http://") || src.startsWith("https://")) return src
-    if (src.startsWith("/uploads/")) return `${API_URL}${src}`
+  if (src.startsWith("/uploads/")) return src
     return src // rutas de /public del frontend
   }
 
