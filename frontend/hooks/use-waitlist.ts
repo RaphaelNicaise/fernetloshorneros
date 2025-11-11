@@ -35,7 +35,10 @@ export function useWaitlist(options: UseWaitlistOptions = { auto: true }) {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(endpoint, { signal: controller.signal })
+  const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null
+  const headers: Record<string, string> = {}
+  if (token) headers['Authorization'] = `Bearer ${token}`
+  const res = await fetch(endpoint, { signal: controller.signal, headers })
       if (!res.ok) {
         const body = await res.json().catch(() => ({} as any))
         throw new Error(body?.error || `Error ${res.status}`)

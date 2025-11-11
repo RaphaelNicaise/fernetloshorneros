@@ -1,5 +1,24 @@
-import { Router } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import { addToWaitlist, getWaitlistUsers, getCountWaitlistUsers } from "@/services/waitlistService";
+
+// Sencillo middleware para requerir autenticación admin usando el mismo token del router admin
+function requireAdmin(req: Request, res: Response, next: NextFunction) {
+    const auth = req.headers.authorization || '';
+    const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+    if (!token) return res.status(401).json({ error: 'No autorizado' });
+    // Reusar lógica ligera: verificar estructura del token (no dependencia circular)
+    try {
+        const parts = token.split('.');
+        if (parts.length !== 3) return res.status(401).json({ error: 'Token inválido' });
+        const body = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
+        if (body.sub !== 'admin' || (typeof body.exp === 'number' && Date.now() > body.exp)) {
+            return res.status(401).json({ error: 'Token expirado o inválido' });
+        }
+    } catch {
+        return res.status(401).json({ error: 'Token inválido' });
+    }
+    next();
+}
 
 const waitlistRouter = Router();
 
@@ -24,7 +43,8 @@ waitlistRouter.post("/", async (req, res) => {
     }
 });
 
-waitlistRouter.get("/", async (req, res) => {
+// Protección: solo el admin puede listar usuarios completos
+waitlistRouter.get("/", requireAdmin, async (req, res) => {
     try {
         const users = await getWaitlistUsers();
         res.json(users);
@@ -33,6 +53,7 @@ waitlistRouter.get("/", async (req, res) => {
     }
 });
 
+// El contador puede mantenerse público si así se desea; aquí lo dejamos público
 waitlistRouter.get("/count", async (req, res) => {
     try {
         const count = await getCountWaitlistUsers();

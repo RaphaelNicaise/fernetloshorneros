@@ -6,6 +6,8 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  // Genera build "standalone" para imágenes de producción más livianas
+  output: 'standalone',
 }
 
 export default nextConfig

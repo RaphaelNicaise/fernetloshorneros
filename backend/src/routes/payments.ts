@@ -1,9 +1,10 @@
 import { Router } from "express";
 import { preferenceClient } from "@/config/mercadopago";
+import internalOnly from "@/middleware/internalOnly";
 
 const paymentsRouter = Router();
 
-paymentsRouter.post("/create-preference", async (req, res) => {
+paymentsRouter.post("/create-preference", internalOnly, async (req, res) => {
   try {
     const { title, quantity, unit_price } = req.body;
 
@@ -17,11 +18,15 @@ paymentsRouter.post("/create-preference", async (req, res) => {
           currency_id: "ARS",
         },
       ],
-      back_urls: {
-        success: "http://localhost:3001/payments/success",
-        failure: "http://localhost:3001/payments/failure",
-        pending: "http://localhost:3001/payments/pending",
-      }
+      back_urls: (function() {
+        const base = process.env.PUBLIC_BASE_URL || `http://localhost:${process.env.PORT || 3001}`;
+        const api = base.endsWith('/') ? `${base}api` : `${base}/api`;
+        return {
+          success: `${api}/payments/success`,
+          failure: `${api}/payments/failure`,
+          pending: `${api}/payments/pending`,
+        } as const;
+      })()
     };
 
     const result = await preferenceClient.create({ body });

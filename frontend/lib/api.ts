@@ -9,9 +9,11 @@ export type Product = {
 }
 
 // URLs para cliente (navegador) y servidor (SSR)
+// En producción detrás de Nginx el backend vive en /api
+// NEXT_PUBLIC_API_URL debe ser "/api" para llamadas desde el navegador.
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
-export const API_URL_INTERNAL =
-  process.env.NEXT_INTERNAL_API_URL || process.env.API_URL_INTERNAL || API_URL
+// Para SSR o acciones internas se puede usar la misma ruta pública ya que Nginx hace proxy.
+export const API_URL_INTERNAL = process.env.NEXT_INTERNAL_API_URL || API_URL
 export const API_BASE_URL = typeof window === 'undefined' ? API_URL_INTERNAL : API_URL
 
 export function getImageSrc(src: string) {

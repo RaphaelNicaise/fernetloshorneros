@@ -10,7 +10,7 @@ type LoginBody = {
 
 const ADMIN_USER = process.env.ADMIN_USER || '';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
-const SECRET = ADMIN_PASSWORD || 'default-secret';
+const SECRET = process.env.ADMIN_JWT_SECRET || ADMIN_PASSWORD || 'default-secret';
 
 function sign(payload: object): string {
   const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
