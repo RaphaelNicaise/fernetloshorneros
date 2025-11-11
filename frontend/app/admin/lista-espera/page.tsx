@@ -1,11 +1,12 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, useRef } from "react"
 import { useWaitlist, type WaitlistUser } from "@/hooks/use-waitlist"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import * as XLSX from "xlsx"
+import { API_BASE_URL } from "@/lib/api"
 
 type SortKey = keyof Pick<WaitlistUser, "id" | "nombre" | "email" | "provincia" | "fecha_registro">
 
@@ -17,6 +18,9 @@ export default function AdminListaEsperaPage() {
   const [sortKey, setSortKey] = useState<SortKey>("fecha_registro")
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc")
   const [query, setQuery] = useState("")
+  const [importing, setImporting] = useState(false)
+  const [importMsg, setImportMsg] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const sorted = useMemo(() => {
     if (!data) return [] as WaitlistUser[]
@@ -83,6 +87,72 @@ export default function AdminListaEsperaPage() {
     XLSX.writeFile(wb, filename)
   }
 
+  function parseCsv(text: string) {
+    // Espera headers: id,nombre,email,provincia,fecha_registro
+    const lines = text.split(/\r?\n/).filter(l => l.trim().length)
+    if (lines.length === 0) return [] as any[]
+    const header = lines[0].split(',').map(h => h.trim().toLowerCase())
+    const idx = {
+      id: header.indexOf('id'),
+      nombre: header.indexOf('nombre'),
+      email: header.indexOf('email'),
+      provincia: header.indexOf('provincia'),
+      fecha_registro: header.indexOf('fecha_registro'),
+    }
+    const rows: any[] = []
+    for (let i = 1; i < lines.length; i++) {
+      const raw = lines[i]
+      if (!raw) continue
+      const cols = raw.split(',')
+      // tolerancia básica: si trae más comas por provincia con coma, se unirá.
+      const get = (pos: number) => pos >= 0 && pos < cols.length ? cols[pos].trim() : ''
+      const id = get(idx.id)
+      const nombre = get(idx.nombre)
+      const email = get(idx.email)
+      const provincia = get(idx.provincia)
+      const fecha = get(idx.fecha_registro)
+      if (!email) continue
+      rows.push({
+        id: id ? Number(id) : undefined,
+        nombre,
+        email,
+        provincia,
+        fecha_registro: fecha || undefined,
+      })
+    }
+    return rows
+  }
+
+  async function handleImport(file: File) {
+    try {
+      setImportMsg(null)
+      setImporting(true)
+      const text = await file.text()
+      const rows = parseCsv(text)
+      const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null
+      const res = await fetch(`${API_BASE_URL}/waitlist/import`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ rows }),
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({} as any))
+        throw new Error(body?.error || `Error ${res.status}`)
+      }
+      const result = await res.json()
+      setImportMsg(`Importados: ${result.inserted} | Duplicados: ${result.duplicates} | Inválidos: ${result.invalid}`)
+      await refetch()
+    } catch (e: any) {
+      setImportMsg(e?.message || 'Error al importar')
+    } finally {
+      setImporting(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -98,8 +168,35 @@ export default function AdminListaEsperaPage() {
           />
           <Button variant="outline" onClick={refetch}>Recargar</Button>
           <Button variant="outline" onClick={exportXlsx} disabled={!data || data.length === 0}>Exportar a Excel</Button>
+          <div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv"
+              className="hidden"
+              id="import-waitlist-input"
+              onChange={(e) => {
+                const f = e.target.files?.[0]
+                if (f) handleImport(f)
+              }}
+              disabled={importing}
+            />
+            <Button
+              variant="outline"
+              onClick={() => document.getElementById('import-waitlist-input')?.click()}
+              disabled={importing}
+            >
+              {importing ? 'Importando...' : 'Importar CSV'}
+            </Button>
+          </div>
         </div>
       </div>
+
+      {importMsg && (
+        <div className="text-sm text-white/90">
+          {importMsg}
+        </div>
+      )}
 
       {loading && <div className="text-text">Cargando...</div>}
       {error && <div className="text-red-400">{error}</div>}

@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { addToWaitlist, getWaitlistUsers, getCountWaitlistUsers } from "@/services/waitlistService";
+import { addToWaitlist, getWaitlistUsers, getCountWaitlistUsers, importWaitlist, WaitlistImportRow } from "@/services/waitlistService";
 
 // Sencillo middleware para requerir autenticación admin usando el mismo token del router admin
 function requireAdmin(req: Request, res: Response, next: NextFunction) {
@@ -60,6 +60,18 @@ waitlistRouter.get("/count", async (req, res) => {
         res.json({ count });
     } catch (error) {
         res.status(500).json({ error: "Error al obtener el conteo de usuarios en la lista de espera" });
+    }
+});
+
+// Import masivo CSV -> JSON { rows: [...] }
+waitlistRouter.post('/import', requireAdmin, async (req, res) => {
+    try {
+        const { rows } = req.body as { rows?: WaitlistImportRow[] };
+        if (!Array.isArray(rows)) return res.status(400).json({ error: 'rows debe ser un array' });
+        const result = await importWaitlist(rows);
+        res.json(result);
+    } catch (err:any) {
+        res.status(500).json({ error: err?.message || 'Error al importar' });
     }
 });
 
