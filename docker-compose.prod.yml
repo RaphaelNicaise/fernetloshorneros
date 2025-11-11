@@ -58,8 +58,8 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-      MYSQL_USER: ${MYSQL_USER}
+      #MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      #MYSQL_USER: ${MYSQL_USER}
     volumes:
       - mysql_data:/var/lib/mysql
       - ./db/sql/01-init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
