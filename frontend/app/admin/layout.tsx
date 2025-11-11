@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
+import { API_BASE_URL } from "@/lib/api"
 
 import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
@@ -25,8 +26,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
     const verify = async () => {
       try {
-        const base = process.env.NEXT_PUBLIC_API_URL || '/api'
-        const res = await fetch(`${base}/admin/verify`, {
+        const res = await fetch(`${API_BASE_URL}/admin/verify`, {
           headers: { Authorization: `Bearer ${token}` },
         })
         if (!res.ok) {

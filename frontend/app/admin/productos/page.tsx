@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { API_BASE_URL } from "@/lib/api"
 
 type Product = {
   id: string
@@ -18,7 +19,7 @@ type Product = {
   status: "disponible" | "proximamente" | "agotado"
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api"
+const API_URL = API_BASE_URL
 
 export default function AdminProductosPage() {
   const [items, setItems] = useState<Product[]>([])
@@ -61,7 +62,12 @@ export default function AdminProductosPage() {
   async function uploadImage(file: File): Promise<string> {
     const fd = new FormData()
     fd.append("file", file)
-    const res = await fetch(`${API_URL}/uploads`, { method: "POST", body: fd })
+    const token = localStorage.getItem("admin_token")
+    const res = await fetch(`${API_URL}/uploads`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      body: fd,
+    })
     if (!res.ok) throw new Error("No se pudo subir la imagen")
     const data = (await res.json()) as { path: string }
     return data.path // ej: /uploads/xxx.jpg (servible desde API_URL)
@@ -105,9 +111,13 @@ export default function AdminProductosPage() {
         limite: Number(form.limite) || 0,
         status: form.status,
       }
+      const token = localStorage.getItem("admin_token")
       const res = await fetch(`${API_URL}/products`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify(body),
       })
       if (!res.ok) throw new Error("No se pudo crear el producto")
@@ -135,9 +145,13 @@ export default function AdminProductosPage() {
         limite: Number(editForm.limite) || 0,
         status: editForm.status,
       }
+      const token = localStorage.getItem("admin_token")
       const res = await fetch(`${API_URL}/products/${id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify(body),
       })
       if (!res.ok) throw new Error("No se pudo actualizar")
@@ -151,7 +165,11 @@ export default function AdminProductosPage() {
   async function handleDelete(id: string) {
     setError(null)
     try {
-      const res = await fetch(`${API_URL}/products/${id}`, { method: "DELETE" })
+      const token = localStorage.getItem("admin_token")
+      const res = await fetch(`${API_URL}/products/${id}`, {
+        method: "DELETE",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      })
       if (!res.ok) throw new Error("No se pudo eliminar")
       await load()
     } catch (e: any) {

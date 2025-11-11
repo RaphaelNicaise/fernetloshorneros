@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { Navigation } from "@/components/navigation"
+import { API_BASE_URL } from "@/lib/api"
 import { useState } from "react"
 
 export const PROVINCIAS_ARGENTINA = ["Buenos Aires", "Catamarca", "Chaco", "Chubut", "Córdoba", "Corrientes", "Entre Ríos", "Formosa", "Jujuy", "La Pampa", "La Rioja", "Mendoza", "Misiones", "Neuquén", "Río Negro", "Salta", "San Juan", "San Luis", "Santa Cruz", "Santa Fe", "Santiago del Estero", "Tierra del Fuego", "Tucumán"];
@@ -23,8 +24,7 @@ export default function WaitlistPage() {
     setError(null)
 
     try {
-      const base = process.env.NEXT_PUBLIC_API_URL || '/api'
-      const res = await fetch(`${base}/waitlist`, {
+      const res = await fetch(`${API_BASE_URL}/waitlist`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

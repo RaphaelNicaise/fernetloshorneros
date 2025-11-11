@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
+import { API_BASE_URL } from "@/lib/api"
 
 export type WaitlistUser = {
   id: number
@@ -20,15 +21,10 @@ export function useWaitlist(options: UseWaitlistOptions = { auto: true }) {
   const [error, setError] = useState<string | null>(null)
   const controllerRef = useRef<AbortController | null>(null)
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api'
-  const endpoint = apiUrl ? `${apiUrl}/waitlist` : undefined
+  const endpoint = `${API_BASE_URL}/waitlist`
 
   const fetchWaitlist = useCallback(async () => {
-    if (!endpoint) {
-      setError("NEXT_PUBLIC_API_URL no está definido")
-      setLoading(false)
-      return
-    }
+    // endpoint siempre definido desde API_BASE_URL
     controllerRef.current?.abort()
     const controller = new AbortController()
     controllerRef.current = controller

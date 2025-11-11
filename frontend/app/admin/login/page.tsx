@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { Eye, EyeOff, ShieldCheck } from "lucide-react"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { API_BASE_URL } from "@/lib/api"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 
@@ -21,8 +22,7 @@ export default function AdminLoginPage() {
     setLoading(true)
     setError(null)
     try {
-      const base = process.env.NEXT_PUBLIC_API_URL || '/api'
-      const res = await fetch(`${base}/admin/login`, {
+      const res = await fetch(`${API_BASE_URL}/admin/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
