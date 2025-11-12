@@ -57,7 +57,12 @@ export function ProductCard({ product }: ProductCardProps) {
         <div className="mt-auto flex items-center justify-between pt-2 gap-3">
           <span className="text-2xl font-bold text-foreground">
             {Number.isFinite(priceNumber)
-              ? priceNumber.toLocaleString("es-AR", { style: "currency", currency: "ARS" })
+              ? priceNumber.toLocaleString("es-AR", {
+                  style: "currency",
+                  currency: "ARS",
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0,
+                })
               : "-"}
           </span>
           <div className="flex items-center gap-2">
