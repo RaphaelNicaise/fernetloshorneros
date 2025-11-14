@@ -32,7 +32,13 @@ export default function AdminLoginPage() {
         throw new Error(data?.error || "Credenciales inválidas")
       }
       const data = (await res.json()) as { token: string }
+      // Persistimos en localStorage (uso app) y en cookie (uso Nginx auth_request)
       localStorage.setItem("admin_token", data.token)
+      try {
+        // 12h en segundos
+        const maxAge = 12 * 60 * 60
+        document.cookie = `admin_token=${encodeURIComponent(data.token)}; Max-Age=${maxAge}; Path=/; SameSite=Lax; Secure`
+      } catch {}
       router.replace("/admin")
     } catch (err: any) {
       setError(err?.message || "Error al iniciar sesión")

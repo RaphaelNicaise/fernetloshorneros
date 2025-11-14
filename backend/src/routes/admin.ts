@@ -64,7 +64,21 @@ adminRouter.post('/login', (req: Request<{}, {}, LoginBody>, res: Response) => {
 
 adminRouter.get('/verify', (req: Request, res: Response) => {
   const auth = req.headers.authorization || '';
-  const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+  let token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+  if (!token) {
+    const cookieHeader = req.headers.cookie || '';
+    if (cookieHeader) {
+      const cookies = Object.fromEntries(
+        cookieHeader.split(';').map((c) => {
+          const [k, ...rest] = c.trim().split('=');
+          return [decodeURIComponent(k), decodeURIComponent(rest.join('='))];
+        })
+      );
+      if (typeof cookies['admin_token'] === 'string') {
+        token = cookies['admin_token'];
+      }
+    }
+  }
   if (!token) return res.status(401).json({ ok: false, error: 'Sin token' });
   const { valid, payload } = verify(token);
   if (!valid) return res.status(401).json({ ok: false, error: 'Token inválido' });

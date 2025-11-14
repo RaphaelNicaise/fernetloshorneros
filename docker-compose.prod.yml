@@ -90,6 +90,22 @@ services:
       - backend
     networks:
       - app_network
+      
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin_prod
+    restart: unless-stopped
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_ARBITRARY: 0
+      UPLOAD_LIMIT: 64M
+      PMA_ABSOLUTE_URI: "${PUBLIC_BASE_URL}/phpmyadmin/"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - app_network
 
 volumes:
   mysql_data:
