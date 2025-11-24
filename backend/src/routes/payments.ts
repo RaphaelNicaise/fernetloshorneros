@@ -2,6 +2,10 @@ import { Router } from "express";
 import { preferenceClient } from "@/config/mercadopago";
 import internalOnly from "@/middleware/internalOnly";
 
+// Integracion con Mercado Pago - Checkout Pro
+// https://github.com/goncy/next-mercadopago/tree/main/integraciones/checkout-pro
+// https://www.youtube.com/watch?v=BUHUW7tAr_Y 
+
 const paymentsRouter = Router();
 
 paymentsRouter.post("/create-preference", internalOnly, async (req, res) => {

@@ -1,5 +1,5 @@
 import { transporter } from '@/config/mail';
-
+//ZIPNOVA SE ENCARGA DE ENVIAR LOS MAILS
 export async function enviarMailComprador(email: string, nombre: string, trackingUrl: string, pedidoId: string) {
   await transporter.sendMail({
     from: `"Los Horneros - Fernet" <${process.env.MAIL_USER}>`,
