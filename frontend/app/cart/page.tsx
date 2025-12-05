@@ -4,17 +4,21 @@ import { useCart } from "@/lib/cart-context"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import Link from "next/link"
-import { fetchProducts } from "@/lib/api"
+import { fetchProducts, createPaymentPreference } from "@/lib/api"
 import { toast } from "@/hooks/use-toast"
+import { useState } from "react"
 
 export default function CartPage() {
   const { items, removeItem, updateQuantity, clearCart, totalPrice } = useCart()
+  const [loading, setLoading] = useState(false)
 
   async function handleCheckout() {
     try {
+      setLoading(true)
       const catalog = await fetchProducts()
       const byId = new Map(catalog.map((p) => [p.id, p]))
       const removedNames: string[] = []
+      
       for (const it of items) {
         const p = byId.get(it.id)
         if (!p || p.status !== "disponible") {
@@ -22,6 +26,7 @@ export default function CartPage() {
           removeItem(it.id)
         }
       }
+      
       if (removedNames.length > 0) {
         toast({
           title: "Lo sentimos",
@@ -30,12 +35,31 @@ export default function CartPage() {
               ? `El producto "${removedNames[0]}" no está más disponible y fue quitado del carrito.`
               : `Estos productos ya no están disponibles y fueron quitados del carrito: ${removedNames.join(", ")}.`,
         })
+        setLoading(false)
         return
       }
 
-      // TODO: integrar con flujo de pago real
+      // Crear preferencia de pago en MercadoPago
+      const preference = await createPaymentPreference(
+        items.map(item => ({
+          id: item.id,
+          quantity: item.quantity,
+        }))
+      )
+
+      // Redirigir a MercadoPago
+      if (preference.init_point) {
+        window.location.href = preference.init_point
+      } else {
+        throw new Error("No se recibió URL de pago")
+      }
     } catch (e: any) {
-      toast({ title: "Error", description: e?.message || "No se pudo validar disponibilidad" })
+      console.error("Error en checkout:", e)
+      toast({ 
+        title: "Error", 
+        description: e?.message || "No se pudo procesar el pago" 
+      })
+      setLoading(false)
     }
   }
 
@@ -161,9 +185,10 @@ export default function CartPage() {
                 </div>
                 <button
                   onClick={handleCheckout}
-                  className="w-full py-3 bg-primary text-primary-foreground font-semibold rounded-lg transition-all duration-200 transform-gpu hover:bg-primary/90 hover:shadow-md hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 mb-3 cursor-pointer"
+                  disabled={loading}
+                  className="w-full py-3 bg-primary text-primary-foreground font-semibold rounded-lg transition-all duration-200 transform-gpu hover:bg-primary/90 hover:shadow-md hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 mb-3 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                 >
-                  Ir a pagar
+                  {loading ? "Procesando..." : "Ir a pagar"}
                 </button>
                 <Link
                   href="/productos"

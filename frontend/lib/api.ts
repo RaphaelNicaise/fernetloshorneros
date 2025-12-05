@@ -44,3 +44,17 @@ export async function fetchProducts(): Promise<Product[]> {
     }
   })
 }
+
+export async function createPaymentPreference(items: Array<{ id: string; quantity: number }>) {
+  const res = await fetch(`${API_BASE_URL}/payments/create-preference`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ items }),
+  })
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ error: 'Error desconocido' }))
+    throw new Error(error.error || `HTTP ${res.status}`)
+  }
+  return await res.json()
+}
+
