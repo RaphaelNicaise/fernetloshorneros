@@ -10,6 +10,7 @@ import waitlistRouter from '@/routes/waitlist';
 import adminRouter from '@/routes/admin';
 import productsRouter from '@/routes/products';
 import uploadsRouter from '@/routes/uploads';
+import ordersRouter from '@/routes/orders';
 
 dotenv.config();
 
@@ -31,6 +32,8 @@ app.use('/waitlist', waitlistRouter);
 app.use('/payments', paymentsRouter);
 app.use('/admin', adminRouter);
 app.use('/products', productsRouter);
+app.use('/orders', ordersRouter);
+
 
 const startServer = async () => {
   try {
