@@ -116,17 +116,17 @@ export function SocialEmbedsWithLoading() {
             <div className="w-full flex justify-center mb-8">
               <blockquote
                 className="tiktok-embed"
-                cite="https://www.tiktok.com/@santiagoredruelloo"
-                data-unique-id="santiagoredruelloo"
+                cite="https://www.tiktok.com/@santiredruelloo"
+                data-unique-id="santiredruelloo"
                 data-embed-type="creator"
                 style={{ maxWidth: "780px", minWidth: "288px", margin: 0 }}
               >
                 <section>
                   <a
                     target="_blank"
-                    href="https://www.tiktok.com/@santiagoredruelloo?refer=creator_embed"
+                    href="https://www.tiktok.com/@santiredruelloo?refer=creator_embed"
                   >
-                    @santiagoredruelloo
+                    @santiredruelloo
                   </a>
                 </section>
               </blockquote>

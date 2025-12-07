@@ -44,7 +44,7 @@ export function Footer() {
             <ul className="space-y-2 text-sm text-text">
               <li>loshornerosbb@gmail.com</li>
               <li>+54 9 2916 41-5881</li>
-              <li> dev by <a href="https://github.com/RaphaelNicaise" target="_blank">Raphael Nicaise</a></li>
+              <li> dev by <a href="https://www.linkedin.com/in/rapha%C3%ABl-nicaise-68025b27a/?locale=es_ES" target="_blank">Raphael Nicaise</a></li>
             </ul>
           </div>
           <div>
