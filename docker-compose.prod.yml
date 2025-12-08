@@ -27,6 +27,9 @@ services:
       ADMIN_USER: ${ADMIN_USER}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       MAIL_PASSWORD: ${MAIL_PASSWORD}
+      ZIPNOVA_BASE_URL: ${ZIPNOVA_BASE_URL}
+      ZIPNOVA_API_KEY: ${ZIPNOVA_API_KEY}
+      ZIPNOVA_API_SECRET: ${ZIPNOVA_API_SECRET}
     volumes:
       - uploads_data:/app/uploads
     depends_on:

@@ -39,7 +39,7 @@ const startServer = async () => {
   try {
     await connectDB({ sync: false });
     app.listen(port, () => {
-      console.log(`Servidor escuchando en http://localhost:${port}`);
+      console.log(`Servidor escuchando en el puerto ${port}`);
     });
   } catch (error) {
     process.exit(1);
