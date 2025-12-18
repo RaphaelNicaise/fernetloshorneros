@@ -120,19 +120,19 @@ router.post("/create-preference", async (req, res) => {
                 back_urls: {
                     success: process.env.NODE_ENV === 'development'
                         ? "https://zpxtnmn7-3000.brs.devtunnels.ms/payment/success"
-                        : `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/payment/success`,
+                        : `${process.env.PUBLIC_BASE_URL || "http://localhost:3000"}/payment/success`,
                     failure: process.env.NODE_ENV === 'development'
                         ? "https://zpxtnmn7-3000.brs.devtunnels.ms/payment/failure"
-                        : `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/payment/failure`,
+                        : `${process.env.PUBLIC_BASE_URL || "http://localhost:3000"}/payment/failure`,
                     pending: process.env.NODE_ENV === 'development'
                         ? "https://zpxtnmn7-3000.brs.devtunnels.ms/payment/pending"
-                        : `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/payment/pending`,
+                        : `${process.env.PUBLIC_BASE_URL || "http://localhost:3000"}/payment/pending`,
                 },
                 auto_return: "approved",
                 external_reference: external_reference,
                 notification_url: process.env.NODE_ENV === 'development' 
                     ? 'https://zpxtnmn7-3001.brs.devtunnels.ms/payments/webhook'
-                    : `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/payments/webhook`,
+                    : `${process.env.PUBLIC_BASE_URL || "http://localhost:3001"}/payments/webhook`,
             },
         });
 
