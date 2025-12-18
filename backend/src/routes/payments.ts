@@ -7,8 +7,12 @@ import {
     updateOrderStatus,
     createPayment,
     getPaymentByMpId,
+    getEnvioByOrderId,
+    updateEnvioStatus,
+    getOrderItems,
 } from "@/services/ordersService";
 import { getProductById } from "@/services/productService";
+import { createShipment } from "@/services/enviosService";
 
 const router = Router();
 
@@ -18,13 +22,17 @@ const router = Router();
  */
 router.post("/create-preference", async (req, res) => {
     try {
-        const { items } = req.body;
+        const { items, shipping } = req.body;
 
         if (!items || !Array.isArray(items) || items.length === 0) {
             return res.status(400).json({ error: "Items requeridos" });
         }
 
-        // Validar cada item y obtener info del producto
+        if (!shipping || !shipping.cost || shipping.cost <= 0) {
+            return res.status(400).json({ error: "Datos de envío requeridos" });
+        }
+
+        // validar cada item y obtener info del producto
         const validatedItems = [];
         let total = 0;
 
@@ -41,7 +49,7 @@ router.post("/create-preference", async (req, res) => {
 
             const quantity = Number(item.quantity) || 1;
             
-            // Verificar límite si existe
+            // verificar límite si existe
             if (product.limite > 0 && quantity > product.limite) {
                 return res.status(400).json({ 
                     error: `Cantidad excede el límite para ${product.name} (máximo: ${product.limite})` 
@@ -61,6 +69,9 @@ router.post("/create-preference", async (req, res) => {
             });
         }
 
+        const shippingCost = Number(shipping.cost);
+        const totalWithShipping = total + shippingCost;
+
         // Crear referencia única
         const external_reference = uuidv4();
 
@@ -72,20 +83,40 @@ router.post("/create-preference", async (req, res) => {
                 cantidad: item.cantidad,
                 precio_unitario: item.precio_unitario,
             })),
-            total,
+            total: totalWithShipping,
             external_reference,
+            // Guardamos info de envío para crear el envío después
+            shipping_info: {
+                cost: shippingCost,
+                rate_id: shipping.rate_id,
+                service_type: shipping.service_type,
+                point_id: shipping.point_id || null,
+                address: shipping.address || null,
+                contact: shipping.contact,
+            },
         });
 
-        // Crear preferencia de MercadoPago
+        // Crear preferencia de MercadoPago (incluye productos + envío)
+        const mpItems = [
+            ...validatedItems.map(item => ({
+                id: item.id_producto,
+                title: item.title,
+                quantity: item.quantity,
+                unit_price: item.unit_price,
+                currency_id: "ARS",
+            })),
+            {
+                id: "shipping",
+                title: `Envío (${shipping.service_type === 'pickup_point' ? 'Punto de retiro' : 'A domicilio'})`,
+                quantity: 1,
+                unit_price: shippingCost,
+                currency_id: "ARS",
+            },
+        ];
+
         const preference = await preferenceClient.create({
             body: {
-                items: validatedItems.map(item => ({
-                    id: item.id_producto,
-                    title: item.title,
-                    quantity: item.quantity,
-                    unit_price: item.unit_price,
-                    currency_id: "ARS",
-                })),
+                items: mpItems,
                 back_urls: {
                     success: process.env.NODE_ENV === 'development'
                         ? "https://zpxtnmn7-3000.brs.devtunnels.ms/payment/success"
@@ -125,7 +156,7 @@ router.post("/webhook", async (req, res) => {
     try {
         const { type, data } = req.body;
 
-        // MercadoPago envía diferentes tipos de notificaciones
+        // mercadoPago envía diferentes tipos de notificaciones
         if (type === "payment") {
             const paymentId = data?.id;
 
@@ -133,14 +164,14 @@ router.post("/webhook", async (req, res) => {
                 return res.status(400).json({ error: "Payment ID no recibido" });
             }
 
-            // Verificar si ya procesamos este pago
+            // verificar si ya procesamos este pago
             const existingPayment = await getPaymentByMpId(String(paymentId));
             if (existingPayment) {
                 console.log(`Pago ${paymentId} ya fue procesado`);
                 return res.status(200).json({ message: "Ya procesado" });
             }
 
-            // Importar Payment solo cuando se necesita
+            // importar Payment solo cuando se necesita
             const { Payment } = await import("mercadopago");
             const { MercadoPagoConfig } = await import("mercadopago");
             
@@ -149,7 +180,7 @@ router.post("/webhook", async (req, res) => {
             });
             const paymentClient = new Payment(client);
 
-            // Obtener información del pago desde MercadoPago
+            // obtener información del pago desde MercadoPago
             const payment = await paymentClient.get({ id: String(paymentId) });
 
             const external_reference = payment.external_reference;
@@ -174,20 +205,56 @@ router.post("/webhook", async (req, res) => {
                 total: payment.transaction_amount || 0,
             });
 
-            // Actualizar estado de la orden según el estado del pago
             if (payment.status === "approved") {
                 await updateOrderStatus(order.id, "paid");
                 console.log(`Orden ${order.id} marcada como pagada`);
+
+                // crear envío en Zipnova
+                const envio = await getEnvioByOrderId(order.id);
+                if (envio && envio.status === 'pending') {
+                    try {
+                        const orderItems = await getOrderItems(order.id);
+                        const zipnovaItems = orderItems.map(item => ({ sku: item.id_producto }));
+
+                        const shipmentResult = await createShipment({
+                            external_id: envio.id, 
+                            declared_value: Number(order.total),
+                            service_type: envio.service_type as 'standard_delivery' | 'pickup_point',
+                            destination: {
+                                name: envio.nombre_cliente,
+                                email: envio.email_cliente,
+                                phone: envio.telefono_cliente,
+                                document: envio.dni_cliente,
+                                city: envio.ciudad || '',
+                                state: envio.provincia || '',
+                                zipcode: envio.codigo_postal || '',
+                                street: envio.direccion || undefined,
+                                street_number: envio.numero || undefined,
+                                street_extras: envio.extra || undefined,
+                            },
+                            items: zipnovaItems,
+                            point_id: envio.point_id || undefined,
+                        });
+
+                        if (shipmentResult.success) {
+                            await updateEnvioStatus(envio.id, 'created', shipmentResult.shipment_id);
+                            console.log(`Envío ${envio.id} creado en Zipnova: ${shipmentResult.shipment_id}`);
+                        } else {
+                            console.error(`Error creando envío en Zipnova: ${shipmentResult.error}`);
+                        }
+                    } catch (shipError: any) {
+                        console.error("Error creando envío:", shipError);
+                    }
+                }
             } else if (payment.status === "rejected" || payment.status === "cancelled") {
                 await updateOrderStatus(order.id, "failed");
                 console.log(`Orden ${order.id} marcada como fallida`);
             }
-            // Si es "pending" o "in_process", dejamos la orden como "pending"
+            // si es pending o in_process, dejamos la orden como pending
 
             return res.status(200).json({ message: "Webhook procesado" });
         }
 
-        // Otros tipos de notificación
         res.status(200).json({ message: "Notificación recibida" });
     } catch (error: any) {
         console.error("Error procesando webhook:", error);

@@ -47,3 +47,27 @@ CREATE TABLE IF NOT EXISTS pagos (
     fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (id_pedido) REFERENCES pedidos(id)
 );
+
+CREATE TABLE IF NOT EXISTS envios (
+    id VARCHAR(30) PRIMARY KEY, -- ID corto generado para external_id de Zipnova
+    id_pedido INT NOT NULL,
+    rate_id VARCHAR(100) NOT NULL, -- ID de la tarifa de Zipnova
+    service_type VARCHAR(50) NOT NULL, -- standard_delivery o pickup_point
+    point_id VARCHAR(100) DEFAULT NULL, -- id del punto de retiro si aplica
+    costo DECIMAL(10, 2) NOT NULL,
+    -- Datos de dirección
+    provincia VARCHAR(100),
+    ciudad VARCHAR(100),
+    codigo_postal VARCHAR(10),
+    direccion VARCHAR(255),
+    numero VARCHAR(20),
+    extra VARCHAR(255), -- piso, depto, observaciones
+    nombre_cliente VARCHAR(100) NOT NULL,
+    email_cliente VARCHAR(100) NOT NULL,
+    dni_cliente VARCHAR(20) NOT NULL,
+    telefono_cliente VARCHAR(30) NOT NULL,
+    status VARCHAR(50) DEFAULT 'pending', -- 'pending', 'created', 'shipped', 'delivered' (WEBHOOK NO IMPLEMEANDO)
+    zipnova_shipment_id VARCHAR(100) DEFAULT NULL, -- id del envio creado en Zipnova
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_pedido) REFERENCES pedidos(id) ON DELETE CASCADE
+);

@@ -1,5 +1,12 @@
 import sequelize from "@/config/database";
 import { QueryTypes } from "sequelize";
+import { v4 as uuidv4 } from "uuid";
+
+function generateShortId(): string {
+    const timestamp = Date.now().toString(36); 
+    const random = Math.random().toString(36).substring(2, 10); 
+    return `${timestamp}${random}`.toUpperCase();
+}
 
 export type OrderStatus = "pending" | "paid" | "failed" | "cancelled";
 
@@ -29,6 +36,26 @@ export type CreateOrderInput = {
     }>;
     total: number;
     external_reference: string;
+    shipping_info?: {
+        cost: number;
+        rate_id: string;
+        service_type: string;
+        point_id?: string | null;
+        address?: {
+            provincia?: string;
+            ciudad?: string;
+            codigoPostal?: string;
+            direccion?: string;
+            numero?: string;
+            extra?: string;
+        } | null;
+        contact: {
+            nombre: string;
+            email: string;
+            dni: string;
+            telefono: string;
+        };
+    };
 };
 
 export type Payment = {
@@ -73,6 +100,44 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
                         title: item.title,
                         cantidad: item.cantidad,
                         precio_unitario: item.precio_unitario,
+                    },
+                    type: QueryTypes.INSERT,
+                    transaction,
+                }
+            );
+        }
+
+        if (input.shipping_info) {
+            const ship = input.shipping_info;
+            const envioId = generateShortId();
+            await sequelize.query(
+                `INSERT INTO envios (
+                    id, id_pedido, rate_id, service_type, point_id, costo,
+                    provincia, ciudad, codigo_postal, direccion, numero, extra,
+                    nombre_cliente, email_cliente, dni_cliente, telefono_cliente
+                ) VALUES (
+                    :id, :id_pedido, :rate_id, :service_type, :point_id, :costo,
+                    :provincia, :ciudad, :codigo_postal, :direccion, :numero, :extra,
+                    :nombre_cliente, :email_cliente, :dni_cliente, :telefono_cliente
+                )`,
+                {
+                    replacements: {
+                        id: envioId,
+                        id_pedido: orderId,
+                        rate_id: ship.rate_id,
+                        service_type: ship.service_type,
+                        point_id: ship.point_id || null,
+                        costo: ship.cost,
+                        provincia: ship.address?.provincia || null,
+                        ciudad: ship.address?.ciudad || null,
+                        codigo_postal: ship.address?.codigoPostal || null,
+                        direccion: ship.address?.direccion || null,
+                        numero: ship.address?.numero || null,
+                        extra: ship.address?.extra || null,
+                        nombre_cliente: ship.contact.nombre,
+                        email_cliente: ship.contact.email,
+                        dni_cliente: ship.contact.dni,
+                        telefono_cliente: ship.contact.telefono,
                     },
                     type: QueryTypes.INSERT,
                     transaction,
@@ -207,4 +272,65 @@ export async function getAllOrders(): Promise<Order[]> {
     );
 
     return orders;
+}
+
+
+export type Envio = {
+    id: string;
+    id_pedido: number;
+    rate_id: string;
+    service_type: string;
+    point_id: string | null;
+    costo: number;
+    provincia: string | null;
+    ciudad: string | null;
+    codigo_postal: string | null;
+    direccion: string | null;
+    numero: string | null;
+    extra: string | null;
+    nombre_cliente: string;
+    email_cliente: string;
+    dni_cliente: string;
+    telefono_cliente: string;
+    status: string;
+    zipnova_shipment_id: string | null;
+    fecha: string;
+};
+
+/**
+ * Obtiene el envío de una orden
+ */
+export async function getEnvioByOrderId(orderId: number): Promise<Envio | null> {
+    const envios = await sequelize.query<Envio>(
+        `SELECT * FROM envios WHERE id_pedido = :orderId`,
+        {
+            replacements: { orderId },
+            type: QueryTypes.SELECT,
+        }
+    );
+
+    return envios.length > 0 ? envios[0] : null;
+}
+
+/**
+ * Actualiza el estado del envío y guarda el ID de Zipnova
+ */
+export async function updateEnvioStatus(
+    envioId: string, 
+    status: string, 
+    zipnovaShipmentId?: string
+): Promise<void> {
+    await sequelize.query(
+        `UPDATE envios 
+         SET status = :status, zipnova_shipment_id = :zipnova_shipment_id 
+         WHERE id = :id`,
+        {
+            replacements: { 
+                id: envioId, 
+                status,
+                zipnova_shipment_id: zipnovaShipmentId || null,
+            },
+            type: QueryTypes.UPDATE,
+        }
+    );
 }

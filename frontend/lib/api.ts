@@ -45,16 +45,149 @@ export async function fetchProducts(): Promise<Product[]> {
   })
 }
 
-export async function createPaymentPreference(items: Array<{ id: string; quantity: number }>) {
+export interface ShippingInfo {
+  cost: number
+  rate_id: string
+  service_type: string
+  point_id?: string | null
+  address?: {
+    provincia: string
+    ciudad: string
+    codigoPostal: string
+    direccion: string
+    numero: string
+    extra?: string
+  } | null
+  contact: {
+    nombre: string
+    email: string
+    dni: string
+    telefono: string
+  }
+}
+
+export async function createPaymentPreference(
+  items: Array<{ id: string; quantity: number }>,
+  shipping: ShippingInfo
+) {
   const res = await fetch(`${API_BASE_URL}/payments/create-preference`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ items }),
+    body: JSON.stringify({ items, shipping }),
   })
   if (!res.ok) {
     const error = await res.json().catch(() => ({ error: 'Error desconocido' }))
     throw new Error(error.error || `HTTP ${res.status}`)
   }
   return await res.json()
+}
+
+export interface ShippingDestination {
+  city?: string
+  state: string
+  zipcode: string
+}
+
+export interface ShippingQuoteRequest {
+  destination: ShippingDestination
+  items: Array<{ id: string; quantity: number }>
+}
+
+export interface ShippingQuoteResponse {
+  success: boolean
+  shipping_cost?: number
+  carrier?: string
+  delivery_time?: string
+  products_total?: number
+  total?: number
+  error?: string
+}
+
+// Tipos para el flujo de dos pasos
+export interface PickupPoint {
+  point_id: string
+  name: string
+  address: string
+  city: string
+  state: string
+  zipcode: string
+  distance?: number
+  hours?: string
+}
+
+export interface ShippingOption {
+  rate_id: string
+  carrier_name: string
+  carrier_logo?: string
+  service_type: 'standard_delivery' | 'pickup_point'
+  service_name?: string
+  amounts: {
+    price: number
+    price_incl_tax: number
+  }
+  estimated_delivery: {
+    min_days: number
+    max_days: number
+    estimated_date?: string
+  }
+  pickup_points?: PickupPoint[]
+  tags?: string[]
+}
+
+export interface ShippingOptionsResponse {
+  success: boolean
+  all_results?: ShippingOption[]
+  products_total?: number
+  error?: string
+}
+
+export async function quoteShipping(request: ShippingQuoteRequest): Promise<ShippingQuoteResponse> {
+  const res = await fetch(`${API_BASE_URL}/shipping/quote`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+  })
+  const data = await res.json()
+  return data
+}
+
+export async function quoteShippingOptions(request: ShippingQuoteRequest): Promise<ShippingOptionsResponse> {
+  const res = await fetch(`${API_BASE_URL}/shipping/quote-options`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+  })
+  const data = await res.json()
+  return data
+}
+
+export interface Provincia {
+  id: string
+  nombre: string
+}
+
+export interface Localidad {
+  id: string
+  nombre: string
+}
+
+export async function fetchProvincias(): Promise<Provincia[]> {
+  const res = await fetch('https://apis.datos.gob.ar/georef/api/provincias')
+  if (!res.ok) throw new Error('Error cargando provincias')
+  const data = await res.json()
+  return (data.provincias || []).sort((a: Provincia, b: Provincia) => 
+    a.nombre.localeCompare(b.nombre)
+  )
+}
+
+export async function fetchLocalidades(provincia: string): Promise<Localidad[]> {
+  const res = await fetch(
+    `https://apis.datos.gob.ar/georef/api/localidades?provincia=${encodeURIComponent(provincia)}&max=2000`
+  )
+  if (!res.ok) throw new Error('Error cargando localidades')
+  const data = await res.json()
+  return (data.localidades || []).sort((a: Localidad, b: Localidad) => 
+    a.nombre.localeCompare(b.nombre)
+  )
 }
 

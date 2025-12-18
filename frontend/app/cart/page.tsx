@@ -6,13 +6,37 @@ import { Footer } from "@/components/footer"
 import Link from "next/link"
 import { fetchProducts, createPaymentPreference } from "@/lib/api"
 import { toast } from "@/hooks/use-toast"
-import { useState } from "react"
+import { useState, useCallback } from "react"
+import { ShippingSelector, type ShippingSelection } from "@/components/shipping-selector"
 
 export default function CartPage() {
   const { items, removeItem, updateQuantity, clearCart, totalPrice } = useCart()
   const [loading, setLoading] = useState(false)
+  
+  // Selección de envío
+  const [shippingSelection, setShippingSelection] = useState<ShippingSelection | null>(null)
+  const [totalWithShipping, setTotalWithShipping] = useState(totalPrice)
+
+  const handleShippingComplete = useCallback((selection: ShippingSelection) => {
+    setShippingSelection(selection)
+  }, [])
+
+  const handleTotalChange = useCallback((total: number) => {
+    setTotalWithShipping(total)
+  }, [])
+
+  // Verificar si se puede proceder al pago
+  const canCheckout = shippingSelection !== null
 
   async function handleCheckout() {
+    if (!canCheckout || !shippingSelection) {
+      toast({
+        title: "Datos incompletos",
+        description: "Por favor completa todos los datos de envío antes de continuar",
+      })
+      return
+    }
+
     try {
       setLoading(true)
       const catalog = await fetchProducts()
@@ -39,12 +63,20 @@ export default function CartPage() {
         return
       }
 
-      // Crear preferencia de pago en MercadoPago
+      // Crear preferencia de pago en MercadoPago (incluye productos + envío)
       const preference = await createPaymentPreference(
         items.map(item => ({
           id: item.id,
           quantity: item.quantity,
-        }))
+        })),
+        {
+          cost: shippingSelection.shipping_cost,
+          rate_id: shippingSelection.rate_id,
+          service_type: shippingSelection.service_type,
+          point_id: shippingSelection.point_id || null,
+          address: shippingSelection.address || null,
+          contact: shippingSelection.contact,
+        }
       )
 
       // Redirigir a MercadoPago
@@ -109,7 +141,7 @@ export default function CartPage() {
       {/* Cart Content */}
       <main className="flex-1">
         <div className="container mx-auto px-4 py-12">
-          <div className="max-w-5xl mx-auto">
+          <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between mb-8">
             <h1 className="font-serif text-4xl font-bold text-foreground">Carrito</h1>
             <button
@@ -121,71 +153,109 @@ export default function CartPage() {
           </div>
 
           <div className="grid lg:grid-cols-3 gap-8">
-            {/* Cart Items */}
-            <div className="lg:col-span-2 space-y-4">
-              {items.map((item) => (
-                <div key={item.id} className="bg-card border border-border rounded-lg p-6">
-                  <div className="flex gap-4">
-                    <div className="relative w-24 h-24 bg-muted rounded-lg overflow-hidden flex-shrink-0">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={item.image || "/placeholder.svg"} alt={item.name} className="object-cover w-full h-full" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-serif text-lg font-bold text-foreground mb-1">{item.name}</h3>
-                      <p className="text-muted-foreground text-sm mb-3">${item.price.toFixed(2)} por articulo</p>
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center border border-border rounded-lg">
+            {/* Cart Items y Envío */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Productos */}
+              <div className="space-y-4">
+                <h2 className="font-serif text-xl font-bold text-foreground">Productos</h2>
+                {items.map((item) => (
+                  <div key={item.id} className="bg-card border border-border rounded-xl p-6">
+                    <div className="flex gap-4">
+                      <div className="relative w-24 h-24 bg-muted rounded-lg overflow-hidden flex-shrink-0">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={item.image || "/placeholder.svg"} alt={item.name} className="object-cover w-full h-full" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-serif text-lg font-bold text-foreground mb-1">{item.name}</h3>
+                        <p className="text-muted-foreground text-sm mb-3">${item.price.toLocaleString('es-AR')} por articulo</p>
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center border border-border rounded-lg">
+                            <button
+                              onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                              className="px-3 py-1 hover:bg-secondary transition-colors cursor-pointer transform-gpu active:scale-95"
+                            >
+                              -
+                            </button>
+                            <span className="px-4 py-1 border-x border-border font-medium">{item.quantity}</span>
+                            <button
+                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                              className="px-3 py-1 hover:bg-secondary transition-colors cursor-pointer transform-gpu active:scale-95"
+                            >
+                              +
+                            </button>
+                          </div>
                           <button
-                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                            className="px-3 py-1 hover:bg-secondary transition-colors cursor-pointer transform-gpu active:scale-95"
+                            onClick={() => removeItem(item.id)}
+                            className="text-sm text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
                           >
-                            -
-                          </button>
-                          <span className="px-4 py-1 border-x border-border font-medium">{item.quantity}</span>
-                          <button
-                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                            className="px-3 py-1 hover:bg-secondary transition-colors cursor-pointer transform-gpu active:scale-95"
-                          >
-                            +
+                            Quitar
                           </button>
                         </div>
-                        <button
-                          onClick={() => removeItem(item.id)}
-                          className="text-sm text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
-                        >
-                          Quitar
-                        </button>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-foreground text-lg">${(item.price * item.quantity).toLocaleString('es-AR')}</p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-bold text-foreground text-lg">${(item.price * item.quantity).toFixed(2)}</p>
-                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
+
+              {/* Selector de Envío */}
+              <ShippingSelector
+                items={items.map(item => ({ id: item.id, quantity: item.quantity }))}
+                productsTotal={totalPrice}
+                onSelectionComplete={handleShippingComplete}
+                onTotalChange={handleTotalChange}
+              />
             </div>
 
             {/* Order Summary */}
             <div className="lg:col-span-1">
-              <div className="bg-card border border-border rounded-lg p-6 sticky top-24">
+              <div className="bg-card border border-border rounded-xl p-6 sticky top-24">
                 <h2 className="font-serif text-2xl font-bold text-foreground mb-6">Resumen del Pedido</h2>
                 <div className="space-y-3 mb-6">
                   <div className="flex justify-between text-muted-foreground">
-                    <span>Subtotal</span>
-                    <span>${totalPrice.toFixed(2)}</span>
+                    <span>Subtotal productos</span>
+                    <span>${totalPrice.toLocaleString('es-AR')}</span>
                   </div>
+                  
                   <div className="flex justify-between text-muted-foreground">
-                    <span>Shipping</span>
-                    <span>Calculated at checkout</span>
+                    <span>Envío</span>
+                    {shippingSelection ? (
+                      <span>${shippingSelection.shipping_cost.toLocaleString('es-AR')}</span>
+                    ) : (
+                      <span className="text-sm">Completa los datos</span>
+                    )}
                   </div>
+
+                  {shippingSelection && (
+                    <div className="text-xs text-muted-foreground">
+                      <span>{shippingSelection.carrier_name}</span>
+                      <span className="block">
+                        {shippingSelection.service_type === 'standard_delivery' 
+                          ? 'Envío a domicilio' 
+                          : 'Retiro en punto de entrega'}
+                      </span>
+                    </div>
+                  )}
+                  
                   <div className="border-t border-border pt-3 flex justify-between">
                     <span className="font-bold text-foreground text-lg">Total</span>
-                    <span className="font-bold text-foreground text-lg">${totalPrice.toFixed(2)}</span>
+                    <span className="font-bold text-foreground text-lg">
+                      ${totalWithShipping.toLocaleString('es-AR')}
+                    </span>
                   </div>
                 </div>
+
+                {!canCheckout && (
+                  <p className="text-sm text-amber-600 dark:text-amber-400 mb-3">
+                    Completa todos los datos de envío para continuar
+                  </p>
+                )}
+
                 <button
                   onClick={handleCheckout}
-                  disabled={loading}
+                  disabled={loading || !canCheckout}
                   className="w-full py-3 bg-primary text-primary-foreground font-semibold rounded-lg transition-all duration-200 transform-gpu hover:bg-primary/90 hover:shadow-md hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 mb-3 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                 >
                   {loading ? "Procesando..." : "Ir a pagar"}
