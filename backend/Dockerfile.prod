@@ -11,8 +11,6 @@ FROM node:20-alpine AS prod
 WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@9.12.3 --activate
 COPY package.json pnpm-lock.yaml ./
-# Lockfile puede estar desactualizado respecto a package.json (agregamos tsc-alias/rimraf)
-# Usamos --no-frozen-lockfile para instalar solo prod deps en runtime
 RUN pnpm install --prod --no-frozen-lockfile
 COPY --from=build /app/dist ./dist
 COPY uploads ./uploads
