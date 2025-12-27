@@ -1,13 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  poweredByHeader: false,
+
   typescript: {
     ignoreBuildErrors: true,
   },
+
   images: {
     unoptimized: true,
   },
-  // Genera build "standalone" para imágenes de producción más livianas
+
+  // Build standalone (ideal para Docker)
   output: 'standalone',
 }
 
-export default nextConfig
+module.exports = nextConfig
