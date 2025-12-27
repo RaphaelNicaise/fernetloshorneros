@@ -10,8 +10,7 @@ const nextConfig = {
     unoptimized: true,
   },
 
-  // Build standalone (ideal para Docker)
   output: 'standalone',
 }
 
-module.exports = nextConfig
+export default nextConfig
