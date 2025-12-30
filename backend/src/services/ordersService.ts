@@ -16,6 +16,8 @@ export type Order = {
     status: OrderStatus;
     fecha: string;
     external_reference: string;
+    zipnova_shipment_id?: string | null;
+    envio_status?: string | null;
 };
 
 export type OrderItem = {
@@ -261,11 +263,51 @@ export async function getPaymentByMpId(mp_payment_id: string): Promise<Payment |
 }
 
 /**
+ * Obtiene el pago de una orden por su ID de pedido
+ */
+export async function getPaymentByOrderId(orderId: number): Promise<Payment | null> {
+    const payments = await sequelize.query<Payment>(
+        `SELECT id, id_pedido, mp_payment_id, status, payment_method, total, fecha 
+         FROM pagos 
+         WHERE id_pedido = :orderId
+         ORDER BY fecha DESC
+         LIMIT 1`,
+        {
+            replacements: { orderId },
+            type: QueryTypes.SELECT,
+        }
+    );
+
+    return payments.length > 0 ? payments[0] : null;
+}
+
+/**
  * Obtiene todas las órdenes
  */
 export async function getAllOrders(): Promise<Order[]> {
     const orders = await sequelize.query<Order>(
-        `SELECT id, total, status, fecha, external_reference FROM pedidos ORDER BY fecha DESC`,
+        `SELECT 
+            p.id, 
+            p.total, 
+            p.status, 
+            p.fecha, 
+            p.external_reference,
+            (
+              SELECT e.zipnova_shipment_id 
+              FROM envios e 
+              WHERE e.id_pedido = p.id 
+              ORDER BY e.fecha DESC 
+              LIMIT 1
+                        ) AS zipnova_shipment_id,
+                        (
+                            SELECT e.status
+                            FROM envios e
+                            WHERE e.id_pedido = p.id
+                            ORDER BY e.fecha DESC
+                            LIMIT 1
+                        ) AS envio_status
+         FROM pedidos p 
+         ORDER BY p.fecha DESC`,
         {
             type: QueryTypes.SELECT,
         }

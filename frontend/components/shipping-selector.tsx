@@ -186,8 +186,9 @@ export function ShippingSelector({ items, productsTotal, onSelectionComplete, on
 
   const canQuote = codigoPostal.trim().length >= 4 && provincia.trim() !== "" && ciudad.trim() !== ""
   
+  const itemsKey = items.map(i => `${i.id}:${i.quantity}`).join(',')
   const [lastQuotedValues, setLastQuotedValues] = useState<string | null>(null)
-  const currentQuoteKey = `${codigoPostal.trim()}-${provincia.trim()}-${ciudad.trim()}`
+  const currentQuoteKey = `${codigoPostal.trim()}-${provincia.trim()}-${ciudad.trim()}-${itemsKey}`
   
   useEffect(() => {
     if (!canQuote) {
@@ -544,14 +545,6 @@ export function ShippingSelector({ items, productsTotal, onSelectionComplete, on
                             </p>
                           )}
                         </div>
-                        {point.distance && (
-                          <span className="text-sm text-muted-foreground whitespace-nowrap">
-                            {point.distance < 1 
-                              ? `${Math.round(point.distance * 1000)} m`
-                              : `${point.distance.toFixed(1)} km`
-                            }
-                          </span>
-                        )}
                       </div>
                     </button>
                   ))}

@@ -6,10 +6,10 @@ import path from 'path'
 
 const uploadsRouter = Router()
 
-// Directorio de destino para archivos subidos
-const UPLOADS_DIR = path.resolve(process.cwd(), 'uploads')
+// Directorio de destino para archivos subidos. En producción, se espera que sea un volumen montado.
+const UPLOADS_DIR = process.env.UPLOADS_DIR || path.resolve(process.cwd(), 'uploads');
 if (!fs.existsSync(UPLOADS_DIR)) {
-  fs.mkdirSync(UPLOADS_DIR, { recursive: true })
+  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 }
 
 const storage = multer.diskStorage({

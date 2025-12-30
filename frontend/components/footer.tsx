@@ -62,7 +62,7 @@ export function Footer() {
                 </svg>
               </a>
               <a
-                href="https://www.tiktok.com/@santiagoredruelloo"
+                href="https://www.tiktok.com/@santiredruelloo"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-10 h-10 bg-white hover:bg-gray-100 rounded-full flex items-center justify-center transition-colors"

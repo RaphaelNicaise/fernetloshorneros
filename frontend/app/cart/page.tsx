@@ -4,18 +4,32 @@ import { useCart } from "@/lib/cart-context"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import Link from "next/link"
-import { fetchProducts, createPaymentPreference } from "@/lib/api"
+import { fetchProducts, createPaymentPreference, api } from "@/lib/api"
 import { toast } from "@/hooks/use-toast"
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { ShippingSelector, type ShippingSelection } from "@/components/shipping-selector"
 
 export default function CartPage() {
   const { items, removeItem, updateQuantity, clearCart, totalPrice } = useCart()
   const [loading, setLoading] = useState(false)
-  
+  const [minPurchaseAmount, setMinPurchaseAmount] = useState(0);
+
   // Selección de envío
   const [shippingSelection, setShippingSelection] = useState<ShippingSelection | null>(null)
   const [totalWithShipping, setTotalWithShipping] = useState(totalPrice)
+
+  useEffect(() => {
+    const fetchMinPurchaseAmount = async () => {
+      try {
+        const response = await api.get('/settings/min_purchase_amount');
+        setMinPurchaseAmount(parseFloat(response.data.value));
+      } catch (error) {
+        console.error('Failed to fetch min purchase amount', error);
+      }
+    };
+
+    fetchMinPurchaseAmount();
+  }, []);
 
   const handleShippingComplete = useCallback((selection: ShippingSelection) => {
     setShippingSelection(selection)
@@ -26,9 +40,18 @@ export default function CartPage() {
   }, [])
 
   // Verificar si se puede proceder al pago
-  const canCheckout = shippingSelection !== null
+  const canCheckout = shippingSelection !== null && totalPrice >= minPurchaseAmount;
 
   async function handleCheckout() {
+    if (totalPrice < minPurchaseAmount) {
+      toast({
+        title: "Monto mínimo no alcanzado",
+        description: `Debes superar los $${minPurchaseAmount.toLocaleString('es-AR')} para realizar la compra.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!canCheckout || !shippingSelection) {
       toast({
         title: "Datos incompletos",
@@ -200,13 +223,24 @@ export default function CartPage() {
                 ))}
               </div>
 
-              {/* Selector de Envío */}
-              <ShippingSelector
-                items={items.map(item => ({ id: item.id, quantity: item.quantity }))}
-                productsTotal={totalPrice}
-                onSelectionComplete={handleShippingComplete}
-                onTotalChange={handleTotalChange}
-              />
+              {/* Alerta de monto mínimo */}
+              {totalPrice < minPurchaseAmount && minPurchaseAmount > 0 && (
+                <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4" role="alert">
+                  <p className="font-bold">Atención</p>
+                  <p>El monto mínimo de compra es de ${minPurchaseAmount.toLocaleString('es-AR')}. ¡Agregá más productos para continuar!</p>
+                </div>
+              )}
+
+              {/* Envío */}
+              <div className="bg-card border border-border rounded-xl p-6">
+                <h2 className="font-serif text-xl font-bold text-foreground mb-4">Envío</h2>
+                <ShippingSelector
+                  items={items.map(item => ({ id: item.id, quantity: item.quantity }))}
+                  productsTotal={totalPrice}
+                  onSelectionComplete={handleShippingComplete}
+                  onTotalChange={handleTotalChange}
+                />
+              </div>
             </div>
 
             {/* Order Summary */}
@@ -253,19 +287,15 @@ export default function CartPage() {
                   </p>
                 )}
 
-                <button
-                  onClick={handleCheckout}
-                  disabled={loading || !canCheckout}
-                  className="w-full py-3 bg-primary text-primary-foreground font-semibold rounded-lg transition-all duration-200 transform-gpu hover:bg-primary/90 hover:shadow-md hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 mb-3 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                >
-                  {loading ? "Procesando..." : "Ir a pagar"}
-                </button>
-                <Link
-                  href="/productos"
-                  className="block text-center text-sm text-muted-foreground hover:text-primary transition-colors"
-                >
-                  Continuar comprando
-                </Link>
+                <div className="flex justify-end">
+                  <button
+                    onClick={handleCheckout}
+                    disabled={loading || !canCheckout}
+                    className="w-full inline-flex items-center justify-center px-8 py-4 bg-primary text-primary-foreground font-semibold rounded-lg transition-all duration-200 transform-gpu hover:bg-primary/90 hover:shadow-lg hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100 disabled:shadow-none"
+                  >
+                    {loading ? "Procesando..." : "Ir a Pagar"}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -273,7 +303,6 @@ export default function CartPage() {
         </div>
       </main>
 
-      {/* Footer */}
       <Footer />
     </div>
   )

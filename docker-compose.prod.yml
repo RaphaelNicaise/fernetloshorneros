@@ -30,6 +30,7 @@ services:
       ZIPNOVA_BASE_URL: ${ZIPNOVA_BASE_URL}
       ZIPNOVA_API_KEY: ${ZIPNOVA_API_KEY}
       ZIPNOVA_API_SECRET: ${ZIPNOVA_API_SECRET}
+      UPLOADS_DIR: /app/uploads
     volumes:
       - uploads_data:/app/uploads
     depends_on:

@@ -309,3 +309,45 @@ export async function createShipment(request: CreateShipmentRequest): Promise<Cr
     };
   }
 }
+
+export interface CancelShipmentResponse {
+  success: boolean;
+  result?: string; // 'canceled' | 'rescue_requested' u otros
+  error?: string;
+}
+
+/**
+ * Cancela o solicita rescate de un envío en Zipnova
+ * POST /v2/shipments/{shipment_id}/cancel
+ */
+export async function cancelShipment(shipmentId: string | number): Promise<CancelShipmentResponse> {
+  try {
+    const headers = getZipnovaHeaders();
+    const id = String(shipmentId);
+
+    const response = await fetch(`${ZIPNOVA_BASE_URL}/shipments/${encodeURIComponent(id)}/cancel`, {
+      method: "POST",
+      headers,
+    });
+
+    const data: any = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: data?.message || data?.error || `Error ${response.status}`,
+      };
+    }
+
+    return {
+      success: true,
+      result: data?.result || "canceled",
+    };
+  } catch (error: any) {
+    console.error("Error cancelando envío en Zipnova:", error);
+    return {
+      success: false,
+      error: error.message || "Error al cancelar envío",
+    };
+  }
+}

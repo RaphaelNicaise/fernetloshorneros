@@ -12,6 +12,7 @@ import productsRouter from '@/routes/products';
 import uploadsRouter from '@/routes/uploads';
 import ordersRouter from '@/routes/orders';
 import shippingRouter from '@/routes/shipping';
+import settingsRouter from '@/routes/settings';
 
 dotenv.config();
 
@@ -35,6 +36,7 @@ app.use('/admin', adminRouter);
 app.use('/products', productsRouter);
 app.use('/orders', ordersRouter);
 app.use('/shipping', shippingRouter);
+app.use('/settings', settingsRouter);
 
 
 const startServer = async () => {

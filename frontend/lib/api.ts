@@ -17,6 +17,41 @@ export const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api'
 export const API_URL_INTERNAL = process.env.NEXT_INTERNAL_API_URL || API_URL
 export const API_BASE_URL = typeof window === 'undefined' ? API_URL_INTERNAL : API_URL
 
+const getAuthToken = () => typeof window !== 'undefined' ? localStorage.getItem("admin_token") : null;
+
+export const api = {
+  get: async (url: string) => {
+    const headers: HeadersInit = { 'Content-Type': 'application/json' };
+    const token = getAuthToken();
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await fetch(`${API_BASE_URL}${url}`, { headers });
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({ message: 'Error desconocido' }));
+      throw new Error(error.message || `HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    return { data };
+  },
+  put: async (url: string, body: any) => {
+    const headers: HeadersInit = { 'Content-Type': 'application/json' };
+    const token = getAuthToken();
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await fetch(`${API_BASE_URL}${url}`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({ message: 'Error desconocido' }));
+      throw new Error(error.message || `HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    return { data };
+  }
+};
+
 export function getImageSrc(src: string) {
   if (!src) return ''
   if (src.startsWith('http://') || src.startsWith('https://')) return src
