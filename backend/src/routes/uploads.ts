@@ -3,7 +3,6 @@ import { Router, type Request, type Response } from 'express'
 const multer = require('multer') as any
 import fs from 'fs'
 import path from 'path'
-import { adminAuth } from '../middleware/adminAuth'
 
 const uploadsRouter = Router()
 
@@ -45,9 +44,65 @@ const upload = multer({
 })
 
 // POST /uploads  (campo: file) - requiere autenticación de admin
-uploadsRouter.post('/', adminAuth, (req: any, res: Response) => {
+// Nota: multer debe procesar el archivo ANTES de verificar auth porque
+// adminAuth puede interferir con el stream de multipart/form-data
+uploadsRouter.post('/', (req: any, res: Response) => {
   const handler = upload.single('file')
   handler(req, res as any, (err: any) => {
+    // Primero verificar autenticación manualmente
+    const auth = req.headers.authorization || '';
+    let token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+    
+    if (!token) {
+      const cookieHeader = req.headers.cookie || '';
+      if (cookieHeader) {
+        const cookies = Object.fromEntries(
+          cookieHeader.split(';').map((c: string) => {
+            const [k, ...rest] = c.trim().split('=');
+            return [decodeURIComponent(k), decodeURIComponent(rest.join('='))];
+          })
+        );
+        if (typeof cookies['admin_token'] === 'string') {
+          token = cookies['admin_token'];
+        }
+      }
+    }
+    
+    if (!token) {
+      // Eliminar archivo si se subió sin auth
+      if (req.file) {
+        fs.unlink(path.join(UPLOADS_DIR, req.file.filename), () => {});
+      }
+      return res.status(401).json({ error: 'Token requerido' });
+    }
+    
+    // Verificar token JWT
+    const crypto = require('crypto');
+    const SECRET = process.env.ADMIN_JWT_SECRET || process.env.ADMIN_PASSWORD || 'default-secret';
+    const parts = token.split('.');
+    if (parts.length !== 3) {
+      if (req.file) fs.unlink(path.join(UPLOADS_DIR, req.file.filename), () => {});
+      return res.status(401).json({ error: 'Token inválido' });
+    }
+    const [header, body, signature] = parts;
+    const data = `${header}.${body}`;
+    const expected = crypto.createHmac('sha256', SECRET).update(data).digest('base64url');
+    if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
+      if (req.file) fs.unlink(path.join(UPLOADS_DIR, req.file.filename), () => {});
+      return res.status(401).json({ error: 'Token inválido' });
+    }
+    try {
+      const payload = JSON.parse(Buffer.from(body, 'base64url').toString());
+      if (typeof payload.exp === 'number' && Date.now() > payload.exp) {
+        if (req.file) fs.unlink(path.join(UPLOADS_DIR, req.file.filename), () => {});
+        return res.status(401).json({ error: 'Token expirado' });
+      }
+    } catch {
+      if (req.file) fs.unlink(path.join(UPLOADS_DIR, req.file.filename), () => {});
+      return res.status(401).json({ error: 'Token inválido' });
+    }
+
+    // Si llegamos aquí, el usuario está autenticado
     if (err) {
       if (err.message === 'INVALID_FILETYPE') {
         return res.status(400).json({
