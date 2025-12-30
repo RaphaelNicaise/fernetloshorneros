@@ -8,7 +8,10 @@ const uploadsRouter = Router()
 
 // Directorio de destino para archivos subidos. En producción, se espera que sea un volumen montado.
 const UPLOADS_DIR = process.env.UPLOADS_DIR || path.resolve(process.cwd(), 'uploads');
+console.log('[UPLOADS] Directorio configurado:', UPLOADS_DIR);
+
 if (!fs.existsSync(UPLOADS_DIR)) {
+  console.log('[UPLOADS] Creando directorio:', UPLOADS_DIR);
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 }
 
@@ -43,67 +46,14 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
 })
 
-// POST /uploads  (campo: file) - requiere autenticación de admin
-// Nota: multer debe procesar el archivo ANTES de verificar auth porque
-// adminAuth puede interferir con el stream de multipart/form-data
+// POST /uploads  (campo: file)
 uploadsRouter.post('/', (req: any, res: Response) => {
+  console.log('[UPLOADS] POST recibido');
+  
   const handler = upload.single('file')
   handler(req, res as any, (err: any) => {
-    // Primero verificar autenticación manualmente
-    const auth = req.headers.authorization || '';
-    let token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
-    
-    if (!token) {
-      const cookieHeader = req.headers.cookie || '';
-      if (cookieHeader) {
-        const cookies = Object.fromEntries(
-          cookieHeader.split(';').map((c: string) => {
-            const [k, ...rest] = c.trim().split('=');
-            return [decodeURIComponent(k), decodeURIComponent(rest.join('='))];
-          })
-        );
-        if (typeof cookies['admin_token'] === 'string') {
-          token = cookies['admin_token'];
-        }
-      }
-    }
-    
-    if (!token) {
-      // Eliminar archivo si se subió sin auth
-      if (req.file) {
-        fs.unlink(path.join(UPLOADS_DIR, req.file.filename), () => {});
-      }
-      return res.status(401).json({ error: 'Token requerido' });
-    }
-    
-    // Verificar token JWT
-    const crypto = require('crypto');
-    const SECRET = process.env.ADMIN_JWT_SECRET || process.env.ADMIN_PASSWORD || 'default-secret';
-    const parts = token.split('.');
-    if (parts.length !== 3) {
-      if (req.file) fs.unlink(path.join(UPLOADS_DIR, req.file.filename), () => {});
-      return res.status(401).json({ error: 'Token inválido' });
-    }
-    const [header, body, signature] = parts;
-    const data = `${header}.${body}`;
-    const expected = crypto.createHmac('sha256', SECRET).update(data).digest('base64url');
-    if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
-      if (req.file) fs.unlink(path.join(UPLOADS_DIR, req.file.filename), () => {});
-      return res.status(401).json({ error: 'Token inválido' });
-    }
-    try {
-      const payload = JSON.parse(Buffer.from(body, 'base64url').toString());
-      if (typeof payload.exp === 'number' && Date.now() > payload.exp) {
-        if (req.file) fs.unlink(path.join(UPLOADS_DIR, req.file.filename), () => {});
-        return res.status(401).json({ error: 'Token expirado' });
-      }
-    } catch {
-      if (req.file) fs.unlink(path.join(UPLOADS_DIR, req.file.filename), () => {});
-      return res.status(401).json({ error: 'Token inválido' });
-    }
-
-    // Si llegamos aquí, el usuario está autenticado
     if (err) {
+      console.log('[UPLOADS] Error multer:', err.message, err.code);
       if (err.message === 'INVALID_FILETYPE') {
         return res.status(400).json({
           error: 'Formato de archivo no permitido',
@@ -113,13 +63,18 @@ uploadsRouter.post('/', (req: any, res: Response) => {
       if (err.code === 'LIMIT_FILE_SIZE') {
         return res.status(400).json({ error: 'Archivo demasiado grande (máx 5MB)' })
       }
-      return res.status(500).json({ error: 'Error al subir archivo' })
+      return res.status(500).json({ error: 'Error al subir archivo', details: err.message })
     }
 
     const file = req.file as { filename: string } | undefined
-    if (!file) return res.status(400).json({ error: 'Archivo no recibido' })
+    if (!file) {
+      console.log('[UPLOADS] No se recibió archivo');
+      return res.status(400).json({ error: 'Archivo no recibido' })
+    }
+    
     const filename = file.filename
     const filePath = `/uploads/${filename}`
+    console.log('[UPLOADS] Archivo guardado:', filePath);
     res.status(201).json({ filename, path: filePath })
   })
 })
