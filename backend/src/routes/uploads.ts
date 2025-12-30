@@ -3,6 +3,7 @@ import { Router, type Request, type Response } from 'express'
 const multer = require('multer') as any
 import fs from 'fs'
 import path from 'path'
+import { adminAuth } from '../middleware/adminAuth'
 
 const uploadsRouter = Router()
 
@@ -43,8 +44,8 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
 })
 
-// POST /uploads  (campo: file)
-uploadsRouter.post('/', (req: any, res: Response) => {
+// POST /uploads  (campo: file) - requiere autenticación de admin
+uploadsRouter.post('/', adminAuth, (req: any, res: Response) => {
   const handler = upload.single('file')
   handler(req, res as any, (err: any) => {
     if (err) {

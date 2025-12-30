@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import { getSetting, updateSetting } from '../services/settingsService';
-import { internalOnly } from '../middleware/internalOnly';
+import { adminAuth } from '../middleware/adminAuth';
 
 const router = Router();
 
+// GET público para que el frontend pueda obtener el monto mínimo
 router.get('/:key', async (req, res) => {
     try {
         const { key } = req.params;
@@ -18,7 +19,7 @@ router.get('/:key', async (req, res) => {
     }
 });
 
-router.put('/:key', internalOnly, async (req, res) => {
+router.put('/:key', adminAuth, async (req, res) => {
     try {
         const { key } = req.params;
         const { value } = req.body;

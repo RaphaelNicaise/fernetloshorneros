@@ -23,8 +23,8 @@ app.use(cors);
 app.use(express.json());
 
 // routes
-// archivos estáticos subidos
-const uploadsDir = path.resolve(process.cwd(), 'uploads');
+// archivos estáticos subidos - usar la misma variable de entorno que uploads.ts
+const uploadsDir = process.env.UPLOADS_DIR || path.resolve(process.cwd(), 'uploads');
 app.use('/uploads', express.static(uploadsDir));
 app.use('/uploads', uploadsRouter);
 
