@@ -27,6 +27,7 @@ export default function AdminProductosPage() {
   const [error, setError] = useState<string | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
   // La creación ahora exige subir archivo compatible (jpg/jpeg/png/webp)
+  const [imageErrorCreate, setImageErrorCreate] = useState<string | null>(null)
 
   // Create form state
   const [form, setForm] = useState<Omit<Product, "status"> & { status: Product["status"] }>(
@@ -51,6 +52,7 @@ export default function AdminProductosPage() {
     limite: 0,
     status: "disponible",
   })
+  const [imageErrorEdit, setImageErrorEdit] = useState<string | null>(null)
 
   function getImageSrc(src: string) {
     if (!src) return ""
@@ -68,7 +70,14 @@ export default function AdminProductosPage() {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       body: fd,
     })
-    if (!res.ok) throw new Error("No se pudo subir la imagen")
+    if (!res.ok) {
+      let msg = "No se pudo subir la imagen"
+      try {
+        const err = await res.json()
+        if (typeof err?.error === "string") msg = err.error
+      } catch {}
+      throw new Error(msg)
+    }
     const data = (await res.json()) as { path: string }
     return data.path // ej: /uploads/xxx.jpg (servible desde API_URL)
   }
@@ -228,10 +237,11 @@ export default function AdminProductosPage() {
                       const file = e.target.files?.[0]
                       if (!file) return
                       try {
+                        setImageErrorCreate(null)
                         const path = await uploadImage(file)
                         setForm((f) => ({ ...f, image: path }))
                       } catch (err) {
-                        setError((err as any)?.message || "Error al subir imagen")
+                        setImageErrorCreate((err as any)?.message || "Error al subir imagen")
                       }
                     }}
                   />
@@ -253,6 +263,9 @@ export default function AdminProductosPage() {
                     )}
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">Formatos: JPG, JPEG, PNG, WEBP. Máx 5MB.</p>
+                  {imageErrorCreate && (
+                    <p className="mt-1 text-xs text-destructive">{imageErrorCreate}</p>
+                  )}
                 </div>
                 <div className="md:col-span-2">
                   <label className="text-sm text-muted-foreground">Descripción</label>
@@ -415,10 +428,11 @@ export default function AdminProductosPage() {
                             const file = e.target.files?.[0]
                             if (!file) return
                             try {
+                              setImageErrorEdit(null)
                               const path = await uploadImage(file)
                               setEditForm((f) => ({ ...f, image: path }))
                             } catch (err) {
-                              setError((err as any)?.message || "Error al subir imagen")
+                              setImageErrorEdit((err as any)?.message || "Error al subir imagen")
                             }
                           }}
                         />
@@ -431,6 +445,9 @@ export default function AdminProductosPage() {
                         <Button size="sm" variant="outline" onClick={() => setEditingId(null)}>
                           Cancelar
                         </Button>
+                        {imageErrorEdit && (
+                          <p className="mt-1 text-xs text-destructive">{imageErrorEdit}</p>
+                        )}
                       </div>
                     ) : (
                       <div className="flex gap-2">
