@@ -78,9 +78,7 @@ export default function HomePage() {
                   priority
                 />
               </div>
-                <p className="text-lg sm:text-xl text-muted-foreground mb-8 leading-relaxed">
-                  El mejor Fernet Artesanal
-                </p>
+               
                 <div className="flex flex-wrap gap-4 justify-center md:justify-start text-center md:text-left">
                   <Link
                     href="/productos"
@@ -133,7 +131,7 @@ export default function HomePage() {
               />
             </div>
             <div className="order-1 md:order-2">
-              <h2 className="font-serif text-3xl sm:text-4xl font-bold text-white mb-6">Fernet Los Horneros</h2>
+                <h2 className="font-serif text-3xl sm:text-4xl font-bold text-white mb-6 text-center md:text-left">Fernet Los Horneros</h2>
               <div className="space-y-4 text-text leading-relaxed">
                 <p>
                   Dicen que el hornero ama una sola vez, y que con ese amor construye su nido para siempre. Cada rama, cada pedacito de barro, es una muestra de su dedicación y su paciencia. Así también nace este fernet, fiel a sus raíces pampeanas, creado con respeto por la tierra y por las manos que lo elaboran.
