@@ -50,7 +50,7 @@ export default function HomePage() {
   <section className="relative pt-20 sm:pt-24 pb-16 sm:pb-20 px-4 bg-white overflow-hidden">
         {/* Fondo visible del hero */}
         <img
-          src="/fondonuevo.png"
+          src="/fontscreen.png"
           alt=""
           aria-hidden
           loading="lazy"
@@ -156,7 +156,7 @@ export default function HomePage() {
       <section className="relative py-16 sm:py-24 px-4 bg-accent overflow-hidden">
         {/* Fondo visible de productos */}
         <img
-          src="/fondonuevo.png"
+          src="/fontscreen.png"
           alt=""
           aria-hidden
           loading="lazy"

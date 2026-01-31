@@ -35,7 +35,7 @@ export function FontscreenBackground() {
     <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
       {/* Capa de imagen */}
       <img
-        src="/fondonuevo.png"
+        src="/fontscreen.png"
         alt=""
         aria-hidden
         loading="lazy"
