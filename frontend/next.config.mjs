@@ -7,7 +7,19 @@ const nextConfig = {
   },
 
   images: {
-    unoptimized: true,
+    // Habilitar optimización de imágenes
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+      },
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+    ],
+    // Formatos modernos para mejor compresión
+    formats: ['image/avif', 'image/webp'],
   },
 
   output: 'standalone',

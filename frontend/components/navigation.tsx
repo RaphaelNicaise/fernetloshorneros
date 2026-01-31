@@ -44,7 +44,7 @@ export function Navigation() {
   <div className="container mx-auto px-4 py-4 flex items-center justify-between md:grid md:grid-cols-[1fr_auto_1fr]">
   <Link href="/" className="group flex items-center gap-3 transition-transform transform-gpu hover:scale-[1.03] justify-self-start" aria-label="Ir al inicio">
           <Image
-            src="/icon.png"
+            src="/logonuevo.png"
             alt="Fernet Los Horneros"
             width={40}
             height={40}

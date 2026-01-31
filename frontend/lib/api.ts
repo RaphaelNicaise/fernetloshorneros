@@ -6,6 +6,7 @@ export type Product = {
   image: string
   status: 'disponible' | 'proximamente' | 'agotado'
   limite?: number // 0 = sin límite (ausente o 0 => ilimitado)
+  stock?: number // cantidad disponible
 }
 
 // URLs para cliente (navegador) y servidor (SSR)
@@ -68,6 +69,7 @@ export async function fetchProducts(): Promise<Product[]> {
   return (raw as any[]).map((p) => {
     const priceRaw = (p as any).price
     const limiteRaw = (p as any).limite
+    const stockRaw = (p as any).stock
     return {
       id: String(p.id),
       name: String(p.name),
@@ -76,6 +78,7 @@ export async function fetchProducts(): Promise<Product[]> {
       status: ['disponible','proximamente','agotado'].includes(p.status) ? p.status : 'disponible',
       price: typeof priceRaw === 'string' ? Number(priceRaw) : Number(priceRaw),
       limite: limiteRaw === undefined || limiteRaw === null ? 0 : Number(limiteRaw) || 0,
+      stock: stockRaw === undefined || stockRaw === null ? 0 : Number(stockRaw) || 0,
     }
   })
 }

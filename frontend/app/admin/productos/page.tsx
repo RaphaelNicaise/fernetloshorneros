@@ -16,6 +16,7 @@ type Product = {
   price: number
   image: string
   limite: number // 0 = sin límite
+  stock: number // cantidad disponible
   status: "disponible" | "proximamente" | "agotado"
 }
 
@@ -38,6 +39,7 @@ export default function AdminProductosPage() {
       price: 0,
       image: "",
       limite: 0,
+      stock: 0,
       status: "disponible",
     },
   )
@@ -50,6 +52,7 @@ export default function AdminProductosPage() {
     price: 0,
     image: "",
     limite: 0,
+    stock: 0,
     status: "disponible",
   })
   const [imageErrorEdit, setImageErrorEdit] = useState<string | null>(null)
@@ -103,7 +106,7 @@ export default function AdminProductosPage() {
   }, [])
 
   const resetCreate = () =>
-    setForm({ id: "", name: "", description: "", price: 0, image: "", limite: 0, status: "disponible" })
+    setForm({ id: "", name: "", description: "", price: 0, image: "", limite: 0, stock: 0, status: "disponible" })
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
@@ -118,6 +121,7 @@ export default function AdminProductosPage() {
         price: Number(form.price),
         image: form.image,
         limite: Number(form.limite) || 0,
+        stock: Number(form.stock) || 0,
         status: form.status,
       }
       const token = localStorage.getItem("admin_token")
@@ -140,7 +144,7 @@ export default function AdminProductosPage() {
 
   function startEdit(p: Product) {
     setEditingId(p.id)
-    setEditForm({ name: p.name, description: p.description, price: p.price, image: p.image, limite: p.limite ?? 0, status: p.status })
+    setEditForm({ name: p.name, description: p.description, price: p.price, image: p.image, limite: p.limite ?? 0, stock: p.stock ?? 0, status: p.status })
   }
 
   async function handleUpdate(id: string) {
@@ -152,6 +156,7 @@ export default function AdminProductosPage() {
         price: Number(editForm.price),
         image: editForm.image,
         limite: Number(editForm.limite) || 0,
+        stock: Number(editForm.stock) || 0,
         status: editForm.status,
       }
       const token = localStorage.getItem("admin_token")
@@ -224,6 +229,15 @@ export default function AdminProductosPage() {
                     min={0}
                     value={form.limite}
                     onChange={(e) => setForm((f) => ({ ...f, limite: Math.max(0, Number(e.target.value)) }))}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-muted-foreground">Stock</label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={form.stock}
+                    onChange={(e) => setForm((f) => ({ ...f, stock: Math.max(0, Number(e.target.value)) }))}
                   />
                 </div>
                 <div>
@@ -312,9 +326,10 @@ export default function AdminProductosPage() {
             <col className="w-[140px]" />
             <col />
             <col className="w-[280px]" />
-            <col className="w-[120px]" />
-            <col className="w-[110px]" />
-            <col className="w-[150px]" />
+            <col className="w-[100px]" />
+            <col className="w-[100px]" />
+            <col className="w-[80px]" />
+            <col className="w-[80px]" />
             <col className="w-[220px]" />
           </colgroup>
           <TableHeader>
@@ -325,6 +340,7 @@ export default function AdminProductosPage() {
               <TableHead>Descripción</TableHead>
               <TableHead>Precio</TableHead>
               <TableHead>Estado</TableHead>
+              <TableHead>Stock</TableHead>
               <TableHead>Límite</TableHead>
               <TableHead>Acciones</TableHead>
             </TableRow>
@@ -332,11 +348,11 @@ export default function AdminProductosPage() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={7}>Cargando…</TableCell>
+                <TableCell colSpan={9}>Cargando…</TableCell>
               </TableRow>
             ) : items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7}>Sin productos</TableCell>
+                <TableCell colSpan={9}>Sin productos</TableCell>
               </TableRow>
             ) : (
               items.map((p) => (
@@ -402,6 +418,18 @@ export default function AdminProductosPage() {
                       </Select>
                     ) : (
                       p.status
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {editingId === p.id ? (
+                      <Input
+                        type="number"
+                        min={0}
+                        value={editForm.stock}
+                        onChange={(e) => setEditForm((f) => ({ ...f, stock: Math.max(0, Number(e.target.value)) }))}
+                      />
+                    ) : (
+                      (p.stock ?? 0)
                     )}
                   </TableCell>
                   <TableCell>

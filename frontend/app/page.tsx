@@ -50,9 +50,10 @@ export default function HomePage() {
   <section className="relative pt-20 sm:pt-24 pb-16 sm:pb-20 px-4 bg-white overflow-hidden">
         {/* Fondo visible del hero */}
         <img
-          src="/fontscreen.png"
+          src="/fondonuevo.png"
           alt=""
           aria-hidden
+          loading="lazy"
           className="pointer-events-none absolute inset-0 w-full h-full object-cover opacity-40 md:opacity-25"
         />
         <div className="container mx-auto max-w-6xl">
@@ -64,6 +65,7 @@ export default function HomePage() {
                   src="/horneros.png"
                   alt=""
                   aria-hidden
+                  loading="lazy"
                   className="pointer-events-none select-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[46%] sm:w-[52%] md:w-[57%] lg:w-[63%] opacity-15 hidden md:block z-0"
 
 
@@ -127,6 +129,7 @@ export default function HomePage() {
               <img
                 src="/imagen-12346.jpg"
                 alt="Detalle del fernet"
+                loading="lazy"
                 className="w-full h-full object-cover"
               />
             </div>
@@ -153,9 +156,10 @@ export default function HomePage() {
       <section className="relative py-16 sm:py-24 px-4 bg-accent overflow-hidden">
         {/* Fondo visible de productos */}
         <img
-          src="/fontscreen.png"
+          src="/fondonuevo.png"
           alt=""
           aria-hidden
+          loading="lazy"
           className="pointer-events-none absolute inset-0 w-full h-full object-cover opacity-40 md:opacity-25"
         />
         <div className="container mx-auto max-w-6xl">

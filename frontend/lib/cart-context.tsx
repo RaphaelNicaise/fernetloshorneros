@@ -10,6 +10,7 @@ export interface CartItem {
   image: string
   quantity: number
   limite?: number // 0 o undefined = sin límite
+  stock?: number // stock disponible del producto
 }
 
 interface CartContextType {
@@ -42,20 +43,40 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const addItem = (newItem: Omit<CartItem, "quantity">) => {
     let showLimitToast: { limite: number } | null = null
+    let showStockToast: { stock: number } | null = null
     setItems((currentItems) => {
       const existingItem = currentItems.find((item) => item.id === newItem.id)
       const limite = newItem.limite ?? existingItem?.limite ?? 0
+      const stock = newItem.stock ?? existingItem?.stock ?? 0
+      
       if (existingItem) {
+        // Validar límite
         if (limite > 0 && existingItem.quantity >= limite) {
           showLimitToast = { limite }
           return currentItems
         }
+        
+        // Validar stock disponible
+        if (stock > 0 && existingItem.quantity >= stock) {
+          showStockToast = { stock }
+          return currentItems
+        }
+        
         return currentItems.map((item) => (item.id === newItem.id ? { ...item, quantity: item.quantity + 1 } : item))
       }
-      return [...currentItems, { ...newItem, limite, quantity: 1 }]
+      
+      return [...currentItems, { ...newItem, limite, stock, quantity: 1 }]
     })
-    if (showLimitToast) {
-      // Ejecutar toast fuera del ciclo de render del CartProvider
+    
+    if (showStockToast) {
+      setTimeout(() => {
+        toast({
+          title: "Stock limitado",
+          description: `Solo hay ${showStockToast!.stock} unidad(es) disponible(s) de este producto.`,
+          variant: "destructive",
+        })
+      }, 0)
+    } else if (showLimitToast) {
       setTimeout(() => {
         toast({
           title: "Límite alcanzado",
@@ -71,12 +92,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const updateQuantity = (id: string, quantity: number) => {
     let showLimitToast: { limite: number } | null = null
+    let showStockToast: { stock: number } | null = null
     setItems((currentItems) => {
       const item = currentItems.find(i => i.id === id)
       if (!item) return currentItems
       const limite = item.limite ?? 0
+      const stock = item.stock ?? 0
       if (quantity <= 0) {
-        return currentItems.filter(i => i.id !== id)
+        return currentItems.filter(i => i.id === id)
+      }
+      if (stock > 0 && quantity > stock) {
+        showStockToast = { stock }
+        return currentItems.map(i => i.id === id ? { ...i, quantity: stock } : i)
       }
       if (limite > 0 && quantity > limite) {
         showLimitToast = { limite }
@@ -84,7 +111,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
       return currentItems.map(i => i.id === id ? { ...i, quantity } : i)
     })
-    if (showLimitToast) {
+    if (showStockToast) {
+      setTimeout(() => {
+        toast({ title: "Stock limitado", description: `Solo hay ${showStockToast!.stock} unidad(es) disponible(s) de este producto.`, variant: "destructive" })
+      }, 0)
+    } else if (showLimitToast) {
       setTimeout(() => {
         toast({ title: "Límite alcanzado", description: `Máximo permitido: ${showLimitToast!.limite}.` })
       }, 0)

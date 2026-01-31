@@ -63,6 +63,14 @@ function validateProductPayload(payload: any): { ok: true; data: Product } | { o
     errors.limite = 'limite no puede ser negativo';
   }
 
+  // stock (opcional, default 0)
+  const stockNumber = payload?.stock === undefined || payload?.stock === null ? 0 : (typeof payload?.stock === 'number' ? payload.stock : Number(payload?.stock));
+  if (!Number.isFinite(stockNumber)) {
+    errors.stock = 'stock debe ser número';
+  } else if (stockNumber < 0) {
+    errors.stock = 'stock no puede ser negativo';
+  }
+
   // image: solo validar que sea string (se aceptan rutas relativas del front)
   if (typeof payload?.image !== 'string'){
     errors.image = 'image debe ser string';
@@ -85,6 +93,7 @@ function validateProductPayload(payload: any): { ok: true; data: Product } | { o
     price: priceNumber,
     image: String(payload.image),
     limite: Number(limiteNumber) || 0,
+    stock: Number(stockNumber) || 0,
     status: payload.status as Product['status'],
   };
 
@@ -124,6 +133,14 @@ function validateProductUpdatePayload(payload: any): { ok: true; data: ProductUp
     errors.limite = 'limite no puede ser negativo';
   }
 
+  // stock (opcional, default 0)
+  const stockNumber = payload?.stock === undefined || payload?.stock === null ? 0 : (typeof payload?.stock === 'number' ? payload.stock : Number(payload?.stock));
+  if (!Number.isFinite(stockNumber)) {
+    errors.stock = 'stock debe ser número';
+  } else if (stockNumber < 0) {
+    errors.stock = 'stock no puede ser negativo';
+  }
+
   // image: solo validar que sea string
   if (typeof payload?.image !== 'string') {
     errors.image = 'image debe ser string';
@@ -145,6 +162,7 @@ function validateProductUpdatePayload(payload: any): { ok: true; data: ProductUp
     price: priceNumber,
     image: String(payload.image),
     limite: Number(limiteNumber) || 0,
+    stock: Number(stockNumber) || 0,
     status: payload.status as Product['status'],
   };
 

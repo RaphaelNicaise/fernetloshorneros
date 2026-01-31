@@ -11,7 +11,7 @@ import {
     updateEnvioStatus,
     getOrderItems,
 } from "@/services/ordersService";
-import { getProductById } from "@/services/productService";
+import { getProductById, decreaseStock } from "@/services/productService";
 import { createShipment } from "@/services/enviosService";
 
 const router = Router();
@@ -53,6 +53,18 @@ router.post("/create-preference", async (req, res) => {
             if (product.limite > 0 && quantity > product.limite) {
                 return res.status(400).json({ 
                     error: `Cantidad excede el límite para ${product.name} (máximo: ${product.limite})` 
+                });
+            }
+
+            // verificar stock disponible
+            if (product.stock < quantity) {
+                if (product.stock === 0) {
+                    return res.status(400).json({ 
+                        error: `${product.name} está agotado` 
+                    });
+                }
+                return res.status(400).json({ 
+                    error: `Stock insuficiente para ${product.name} (disponible: ${product.stock})` 
                 });
             }
 
@@ -208,6 +220,18 @@ router.post("/webhook", async (req, res) => {
             if (payment.status === "approved") {
                 await updateOrderStatus(order.id, "paid");
                 console.log(`Orden ${order.id} marcada como pagada`);
+
+                // Descontar stock de cada producto
+                try {
+                    const orderItems = await getOrderItems(order.id);
+                    for (const item of orderItems) {
+                        const newStock = await decreaseStock(item.id_producto, item.cantidad);
+                        console.log(`Stock de ${item.id_producto} actualizado: ${newStock}`);
+                    }
+                } catch (stockError: any) {
+                    console.error("Error actualizando stock:", stockError);
+                    // No fallamos el webhook, pero logueamos el error
+                }
 
                 // crear envío en Zipnova
                 const envio = await getEnvioByOrderId(order.id);

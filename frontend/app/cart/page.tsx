@@ -8,11 +8,15 @@ import { fetchProducts, createPaymentPreference, api } from "@/lib/api"
 import { toast } from "@/hooks/use-toast"
 import { useState, useCallback, useEffect } from "react"
 import { ShippingSelector, type ShippingSelection } from "@/components/shipping-selector"
+import { useCartValidation } from "@/hooks/use-cart-validation"
 
 export default function CartPage() {
   const { items, removeItem, updateQuantity, clearCart, totalPrice } = useCart()
   const [loading, setLoading] = useState(false)
   const [minPurchaseAmount, setMinPurchaseAmount] = useState(0);
+
+  // Validar carrito cada 20 segundos
+  useCartValidation()
 
   // Selección de envío
   const [shippingSelection, setShippingSelection] = useState<ShippingSelection | null>(null)
@@ -60,33 +64,68 @@ export default function CartPage() {
       return
     }
 
-    try {
-      setLoading(true)
-      const catalog = await fetchProducts()
-      const byId = new Map(catalog.map((p) => [p.id, p]))
-      const removedNames: string[] = []
-      
-      for (const it of items) {
-        const p = byId.get(it.id)
-        if (!p || p.status !== "disponible") {
-          removedNames.push(it.name)
-          removeItem(it.id)
-        }
-      }
-      
-      if (removedNames.length > 0) {
-        toast({
-          title: "Lo sentimos",
-          description:
-            removedNames.length === 1
-              ? `El producto "${removedNames[0]}" no está más disponible y fue quitado del carrito.`
-              : `Estos productos ya no están disponibles y fueron quitados del carrito: ${removedNames.join(", ")}.`,
-        })
-        setLoading(false)
-        return
-      }
+     try {
+       setLoading(true)
+       const catalog = await fetchProducts()
+       const byId = new Map(catalog.map((p) => [p.id, p]))
+       const removedNames: string[] = []
+       const adjustedItems: { name: string; newQuantity: number; oldQuantity: number }[] = []
+       
+       for (const it of items) {
+         const p = byId.get(it.id)
+         
+         // Si el producto no existe o no está disponible, quitarlo
+         if (!p || p.status !== "disponible") {
+           removedNames.push(it.name)
+           removeItem(it.id)
+           continue
+         }
 
-      // Crear preferencia de pago en MercadoPago (incluye productos + envío)
+         // Si no hay stock, quitarlo
+         const availableStock = p.stock ?? 0
+         if (availableStock === 0) {
+           removedNames.push(it.name)
+           removeItem(it.id)
+           continue
+         }
+
+         // Si el stock es insuficiente, ajustar cantidad
+         if (availableStock < it.quantity) {
+           adjustedItems.push({
+             name: it.name,
+             oldQuantity: it.quantity,
+             newQuantity: availableStock,
+           })
+           updateQuantity(it.id, availableStock)
+         }
+       }
+       
+       if (removedNames.length > 0) {
+         toast({
+           title: "Productos removidos",
+           description:
+             removedNames.length === 1
+               ? `"${removedNames[0]}" no está más disponible y fue quitado del carrito.`
+               : `Estos productos ya no están disponibles: ${removedNames.join(", ")}.`,
+           variant: "destructive",
+         })
+         setLoading(false)
+         return
+       }
+
+       if (adjustedItems.length > 0) {
+         const adjustmentText = adjustedItems
+           .map((item) => `${item.name}: ${item.oldQuantity} → ${item.newQuantity}`)
+           .join(", ")
+         toast({
+           title: "Stock ajustado",
+           description: `Cantidades actualizadas por disponibilidad: ${adjustmentText}`,
+         })
+         setLoading(false)
+         return
+       }
+
+       // Crear preferencia de pago en MercadoPago (incluye productos + envío)
       const preference = await createPaymentPreference(
         items.map(item => ({
           id: item.id,
@@ -108,14 +147,39 @@ export default function CartPage() {
       } else {
         throw new Error("No se recibió URL de pago")
       }
-    } catch (e: any) {
-      console.error("Error en checkout:", e)
-      toast({ 
-        title: "Error", 
-        description: e?.message || "No se pudo procesar el pago" 
-      })
-      setLoading(false)
-    }
+     } catch (e: any) {
+       console.error("Error en checkout:", e)
+       
+       // Determinar tipo de error
+       let errorTitle = "Error en checkout"
+       let errorDescription = "No se pudo procesar el pago"
+       
+       const errorMsg = e?.message || ""
+       
+       if (errorMsg.includes("agotado")) {
+         errorTitle = "Producto agotado"
+         errorDescription = errorMsg
+       } else if (errorMsg.includes("Stock insuficiente")) {
+         errorTitle = "Stock insuficiente"
+         errorDescription = errorMsg
+       } else if (errorMsg.includes("no está disponible")) {
+         errorTitle = "Producto no disponible"
+         errorDescription = errorMsg
+       } else if (errorMsg.includes("Límite")) {
+         errorTitle = "Límite de cantidad excedido"
+         errorDescription = errorMsg
+       } else if (errorMsg.includes("no encontrado")) {
+         errorTitle = "Producto no encontrado"
+         errorDescription = errorMsg
+       }
+       
+       toast({ 
+         title: errorTitle, 
+         description: errorDescription,
+         variant: "destructive",
+       })
+       setLoading(false)
+     }
   }
 
   if (items.length === 0) {

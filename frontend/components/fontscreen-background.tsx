@@ -35,9 +35,10 @@ export function FontscreenBackground() {
     <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
       {/* Capa de imagen */}
       <img
-        src="/fontscreen.png"
+        src="/fondonuevo.png"
         alt=""
         aria-hidden
+        loading="lazy"
         className="w-full h-full object-cover opacity-15 blur-[0.5px] select-none will-change-transform transform-gpu"
         style={{ transform: `translateY(${offset}px) scale(1.05)` }}
       />

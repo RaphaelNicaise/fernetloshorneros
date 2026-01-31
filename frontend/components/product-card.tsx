@@ -5,6 +5,8 @@ import { useState } from "react"
 import clsx from "clsx"
 import { Check } from "lucide-react"
 import { getImageSrc } from "@/lib/api"
+import Image from "next/image"
+import { toast } from "@/hooks/use-toast"
 
 interface Product {
   id: string
@@ -15,6 +17,7 @@ interface Product {
   roastLevel?: string
   status?: "disponible" | "proximamente" | "agotado"
   limite?: number
+  stock?: number
 }
 
 interface ProductCardProps {
@@ -25,16 +28,28 @@ export function ProductCard({ product }: ProductCardProps) {
   const { addItem } = useCart()
   const [isAdding, setIsAdding] = useState(false)
   const isAvailable = (product.status ?? "disponible") === "disponible"
+  const hasStock = (product.stock ?? 0) > 0
   const priceNumber = Number(product.price)
 
   const handleAddToCart = () => {
     if (!isAvailable) return
+    
+    if (!hasStock) {
+      toast({
+        title: "Producto agotado",
+        description: `${product.name} no tiene stock disponible en este momento.`,
+        variant: "destructive",
+      })
+      return
+    }
+
     addItem({
       id: product.id,
       name: product.name,
       price: Number.isFinite(priceNumber) ? priceNumber : 0,
       image: getImageSrc(product.image),
       limite: product.limite,
+      stock: product.stock,
     })
     setIsAdding(true)
     setTimeout(() => setIsAdding(false), 1000)
@@ -43,8 +58,14 @@ export function ProductCard({ product }: ProductCardProps) {
   return (
     <div className="bg-card rounded-lg overflow-hidden border border-border hover:shadow-lg transition-shadow flex flex-col h-full">
       <div className="relative h-64 bg-muted">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={getImageSrc(product.image) || "/placeholder.svg"} alt={product.name} className="object-cover w-full h-full" />
+        <Image 
+          src={getImageSrc(product.image) || "/placeholder.svg"} 
+          alt={product.name} 
+          fill
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          className="object-cover"
+          loading="lazy"
+        />
         {product.roastLevel && (
           <div className="absolute top-3 right-3 bg-background/90 backdrop-blur px-3 py-1 rounded-full text-sm font-medium text-foreground">
             {product.roastLevel}
@@ -71,9 +92,14 @@ export function ProductCard({ product }: ProductCardProps) {
                 {product.status === "proximamente" ? "Próximamente" : product.status === "agotado" ? "Agotado" : ""}
               </span>
             )}
+            {isAvailable && !hasStock && (
+              <span className="text-sm rounded-full bg-red-100 px-2 py-1 text-red-700">
+                Agotado
+              </span>
+            )}
             <button
               onClick={handleAddToCart}
-              disabled={isAdding || !isAvailable}
+              disabled={isAdding || !isAvailable || !hasStock}
               aria-label="Agregar al carrito"
               className={`px-4 py-2 bg-primary text-primary-foreground font-semibold rounded-lg transition-colors duration-200 hover:bg-primary/90 hover:brightness-110 hover:shadow-lg disabled:opacity-50 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${isAdding ? "bg-green-600 hover:bg-green-600" : ""}`}
             >
