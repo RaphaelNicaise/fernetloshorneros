@@ -99,7 +99,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const limite = item.limite ?? 0
       const stock = item.stock ?? 0
       if (quantity <= 0) {
-        return currentItems.filter(i => i.id === id)
+        return currentItems.filter(i => i.id !== id)
       }
       if (stock > 0 && quantity > stock) {
         showStockToast = { stock }
