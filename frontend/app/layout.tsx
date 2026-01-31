@@ -13,9 +13,9 @@ export const metadata: Metadata = {
   description: "Ethically-sourced, small-batch artisan coffee roasted to perfection",
     generator: 'v0.app',
     icons: {
-      icon: '/icon.png',
-      shortcut: '/icon.png',
-      apple: '/icon.png',
+      icon: '/logonuevo.png',
+      shortcut: '/logonuevo.png',
+      apple: '/logonuevo.png',
     }
 }
 
