@@ -11,11 +11,10 @@ import { SocialEmbedsWithLoading } from "@/components/social-embeds"
 import { useEffect, useState } from "react"
 
 
-const heroImages = [
-  { src: "/fernet1.jpg", alt: "Fernet 1" },
-  { src: "/fernet2.jpg", alt: "Fernet 2" },
-  { src: "/fernet3.jpg", alt: "Fernet 3" },
-  { src: "/fernet4.jpg", alt: "Fernet 4" },
+const heroImages = [  
+  { src: "/fernet1.webp", alt: "Fernet 1" },
+  { src: "/fernet2.webp", alt: "Fernet 2" },
+  { src: "/fernet3.webp", alt: "Fernet 3" },
 ]
 
 export default function HomePage() {
