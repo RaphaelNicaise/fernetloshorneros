@@ -3,8 +3,8 @@ import { QueryTypes } from "sequelize";
 import { v4 as uuidv4 } from "uuid";
 
 function generateShortId(): string {
-    const timestamp = Date.now().toString(36); 
-    const random = Math.random().toString(36).substring(2, 10); 
+    const timestamp = Date.now().toString(36);
+    const random = Math.random().toString(36).substring(2, 10);
     return `${timestamp}${random}`.toUpperCase();
 }
 
@@ -358,8 +358,8 @@ export async function getEnvioByOrderId(orderId: number): Promise<Envio | null> 
  * Actualiza el estado del envío y guarda el ID de Zipnova
  */
 export async function updateEnvioStatus(
-    envioId: string, 
-    status: string, 
+    envioId: string,
+    status: string,
     zipnovaShipmentId?: string
 ): Promise<void> {
     await sequelize.query(
@@ -367,8 +367,8 @@ export async function updateEnvioStatus(
          SET status = :status, zipnova_shipment_id = :zipnova_shipment_id 
          WHERE id = :id`,
         {
-            replacements: { 
-                id: envioId, 
+            replacements: {
+                id: envioId,
                 status,
                 zipnova_shipment_id: zipnovaShipmentId || null,
             },
@@ -376,3 +376,47 @@ export async function updateEnvioStatus(
         }
     );
 }
+
+/**
+ * Marca una orden como que tiene stock reservado
+ */
+export async function markOrderStockReserved(orderId: number): Promise<void> {
+    await sequelize.query(
+        `UPDATE pedidos SET stock_reserved = 1, stock_reserved_at = NOW() WHERE id = :id`,
+        {
+            replacements: { id: orderId },
+            type: QueryTypes.UPDATE,
+        }
+    );
+}
+
+/**
+ * Marca una orden como que ya no tiene stock reservado (fue usado o liberado)
+ */
+export async function markOrderStockReleased(orderId: number): Promise<void> {
+    await sequelize.query(
+        `UPDATE pedidos SET stock_reserved = 0 WHERE id = :id`,
+        {
+            replacements: { id: orderId },
+            type: QueryTypes.UPDATE,
+        }
+    );
+}
+
+/**
+ * Obtiene órdenes pendientes con stock reservado que expiraron (más de X minutos)
+ */
+export async function getExpiredReservations(minutesThreshold: number = 5): Promise<Array<{ id: number }>> {
+    const orders = await sequelize.query<{ id: number }>(
+        `SELECT id FROM pedidos 
+         WHERE status = 'pending' 
+           AND stock_reserved = 1 
+           AND stock_reserved_at < DATE_SUB(NOW(), INTERVAL :minutes MINUTE)`,
+        {
+            replacements: { minutes: minutesThreshold },
+            type: QueryTypes.SELECT,
+        }
+    );
+    return orders;
+}
+

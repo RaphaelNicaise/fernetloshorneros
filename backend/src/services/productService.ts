@@ -96,7 +96,7 @@ export async function decreaseStock(id: string, quantity: number): Promise<numbe
  */
 export async function updateStock(id: string, stock: number): Promise<void> {
     const newStatus = stock === 0 ? 'agotado' : undefined;
-    
+
     if (newStatus) {
         await sequelize.query(
             `UPDATE productos SET stock = :stock, status = :newStatus WHERE id = :id`,
@@ -114,4 +114,29 @@ export async function updateStock(id: string, stock: number): Promise<void> {
             }
         );
     }
+}
+
+/**
+ * Incrementa el stock de un producto (para reponer reservas expiradas o pagos fallidos)
+ * También actualiza el status a 'disponible' si estaba 'agotado'
+ */
+export async function increaseStock(id: string, quantity: number): Promise<number> {
+    const product = await getProductById(id);
+    if (!product) {
+        throw new Error(`Producto ${id} no encontrado`);
+    }
+
+    const newStock = product.stock + quantity;
+    // Si el producto estaba agotado y ahora tiene stock, volver a disponible
+    const newStatus = product.status === 'agotado' && newStock > 0 ? 'disponible' : product.status;
+
+    await sequelize.query(
+        `UPDATE productos SET stock = :newStock, status = :newStatus WHERE id = :id`,
+        {
+            replacements: { id, newStock, newStatus },
+            type: QueryTypes.UPDATE,
+        }
+    );
+
+    return newStock;
 }

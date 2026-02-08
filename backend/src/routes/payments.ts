@@ -10,8 +10,11 @@ import {
     getEnvioByOrderId,
     updateEnvioStatus,
     getOrderItems,
+    markOrderStockReserved,
+    markOrderStockReleased,
+    getExpiredReservations,
 } from "@/services/ordersService";
-import { getProductById, decreaseStock } from "@/services/productService";
+import { getProductById, decreaseStock, increaseStock } from "@/services/productService";
 import { createShipment } from "@/services/enviosService";
 
 const router = Router();
@@ -23,6 +26,23 @@ const router = Router();
 router.post("/create-preference", async (req, res) => {
     try {
         const { items, shipping } = req.body;
+
+        // Limpiar reservas expiradas (órdenes pendientes > 5 min)
+        try {
+            const expiredOrders = await getExpiredReservations(5);
+            for (const expiredOrder of expiredOrders) {
+                const expiredItems = await getOrderItems(expiredOrder.id);
+                for (const item of expiredItems) {
+                    await increaseStock(item.id_producto, item.cantidad);
+                    console.log(`Stock liberado para producto ${item.id_producto} (orden expirada ${expiredOrder.id})`);
+                }
+                await updateOrderStatus(expiredOrder.id, "cancelled");
+                await markOrderStockReleased(expiredOrder.id);
+            }
+        } catch (cleanupError) {
+            console.error("Error limpiando reservas expiradas:", cleanupError);
+            // Continuamos aunque falle la limpieza
+        }
 
         if (!items || !Array.isArray(items) || items.length === 0) {
             return res.status(400).json({ error: "Items requeridos" });
@@ -38,7 +58,7 @@ router.post("/create-preference", async (req, res) => {
 
         for (const item of items) {
             const product = await getProductById(item.id);
-            
+
             if (!product) {
                 return res.status(400).json({ error: `Producto ${item.id} no encontrado` });
             }
@@ -48,23 +68,23 @@ router.post("/create-preference", async (req, res) => {
             }
 
             const quantity = Number(item.quantity) || 1;
-            
+
             // verificar límite si existe
             if (product.limite > 0 && quantity > product.limite) {
-                return res.status(400).json({ 
-                    error: `Cantidad excede el límite para ${product.name} (máximo: ${product.limite})` 
+                return res.status(400).json({
+                    error: `Cantidad excede el límite para ${product.name} (máximo: ${product.limite})`
                 });
             }
 
             // verificar stock disponible
             if (product.stock < quantity) {
                 if (product.stock === 0) {
-                    return res.status(400).json({ 
-                        error: `${product.name} está agotado` 
+                    return res.status(400).json({
+                        error: `${product.name} está agotado`
                     });
                 }
-                return res.status(400).json({ 
-                    error: `Stock insuficiente para ${product.name} (disponible: ${product.stock})` 
+                return res.status(400).json({
+                    error: `Stock insuficiente para ${product.name} (disponible: ${product.stock})`
                 });
             }
 
@@ -108,6 +128,20 @@ router.post("/create-preference", async (req, res) => {
             },
         });
 
+        // RESERVAR STOCK: Descontar stock ahora para evitar overselling
+        try {
+            for (const item of validatedItems) {
+                await decreaseStock(item.id_producto, item.cantidad);
+                console.log(`Stock reservado: ${item.cantidad} x ${item.id_producto} para orden ${order.id}`);
+            }
+            await markOrderStockReserved(order.id);
+        } catch (stockError: any) {
+            console.error("Error reservando stock:", stockError);
+            // Si falla la reserva, cancelamos la orden
+            await updateOrderStatus(order.id, "cancelled");
+            return res.status(400).json({ error: stockError.message || "Error reservando stock" });
+        }
+
         // Crear preferencia de MercadoPago (incluye productos + envío)
         const mpItems = [
             ...validatedItems.map(item => ({
@@ -142,7 +176,7 @@ router.post("/create-preference", async (req, res) => {
                 },
                 auto_return: "approved",
                 external_reference: external_reference,
-                notification_url: process.env.NODE_ENV === 'development' 
+                notification_url: process.env.NODE_ENV === 'development'
                     ? 'https://zpxtnmn7-3001.brs.devtunnels.ms/payments/webhook'
                     : `${process.env.PUBLIC_BASE_URL}/api/payments/webhook`,
             },
@@ -186,7 +220,7 @@ router.post("/webhook", async (req, res) => {
             // importar Payment solo cuando se necesita
             const { Payment } = await import("mercadopago");
             const { MercadoPagoConfig } = await import("mercadopago");
-            
+
             const client = new MercadoPagoConfig({
                 accessToken: process.env.MP_ACCESS_TOKEN!,
             });
@@ -219,19 +253,9 @@ router.post("/webhook", async (req, res) => {
 
             if (payment.status === "approved") {
                 await updateOrderStatus(order.id, "paid");
-                console.log(`Orden ${order.id} marcada como pagada`);
-
-                // Descontar stock de cada producto
-                try {
-                    const orderItems = await getOrderItems(order.id);
-                    for (const item of orderItems) {
-                        const newStock = await decreaseStock(item.id_producto, item.cantidad);
-                        console.log(`Stock de ${item.id_producto} actualizado: ${newStock}`);
-                    }
-                } catch (stockError: any) {
-                    console.error("Error actualizando stock:", stockError);
-                    // No fallamos el webhook, pero logueamos el error
-                }
+                // El stock ya fue reservado en create-preference, solo marcamos como usado
+                await markOrderStockReleased(order.id);
+                console.log(`Orden ${order.id} marcada como pagada, stock confirmado`);
 
                 // crear envío en Zipnova
                 const envio = await getEnvioByOrderId(order.id);
@@ -241,7 +265,7 @@ router.post("/webhook", async (req, res) => {
                         const zipnovaItems = orderItems.map(item => ({ sku: item.id_producto }));
 
                         const shipmentResult = await createShipment({
-                            external_id: envio.id, 
+                            external_id: envio.id,
                             declared_value: Number(order.total),
                             service_type: envio.service_type as 'standard_delivery' | 'pickup_point',
                             destination: {
@@ -273,6 +297,18 @@ router.post("/webhook", async (req, res) => {
             } else if (payment.status === "rejected" || payment.status === "cancelled") {
                 await updateOrderStatus(order.id, "failed");
                 console.log(`Orden ${order.id} marcada como fallida`);
+
+                // Restaurar stock reservado
+                try {
+                    const orderItems = await getOrderItems(order.id);
+                    for (const item of orderItems) {
+                        await increaseStock(item.id_producto, item.cantidad);
+                        console.log(`Stock restaurado: ${item.cantidad} x ${item.id_producto}`);
+                    }
+                    await markOrderStockReleased(order.id);
+                } catch (stockError: any) {
+                    console.error("Error restaurando stock:", stockError);
+                }
             }
             // si es pending o in_process, dejamos la orden como pending
 
