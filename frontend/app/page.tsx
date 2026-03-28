@@ -120,20 +120,33 @@ export default function HomePage() {
       </section>
 
       {/* Story Section */}
-      <section className="py-16 sm:py-24 px-4 bg-primary">
-        <div className="container mx-auto max-w-6xl">
-          <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
-            <div className="order-2 md:order-1 relative h-[300px] sm:h-[400px] rounded-lg overflow-hidden">
-              <img
-                src="/imagen-12346.jpg"
-                alt="Detalle del fernet"
-                loading="lazy"
-                className="w-full h-full object-cover"
-              />
+      <section className="relative py-20 sm:py-28 px-4 bg-primary overflow-hidden">
+        {/* Decorative accent */}
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+        <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+
+        <div className="container mx-auto max-w-6xl space-y-24">
+          {/* Fernet Los Horneros — imagen izquierda, texto derecha */}
+          <div className="grid md:grid-cols-2 gap-10 md:gap-16 items-center">
+            <div className="relative group">
+              <div className="absolute -inset-3 rounded-2xl bg-white/5 blur-xl group-hover:bg-white/10 transition-all duration-500" />
+              <div className="relative h-[320px] sm:h-[420px] rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10">
+                <img
+                  src="/storyfernet.webp"
+                  alt="Fernet Los Horneros"
+                  loading="lazy"
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+              </div>
             </div>
-            <div className="order-1 md:order-2">
-                <h2 className="font-serif text-3xl sm:text-4xl font-bold text-white mb-6 text-center md:text-left">Fernet Los Horneros</h2>
-              <div className="space-y-4 text-text leading-relaxed">
+            <div>
+              <span className="inline-block text-xs font-semibold tracking-[0.25em] uppercase text-white/50 mb-3">Nuestra Esencia</span>
+              <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6 leading-tight">
+                Fernet Los Horneros
+              </h2>
+              <div className="w-16 h-0.5 bg-white/30 mb-6 rounded-full" />
+              <div className="space-y-4 text-white/80 leading-relaxed text-base sm:text-lg">
                 <p>
                   Dicen que el hornero ama una sola vez, y que con ese amor construye su nido para siempre. Cada rama, cada pedacito de barro, es una muestra de su dedicación y su paciencia. Así también nace este fernet, fiel a sus raíces pampeanas, creado con respeto por la tierra y por las manos que lo elaboran.
                 </p>
@@ -143,6 +156,47 @@ export default function HomePage() {
                 <p>
                   Como el hornero, que levanta su casa mirando al horizonte, este fernet celebra lo nuestro: la perseverancia, la amistad y ese amor que no se suelta, porque cuando algo está hecho con alma, dura para siempre.
                 </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Separador decorativo */}
+          <div className="flex items-center gap-4 max-w-md mx-auto">
+            <div className="flex-1 h-px bg-white/15" />
+            <img src="/logo-fernet.png" alt="" aria-hidden className="w-10 h-10 object-contain opacity-20" />
+            <div className="flex-1 h-px bg-white/15" />
+          </div>
+
+          {/* Familia Redruello — texto izquierda, imagen derecha */}
+          <div className="grid md:grid-cols-2 gap-10 md:gap-16 items-center">
+            <div className="order-2 md:order-1">
+              <span className="inline-block text-xs font-semibold tracking-[0.25em] uppercase text-white/50 mb-3">Quiénes Somos</span>
+              <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6 leading-tight">
+                Familia Redruello
+              </h2>
+              <div className="w-16 h-0.5 bg-white/30 mb-6 rounded-full" />
+              <div className="space-y-4 text-white/80 leading-relaxed text-base sm:text-lg">
+                <p>
+                  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+                </p>
+                <p>
+                  Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+                </p>
+                <p>
+                  Curabitur pretium tincidunt lacus. Nulla gravida orci a odio. Nullam varius, turpis et commodo pharetra, est eros bibendum elit, nec luctus magna felis sollicitudin mauris.
+                </p>
+              </div>
+            </div>
+            <div className="order-1 md:order-2 relative group">
+              <div className="absolute -inset-3 rounded-2xl bg-white/5 blur-xl group-hover:bg-white/10 transition-all duration-500" />
+              <div className="relative h-[320px] sm:h-[420px] rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10">
+                <img
+                  src="/storyredruello.webp"
+                  alt="Familia Redruello"
+                  loading="lazy"
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
               </div>
             </div>
           </div>
