@@ -76,7 +76,7 @@ export function Footer() {
           </div>
         </div>
         <div className="border-t border-secondary pt-8 text-center text-sm text-text">
-          <p>&copy; 2025 Fernet Los Horneros. Todos los derechos reservados. Prohibida la venta a menores de 18 años. </p>
+          <p>&copy; 2026 Fernet Los Horneros. Todos los derechos reservados. Prohibida la venta a menores de 18 años. </p>
         </div>
       </div>
     </footer>

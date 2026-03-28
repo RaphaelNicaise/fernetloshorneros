@@ -7,7 +7,6 @@ import { fetchProducts, type Product } from "@/lib/api"
 import { ProductCard } from "@/components/product-card"
 import Link from "next/link"
 import { Footer } from "@/components/footer"
-import { SocialEmbedsWithLoading } from "@/components/social-embeds"
 import { useEffect, useState } from "react"
 
 
@@ -114,8 +113,8 @@ export default function HomePage() {
               Seguinos en Redes Sociales y descubrí cómo elaboramos cada botella de Fernet Los Horneros con dedicación y pasión.
             </p>
           </div>
-          {/* Instagram a la izquierda, TikTok a la derecha, con carga simulada */}
-          <SocialEmbedsWithLoading />
+          
+          
           
         </div>
       </section>
