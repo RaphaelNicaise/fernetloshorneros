@@ -8,6 +8,31 @@ import { ProductCard } from "@/components/product-card"
 import Link from "next/link"
 import { Footer } from "@/components/footer"
 import { useEffect, useState } from "react"
+import { motion } from "framer-motion"
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 40 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" as const } },
+}
+
+const fadeIn = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { duration: 0.6, ease: "easeOut" as const } },
+}
+
+const slideLeft = {
+  hidden: { opacity: 0, x: -60 },
+  visible: { opacity: 1, x: 0, transition: { duration: 0.7, ease: "easeOut" as const } },
+}
+
+const slideRight = {
+  hidden: { opacity: 0, x: 60 },
+  visible: { opacity: 1, x: 0, transition: { duration: 0.7, ease: "easeOut" as const } },
+}
+
+const stagger = {
+  visible: { transition: { staggerChildren: 0.15 } },
+}
 
 
 const heroImages = [  
@@ -56,7 +81,7 @@ export default function HomePage() {
         />
         <div className="container mx-auto max-w-6xl">
           <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
-            <div className="relative">
+            <motion.div className="relative" initial="hidden" animate="visible" variants={slideLeft}>
               <div className="relative inline-block mb-6">
                 {/* Imagen de los horneros centrada justo detrás del logo */}
                 <img
@@ -94,10 +119,10 @@ export default function HomePage() {
                   </Link>
                 </div>
               
-            </div>
-            <div className="relative h-[400px] sm:h-[500px] rounded-lg overflow-hidden">
+            </motion.div>
+            <motion.div className="relative h-[400px] sm:h-[500px] rounded-lg overflow-hidden" initial="hidden" animate="visible" variants={slideRight}>
               <ImageCarousel images={heroImages} autoPlayInterval={12000} />
-            </div>
+            </motion.div>
           </div>
         </div>
       </section>
@@ -105,24 +130,24 @@ export default function HomePage() {
       {/* Production Process */}
       <section className="py-16 sm:py-24 px-4 bg-secondary">
         <div className="container mx-auto max-w-6xl">
-          <div className="text-center mb-14">
+          <motion.div className="text-center mb-14" initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }} variants={fadeUp}>
             <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold text-foreground mb-4">
               Nuestro Proceso Artesanal
             </h2>
             <p className="text-text text-lg max-w-2xl mx-auto">
               Cada botella de Fernet Los Horneros es el resultado de dedicación, pasión y un proceso único.
             </p>
-          </div>
+          </motion.div>
 
           {/* Círculos de proceso */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-6 mb-16">
+          <motion.div className="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-6 mb-16" initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger}>
             {[
               { img: "/proceso1.webp", title: "Aroma", desc: "Perfil aromático único donde los botánicos se funden con la calidez de la madera de roble." },
               { img: "/proceso2.webp", title: "Apariencia", desc: "Oscuridad infinita con reflejos bronce." },
               { img: "/proceso3.webp", title: "Sabor", desc: "Destaca con su suavidad en boca y un final dulzón." },
               { img: "/proceso4.webp", title: "Final", desc: "Un cierre cálido y persistente con sutiles notas de roble ahumado." },
             ].map((item) => (
-              <div key={item.title} className="flex flex-col items-center text-center group">
+              <motion.div key={item.title} className="flex flex-col items-center text-center group" variants={fadeUp}>
                 <div className="relative w-44 h-44 sm:w-52 sm:h-52 lg:w-60 lg:h-60 rounded-full overflow-hidden shadow-lg ring-2 ring-primary/10 mb-5 transition-transform duration-500 group-hover:scale-105">
                   <img
                     src={item.img}
@@ -137,12 +162,12 @@ export default function HomePage() {
                 <p className="text-text text-sm sm:text-base max-w-[220px] leading-relaxed">
                   {item.desc}
                 </p>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
 
           {/* CTA Redes */}
-          <div className="text-center">
+          <motion.div className="text-center" initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }} variants={fadeUp}>
             <p className="text-foreground font-serif text-xl sm:text-2xl font-semibold mb-6">
               ¿Querés seguir de cerca el proceso? Seguinos
             </p>
@@ -166,7 +191,7 @@ export default function HomePage() {
                 TikTok
               </a>
             </div>
-          </div>
+          </motion.div>
         </div>
       </section>
 
@@ -179,7 +204,7 @@ export default function HomePage() {
         <div className="container mx-auto max-w-6xl space-y-24">
           {/* Fernet Los Horneros — imagen izquierda, texto derecha */}
           <div className="grid md:grid-cols-2 gap-10 md:gap-16 items-center">
-            <div className="relative group">
+            <motion.div className="relative group" initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }} variants={slideLeft}>
               <div className="absolute -inset-3 rounded-2xl bg-white/5 blur-xl group-hover:bg-white/10 transition-all duration-500" />
               <div className="relative h-[320px] sm:h-[420px] rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10">
                 <img
@@ -190,8 +215,8 @@ export default function HomePage() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
               </div>
-            </div>
-            <div>
+            </motion.div>
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }} variants={slideRight}>
               <span className="inline-block text-xs font-semibold tracking-[0.25em] uppercase text-white/50 mb-3">Nuestra Esencia</span>
               <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6 leading-tight">
                 Fernet Los Horneros
@@ -208,7 +233,7 @@ export default function HomePage() {
                   Como el hornero, que levanta su casa mirando al horizonte, este fernet celebra lo nuestro: la perseverancia, la amistad y ese amor que no se suelta, porque cuando algo está hecho con alma, dura para siempre.
                 </p>
               </div>
-            </div>
+            </motion.div>
           </div>
 
           {/* Separador decorativo */}
@@ -220,7 +245,7 @@ export default function HomePage() {
 
           {/* Familia Redruello — texto izquierda, imagen derecha */}
           <div className="grid md:grid-cols-2 gap-10 md:gap-16 items-center">
-            <div className="order-2 md:order-1">
+            <motion.div className="order-2 md:order-1" initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }} variants={slideLeft}>
               <span className="inline-block text-xs font-semibold tracking-[0.25em] uppercase text-white/50 mb-3">Quiénes Somos</span>
               <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6 leading-tight">
                 Familia Redruello
@@ -237,8 +262,8 @@ export default function HomePage() {
                   Curabitur pretium tincidunt lacus. Nulla gravida orci a odio. Nullam varius, turpis et commodo pharetra, est eros bibendum elit, nec luctus magna felis sollicitudin mauris.
                 </p>
               </div>
-            </div>
-            <div className="order-1 md:order-2 relative group">
+            </motion.div>
+            <motion.div className="order-1 md:order-2 relative group" initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }} variants={slideRight}>
               <div className="absolute -inset-3 rounded-2xl bg-white/5 blur-xl group-hover:bg-white/10 transition-all duration-500" />
               <div className="relative h-[320px] sm:h-[420px] rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10">
                 <img
@@ -249,7 +274,7 @@ export default function HomePage() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
       </section>
@@ -266,11 +291,11 @@ export default function HomePage() {
           className="pointer-events-none absolute inset-0 w-full h-full object-cover opacity-40 md:opacity-25"
         />
         <div className="container mx-auto max-w-6xl">
-          <div className="text-center mb-12">
+          <motion.div className="text-center mb-12" initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }} variants={fadeUp}>
             <h2 className="font-serif text-3xl sm:text-4xl font-bold text-foreground mb-4">Nuestros Productos</h2>
             <p className="text-text text-lg">Fernet artesanal y cristalería de calidad premium</p>
-          </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          </motion.div>
+          <motion.div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto" initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.1 }} variants={stagger}>
             {loading ? (
               <p className="col-span-full text-center text-muted-foreground">Cargando…</p>
             ) : error ? (
@@ -278,17 +303,17 @@ export default function HomePage() {
             ) : items.length === 0 ? (
               <p className="col-span-full text-center text-muted-foreground">Pronto vas a ver nuestros productos aquí.</p>
             ) : (
-              items.map((product) => <ProductCard key={product.id} product={product} />)
+              items.map((product) => <motion.div key={product.id} variants={fadeUp}><ProductCard product={product} /></motion.div>)
             )}
-          </div>
-          <div className="text-center mt-12">
+          </motion.div>
+          <motion.div className="text-center mt-12" initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}>
             <Link
               href="/productos"
               className="inline-flex items-center justify-center px-8 py-4 bg-white text-primary font-semibold rounded-lg transition-all duration-200 transform-gpu hover:bg-text hover:shadow-md hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
             >
               Ver Todos los Productos
             </Link>
-          </div>
+          </motion.div>
         </div>
       </section>
 
