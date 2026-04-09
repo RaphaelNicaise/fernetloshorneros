@@ -34,6 +34,36 @@ const stagger = {
   visible: { transition: { staggerChildren: 0.15 } },
 }
 
+const FALLBACK_PRODUCTS: Product[] = [
+  {
+    id: "fallback-1",
+    name: "Fernet Los Horneros 750ml",
+    description: "Fernet artesanal elaborado con botánicos seleccionados y madera de roble. Edición clásica.",
+    price: 12500,
+    image: "/storyfernet.webp",
+    status: "disponible",
+    stock: 50,
+  },
+  {
+    id: "fallback-2",
+    name: "Fernet Los Horneros 500ml",
+    description: "La versión compacta de nuestro fernet signature. Ideal para compartir en cualquier ocasión.",
+    price: 8900,
+    image: "/storyfernet.webp",
+    status: "disponible",
+    stock: 50,
+  },
+  {
+    id: "fallback-3",
+    name: "Copa Los Horneros",
+    description: "Copa de cristal premium con el escudo de Los Horneros grabado. Edición limitada.",
+    price: 4500,
+    image: "/storyfernet.webp",
+    status: "disponible",
+    stock: 30,
+  },
+]
+
 
 const heroImages = [  
   { src: "/fernet1.webp", alt: "Fernet 1" },
@@ -298,12 +328,8 @@ export default function HomePage() {
           <motion.div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto" initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.1 }} variants={stagger}>
             {loading ? (
               <p className="col-span-full text-center text-muted-foreground">Cargando…</p>
-            ) : error ? (
-              <p className="col-span-full text-center text-destructive">{error}</p>
-            ) : items.length === 0 ? (
-              <p className="col-span-full text-center text-muted-foreground">Pronto vas a ver nuestros productos aquí.</p>
             ) : (
-              items.map((product) => <motion.div key={product.id} variants={fadeUp}><ProductCard product={product} /></motion.div>)
+              (items.length > 0 ? items : FALLBACK_PRODUCTS).map((product) => <motion.div key={product.id} variants={fadeUp}><ProductCard product={product} /></motion.div>)
             )}
           </motion.div>
           <motion.div className="text-center mt-12" initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}>

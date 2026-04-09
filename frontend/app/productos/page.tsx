@@ -7,6 +7,36 @@ import { Footer } from "@/components/footer"
 import { useEffect, useState } from "react"
 import { fetchProducts, type Product } from "@/lib/api"
 
+const FALLBACK_PRODUCTS: Product[] = [
+  {
+    id: "fallback-1",
+    name: "Fernet Los Horneros 750ml",
+    description: "Fernet artesanal elaborado con botánicos seleccionados y madera de roble. Edición clásica.",
+    price: 12500,
+    image: "/storyfernet.webp",
+    status: "disponible",
+    stock: 50,
+  },
+  {
+    id: "fallback-2",
+    name: "Vaso Fernet Los Horneros",
+    description: "La versión compacta de nuestro fernet signature. Ideal para compartir en cualquier ocasión.",
+    price: 8900,
+    image: "/storyfernet.webp",
+    status: "disponible",
+    stock: 50,
+  },
+  {
+    id: "fallback-3",
+    name: "Vaso Grande Fernet Los Horneros",
+    description: "Vaso de cristal premium con el escudo de Los Horneros grabado. Edición limitada.",
+    price: 4500,
+    image: "/storyfernet.webp",
+    status: "disponible",
+    stock: 30,
+  },
+]
+
 export default function ProductsPage() {
   const [items, setItems] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
@@ -50,12 +80,8 @@ export default function ProductsPage() {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
             {loading ? (
               <p className="col-span-full text-center text-muted-foreground">Cargando…</p>
-            ) : error ? (
-              <p className="col-span-full text-center text-destructive">{error}</p>
-            ) : items.length === 0 ? (
-              <p className="col-span-full text-center text-muted-foreground">Sin productos</p>
             ) : (
-              items.map((product) => <ProductCard key={product.id} product={product} />)
+              (items.length > 0 ? items : FALLBACK_PRODUCTS).map((product) => <ProductCard key={product.id} product={product} />)
             )}
           </div>
         </div>

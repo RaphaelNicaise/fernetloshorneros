@@ -4,16 +4,91 @@ import { useCart } from "@/lib/cart-context"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import Link from "next/link"
-import { fetchProducts, createPaymentPreference, api } from "@/lib/api"
+import { fetchProducts, createPaymentPreference, api, type Product } from "@/lib/api"
 import { toast } from "@/hooks/use-toast"
 import { useState, useCallback, useEffect } from "react"
 import { ShippingSelector, type ShippingSelection } from "@/components/shipping-selector"
 import { useCartValidation } from "@/hooks/use-cart-validation"
 
+function RecommendedCard({ product, onAdd, wide }: { product: Product; onAdd: () => void; wide?: boolean }) {
+  const [added, setAdded] = useState(false)
+
+  const handleAdd = () => {
+    onAdd()
+    setAdded(true)
+    setTimeout(() => setAdded(false), 1200)
+  }
+
+  return (
+    <div className={`group relative rounded-2xl overflow-hidden border border-border/60 bg-card transition-all duration-200 hover:shadow-md ${wide ? "flex flex-row items-center" : ""}`}>
+      <div className={`relative overflow-hidden ${wide ? "w-28 h-28 flex-shrink-0" : "h-32"}`}>
+        <img
+          src={product.image || "/placeholder.svg"}
+          alt={product.name}
+          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+        />
+      </div>
+      <div className={`p-3 flex flex-col gap-1.5 ${wide ? "flex-1" : ""}`}>
+        <p className="text-sm font-semibold text-foreground leading-tight line-clamp-1">{product.name}</p>
+        {product.description && (
+          <p className="text-xs text-muted-foreground line-clamp-1">{product.description}</p>
+        )}
+        <div className="flex items-center justify-between gap-2 mt-auto">
+          <span className="text-sm font-bold text-foreground">${product.price.toLocaleString('es-AR')}</span>
+          <button
+            onClick={handleAdd}
+            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg border border-primary/30 text-primary bg-transparent hover:bg-primary/10 active:scale-95 transition-all duration-150 cursor-pointer"
+          >
+            {added ? (
+              <>
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                Agregado
+              </>
+            ) : (
+              <>+ Agregar</>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const FALLBACK_PRODUCTS: Product[] = [
+  {
+    id: "fallback-1",
+    name: "Fernet Los Horneros 750ml",
+    description: "Fernet artesanal elaborado con botánicos seleccionados y madera de roble. Edición clásica.",
+    price: 12500,
+    image: "/storyfernet.webp",
+    status: "disponible",
+    stock: 50,
+  },
+  {
+    id: "fallback-2",
+    name: "Fernet Los Horneros 500ml",
+    description: "La versión compacta de nuestro fernet signature. Ideal para compartir en cualquier ocasión.",
+    price: 8900,
+    image: "/storyfernet.webp",
+    status: "disponible",
+    stock: 50,
+  },
+  {
+    id: "fallback-3",
+    name: "Copa Los Horneros",
+    description: "Copa de cristal premium con el escudo de Los Horneros grabado. Edición limitada.",
+    price: 4500,
+    image: "/storyfernet.webp",
+    status: "disponible",
+    stock: 30,
+  },
+]
+
 export default function CartPage() {
-  const { items, removeItem, updateQuantity, clearCart, totalPrice } = useCart()
+  const { items, removeItem, updateQuantity, clearCart, totalPrice, addItem } = useCart()
   const [loading, setLoading] = useState(false)
-  const [minPurchaseAmount, setMinPurchaseAmount] = useState(0);
+  const [minPurchaseAmount, setMinPurchaseAmount] = useState(0)
+  const [catalog, setCatalog] = useState<Product[]>([])
 
   // Validar carrito cada 20 segundos
   useCartValidation()
@@ -25,15 +100,31 @@ export default function CartPage() {
   useEffect(() => {
     const fetchMinPurchaseAmount = async () => {
       try {
-        const response = await api.get('/settings/min_purchase_amount');
-        setMinPurchaseAmount(parseFloat(response.data.value));
+        const response = await api.get('/settings/min_purchase_amount')
+        setMinPurchaseAmount(parseFloat(response.data.value))
       } catch (error) {
-        console.error('Failed to fetch min purchase amount', error);
+        console.error('Failed to fetch min purchase amount', error)
       }
-    };
+    }
+    const loadCatalog = async () => {
+      try {
+        const data = await fetchProducts()
+        setCatalog(data.length > 0 ? data : FALLBACK_PRODUCTS)
+      } catch {
+        setCatalog(FALLBACK_PRODUCTS)
+      }
+    }
+    fetchMinPurchaseAmount()
+    loadCatalog()
+  }, [])
 
-    fetchMinPurchaseAmount();
-  }, []);
+  const cartIds = new Set(items.map((i) => i.id))
+  const allRecommended = catalog
+    .filter((p) => !cartIds.has(p.id) && p.status === "disponible")
+
+  // Lógica de inventario: 1 en carrito → 2 recs, 2 → 1 rec, 3+ → ocultar
+  const maxRecommendations = items.length === 1 ? 2 : items.length === 2 ? 1 : 0
+  const recommended = allRecommended.slice(0, maxRecommendations)
 
   const handleShippingComplete = useCallback((selection: ShippingSelection) => {
     setShippingSelection(selection)
@@ -286,6 +377,23 @@ export default function CartPage() {
                   </div>
                 ))}
               </div>
+
+              {/* Upsell de final de lista */}
+              {recommended.length > 0 && (
+                <div className="pt-2 pb-1">
+                  <p className="text-sm font-medium text-muted-foreground mb-3">¿Te falta algo para tu set?</p>
+                  <div className={`grid gap-3 ${recommended.length === 1 ? "grid-cols-1 max-w-sm" : "grid-cols-2"}`}>
+                    {recommended.map((product) => (
+                      <RecommendedCard
+                        key={product.id}
+                        product={product}
+                        wide={recommended.length === 1}
+                        onAdd={() => addItem({ id: product.id, name: product.name, price: product.price, image: product.image })}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Alerta de monto mínimo */}
               {totalPrice < minPurchaseAmount && minPurchaseAmount > 0 && (
