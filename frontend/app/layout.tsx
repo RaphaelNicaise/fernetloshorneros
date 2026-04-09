@@ -8,15 +8,49 @@ import { Toaster } from "@/components/ui/toaster"
 const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-serif" })
 const montserrat = Montserrat({ subsets: ["latin"], variable: "--font-sans" })
 
+const SITE_URL = "https://fernetloshorneros.com"
+const OG_IMAGE = `${SITE_URL}/fernet1.webp`
+
 export const metadata: Metadata = {
-  title: "Los Horneros - Fernet",
-  description: "Ethically-sourced, small-batch artisan coffee roasted to perfection",
-    generator: 'v0.app',
-    icons: {
-      icon: '/logonuevo.png',
-      shortcut: '/logonuevo.png',
-      apple: '/logonuevo.png',
-    }
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "Los Horneros Fernet — Fernet Artesanal Argentino",
+    template: "%s | Los Horneros Fernet",
+  },
+  description:
+    "Fernet artesanal argentino elaborado con más de 20 hierbas seleccionadas. Lote 2 en preventa — solo 2.500 botellas numeradas. Junio 2026.",
+  keywords: [
+    "fernet artesanal",
+    "fernet argentino",
+    "los horneros fernet",
+    "fernet premium",
+    "fernet edición limitada",
+    "fernet artesanal argentina",
+    "fernet lote limitado",
+  ],
+  authors: [{ name: "Los Horneros Fernet" }],
+  icons: {
+    icon: "/logonuevo.png",
+    shortcut: "/logonuevo.png",
+    apple: "/logonuevo.png",
+  },
+  openGraph: {
+    title: "Los Horneros Fernet — Fernet Artesanal Argentino",
+    description:
+      "Fernet artesanal elaborado con más de 20 hierbas seleccionadas. Lote 2 en preventa — solo 2.500 botellas numeradas. Junio 2026.",
+    url: SITE_URL,
+    siteName: "Los Horneros Fernet",
+    locale: "es_AR",
+    type: "website",
+    images: [{ url: OG_IMAGE, width: 1200, height: 630, alt: "Fernet Los Horneros — Fernet Artesanal Argentino" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Los Horneros Fernet — Fernet Artesanal Argentino",
+    description: "Solo 2.500 botellas numeradas. Preventa Junio 2026.",
+    images: [OG_IMAGE],
+  },
+  robots: { index: true, follow: true },
 }
 
 export default function RootLayout({
@@ -30,6 +64,24 @@ export default function RootLayout({
         <link
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=add_shopping_cart"
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              name: "Los Horneros Fernet",
+              url: SITE_URL,
+              logo: `${SITE_URL}/logo-fernet.png`,
+              sameAs: [
+                "https://www.instagram.com/fernetloshorneros",
+                "https://www.tiktok.com/@santiredruelloo",
+              ],
+              description:
+                "Fernet artesanal argentino elaborado con más de 20 hierbas seleccionadas. Producción en lotes limitados y numerados.",
+            }),
+          }}
         />
       </head>
       <body suppressHydrationWarning className={`${playfair.variable} ${montserrat.variable} font-sans antialiased`}>

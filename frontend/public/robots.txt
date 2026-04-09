@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+# No indexar rutas privadas o de proceso
+Disallow: /admin/
+Disallow: /cart/
+Disallow: /payment/
+
+Sitemap: https://fernetloshorneros.com/sitemap.xml

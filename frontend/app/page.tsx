@@ -100,7 +100,7 @@ export default function HomePage() {
         <Navigation />
 
       {/* Hero Section */}
-  <section className="relative pt-20 sm:pt-24 pb-16 sm:pb-20 px-4 bg-white overflow-hidden">
+      <section className="relative pt-20 sm:pt-24 pb-16 sm:pb-20 px-4 bg-white overflow-hidden">
         {/* Fondo visible del hero */}
         <img
           src="/fontscreen.png"
@@ -111,47 +111,71 @@ export default function HomePage() {
         />
         <div className="container mx-auto max-w-6xl">
           <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
-            <motion.div className="relative" initial="hidden" animate="visible" variants={slideLeft}>
-              <div className="relative inline-block mb-6">
-                {/* Imagen de los horneros centrada justo detrás del logo */}
+            {/* Columna izquierda — Copy */}
+            <motion.div className="relative order-2 md:order-1" initial="hidden" animate="visible" variants={slideLeft}>
+              {/* Logo */}
+              <div className="relative inline-block mb-8">
                 <img
                   src="/horneros.png"
                   alt=""
                   aria-hidden
                   loading="lazy"
                   className="pointer-events-none select-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[46%] sm:w-[52%] md:w-[57%] lg:w-[63%] opacity-15 hidden md:block z-0"
-
-
-
                 />
                 <Image
                   src="/logo-fernet.png"
                   alt="Fernet Los Horneros"
                   width={520}
                   height={140}
-                  className="relative z-10 h-24 sm:h-28 md:h-32 w-auto object-contain"
+                  className="relative z-10 h-20 sm:h-24 md:h-28 w-auto object-contain"
                   priority
                 />
               </div>
-               
-                <div className="flex flex-wrap gap-4 justify-center md:justify-start text-center md:text-left">
-                  <Link
-                    href="/productos"
-                    className="inline-flex items-center justify-center px-6 sm:px-8 py-3 sm:py-4 bg-primary text-primary-foreground font-semibold rounded-lg transition-all duration-200 transform-gpu hover:bg-primary/90 hover:shadow-md hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                  >
-                    Ver Productos
-                  </Link>
-                  <Link
-                    href="/lista-espera"
-                    className="inline-flex items-center justify-center px-6 sm:px-8 py-3 sm:py-4 border-2 border-primary text-primary font-semibold rounded-lg transition-all duration-200 transform-gpu hover:bg-primary hover:text-primary-foreground hover:shadow-md hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                  >
-                    Únete a la Lista
-                  </Link>
-                </div>
-              
+
+              {/* Headline con Lote a la derecha */}
+              <h1 className="font-serif text-3xl sm:text-4xl md:text-[2.75rem] font-bold text-neutral-900 leading-[1.15] mb-5 text-center md:text-left">
+                Preventa Junio 2026
+                <span className="font-serif text-lg sm:text-xl md:text-2xl tracking-[0.15em] uppercase text-neutral-400 ml-3 align-baseline">Lote 2</span>
+              </h1>
+
+              {/* Subheadline */}
+              <p className="text-neutral-500 text-base sm:text-lg leading-[1.75] mb-8 max-w-lg text-center md:text-left">
+                Solo <span className="font-semibold text-neutral-700">2.500 botellas</span>. 
+                Reservá tu lugar en la lista para asegurar tu unidad antes de que se abra al público.
+              </p>
+
+              {/* CTAs */}
+              <div className="flex flex-col items-center md:items-start gap-3">
+                <Link
+                  href="/lista-espera"
+                  className="inline-flex items-center justify-center px-8 py-4 bg-primary text-primary-foreground font-semibold rounded-lg transition-all duration-200 transform-gpu hover:bg-primary/90 hover:shadow-lg hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 text-base"
+                >
+                  Unirme a la lista de espera
+                </Link>
+                <span className="text-[11px] text-neutral-400">
+                  Te avisaremos 24hs antes del lanzamiento público.
+                </span>
+                <button
+                  onClick={() => document.getElementById('productos')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="inline-flex items-center gap-1 text-sm font-medium text-neutral-900 hover:text-neutral-600 transition-colors mt-1 cursor-pointer"
+                >
+                  Ver productos <span aria-hidden>→</span>
+                </button>
+              </div>
             </motion.div>
-            <motion.div className="relative h-[400px] sm:h-[500px] rounded-lg overflow-hidden" initial="hidden" animate="visible" variants={slideRight}>
+
+            {/* Columna derecha — Producto + badge Sold Out */}
+            <motion.div className="group/hero relative h-[400px] sm:h-[500px] rounded-lg overflow-hidden order-1 md:order-2" initial="hidden" animate="visible" variants={slideRight}>
               <ImageCarousel images={heroImages} autoPlayInterval={12000} />
+              {/* Badge Sold Out — anclado a la derecha, se expande hacia la izquierda */}
+              <div className="absolute top-5 right-5 z-20 flex justify-end">
+                <div className="bg-neutral-900/80 backdrop-blur-sm text-white px-5 py-2.5 rounded-full text-xs font-semibold tracking-[0.1em] uppercase shadow-lg flex items-center flex-row-reverse whitespace-nowrap">
+                  <span>Lote 1 · Sold Out</span>
+                  <span className="inline-flex overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.25,0.1,0.25,1)] max-w-0 opacity-0 group-hover/hero:max-w-[250px] group-hover/hero:opacity-100">
+                    <span className="pr-2">180 botellas en 8 min ·</span>
+                  </span>
+                </div>
+              </div>
             </motion.div>
           </div>
         </div>
@@ -311,7 +335,7 @@ export default function HomePage() {
 
       
       {/* Products Preview */}
-      <section className="relative py-16 sm:py-24 px-4 bg-accent overflow-hidden">
+      <section id="productos" className="relative py-16 sm:py-24 px-4 bg-accent overflow-hidden scroll-mt-20">
         {/* Fondo visible de productos */}
         <img
           src="/fontscreen.png"
