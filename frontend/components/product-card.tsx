@@ -5,7 +5,6 @@ import { useState } from "react"
 import clsx from "clsx"
 import { Check } from "lucide-react"
 import { getImageSrc } from "@/lib/api"
-import Image from "next/image"
 import { toast } from "@/hooks/use-toast"
 
 interface Product {
@@ -58,12 +57,10 @@ export function ProductCard({ product }: ProductCardProps) {
   return (
     <div className="bg-card rounded-lg overflow-hidden border border-border hover:shadow-lg transition-shadow flex flex-col h-full">
       <div className="relative h-64 bg-muted">
-        <Image 
-          src={getImageSrc(product.image) || "/placeholder.svg"} 
-          alt={product.name} 
-          fill
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          className="object-cover"
+        <img
+          src={getImageSrc(product.image) || "/placeholder.svg"}
+          alt={product.name}
+          className="w-full h-full object-cover"
           loading="lazy"
         />
         {product.roastLevel && (

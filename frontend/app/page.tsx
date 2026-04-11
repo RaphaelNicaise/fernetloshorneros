@@ -213,7 +213,7 @@ export default function HomePage() {
                 <h3 className="font-serif text-lg sm:text-xl font-bold text-foreground tracking-wide uppercase mb-2">
                   {item.title}
                 </h3>
-                <p className="text-text text-sm sm:text-base max-w-[220px] leading-relaxed">
+                <p className="text-foreground text-sm sm:text-base max-w-[220px] leading-relaxed">
                   {item.desc}
                 </p>
               </motion.div>
