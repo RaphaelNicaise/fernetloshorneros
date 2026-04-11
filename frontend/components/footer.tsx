@@ -2,8 +2,8 @@ import Link from "next/link"
 
 export function Footer() {
   return (
-  <footer className="relative bg-primary border-t border-secondary py-12 px-4 after:content-[''] after:absolute after:inset-x-0 after:bottom-[-1px] after:h-[1px] after:bg-primary">
-      <div className="container mx-auto max-w-6xl">
+  <footer className="relative bg-primary border-t border-secondary overflow-hidden">
+      <div className="container mx-auto max-w-6xl py-12 px-4">
         <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-8 mb-8">
           <div>
             <p className="font-serif text-xl font-bold text-white mb-4">Fernet Los Horneros</p>
@@ -78,6 +78,18 @@ export function Footer() {
         <div className="border-t border-secondary pt-8 text-center text-sm text-text">
           <p>&copy; 2026 Fernet Los Horneros. Todos los derechos reservados. Prohibida la venta a menores de 18 años. </p>
         </div>
+      </div>
+
+      {/* Firma decorativa al pie */}
+      <div className="relative w-full mt-6 select-none pointer-events-none">
+        <img
+          src="/firma.png"
+          alt=""
+          aria-hidden
+          role="presentation"
+          className="w-full block object-contain opacity-20 -translate-x-8 -translate-y-6"
+        />
+        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-b from-transparent to-primary" />
       </div>
     </footer>
   )
