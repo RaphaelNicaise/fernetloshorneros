@@ -6,7 +6,7 @@ export function Footer() {
       <div className="container mx-auto max-w-6xl">
         <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-8 mb-8">
           <div>
-            <h3 className="font-serif text-xl font-bold text-white mb-4">Fernet Los Horneros</h3>
+            <p className="font-serif text-xl font-bold text-white mb-4">Fernet Los Horneros</p>
             <p className="text-text text-sm">Fernet artesanal elaborado con pasión y dedicación.</p>
           </div>
           <div>

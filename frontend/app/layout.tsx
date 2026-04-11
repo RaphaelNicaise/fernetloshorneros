@@ -13,8 +13,11 @@ const OG_IMAGE = `${SITE_URL}/fernet1.webp`
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
+  alternates: {
+    canonical: SITE_URL,
+  },
   title: {
-    default: "Los Horneros Fernet — Fernet Artesanal Argentino",
+    default: "Los Horneros Fernet — Artesanal Argentino",
     template: "%s | Los Horneros Fernet",
   },
   description:
@@ -35,18 +38,18 @@ export const metadata: Metadata = {
     apple: "/logonuevo.png",
   },
   openGraph: {
-    title: "Los Horneros Fernet — Fernet Artesanal Argentino",
+    title: "Los Horneros Fernet — Artesanal Argentino",
     description:
       "Fernet artesanal elaborado con más de 20 hierbas seleccionadas. Lote 2 en preventa — solo 2.500 botellas numeradas. Junio 2026.",
     url: SITE_URL,
     siteName: "Los Horneros Fernet",
     locale: "es_AR",
     type: "website",
-    images: [{ url: OG_IMAGE, width: 1200, height: 630, alt: "Fernet Los Horneros — Fernet Artesanal Argentino" }],
+    images: [{ url: OG_IMAGE, width: 1200, height: 630, alt: "Fernet Los Horneros — Artesanal Argentino" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Los Horneros Fernet — Fernet Artesanal Argentino",
+    title: "Los Horneros Fernet — Artesanal Argentino",
     description: "Solo 2.500 botellas numeradas. Preventa Junio 2026.",
     images: [OG_IMAGE],
   },

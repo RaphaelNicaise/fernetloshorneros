@@ -119,6 +119,7 @@ export default function HomePage() {
                   src="/horneros.png"
                   alt=""
                   aria-hidden
+                  role="presentation"
                   loading="lazy"
                   className="pointer-events-none select-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[46%] sm:w-[52%] md:w-[57%] lg:w-[63%] opacity-15 hidden md:block z-0"
                 />
@@ -293,7 +294,7 @@ export default function HomePage() {
           {/* Separador decorativo */}
           <div className="flex items-center gap-4 max-w-md mx-auto">
             <div className="flex-1 h-px bg-white/15" />
-            <img src="/logo-fernet.png" alt="" aria-hidden className="w-10 h-10 object-contain opacity-20" />
+            <img src="/logo-fernet.png" alt="" aria-hidden role="presentation" className="w-10 h-10 object-contain opacity-20" />
             <div className="flex-1 h-px bg-white/15" />
           </div>
 
@@ -306,14 +307,12 @@ export default function HomePage() {
               </h2>
               <div className="w-16 h-0.5 bg-white/30 mb-6 rounded-full" />
               <div className="space-y-4 text-white/80 leading-relaxed text-base sm:text-lg">
+                
                 <p>
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+                En la Familia Redruello entendemos el fernet como una estructura de capas. Bajo el nombre de Los Horneros, hemos desarrollado un destilado de autor que prioriza la riqueza aromática y la persistencia de las maderas nobles.
                 </p>
                 <p>
-                  Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-                </p>
-                <p>
-                  Curabitur pretium tincidunt lacus. Nulla gravida orci a odio. Nullam varius, turpis et commodo pharetra, est eros bibendum elit, nec luctus magna felis sollicitudin mauris.
+                Nos alejamos de las fórmulas masivas para centrarnos en la precisión del lote pequeño. Cada botella es un testimonio de nuestra interpretación de la herencia herbal: una mezcla donde el amargor convive con la calidez de las especias y la elegancia de los campos de lavanda. La técnica al servicio del paladar.
                 </p>
               </div>
             </motion.div>
@@ -341,6 +340,7 @@ export default function HomePage() {
           src="/fontscreen.png"
           alt=""
           aria-hidden
+          role="presentation"
           loading="lazy"
           className="pointer-events-none absolute inset-0 w-full h-full object-cover opacity-40 md:opacity-25"
         />
