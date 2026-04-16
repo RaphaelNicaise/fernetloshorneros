@@ -44,7 +44,7 @@ export async function createPreference(req: Request, res: Response) {
             return res.status(400).json({ error: "Items requeridos" });
         }
 
-        if (!shipping || !shipping.cost || shipping.cost <= 0) {
+        if (!shipping || shipping.cost === undefined || shipping.cost === null || Number(shipping.cost) < 0) {
             return res.status(400).json({ error: "Datos de envío requeridos" });
         }
 
