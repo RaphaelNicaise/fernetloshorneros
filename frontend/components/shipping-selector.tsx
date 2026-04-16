@@ -50,6 +50,8 @@ interface CustomerContact {
 export interface ShippingSelection {
   rate_id: string
   service_type: 'standard_delivery' | 'pickup_point'
+  logistic_type?: string
+  carrier_id?: number
   point_id?: string
   shipping_cost: number
   carrier_name: string
@@ -276,6 +278,8 @@ export function ShippingSelector({ items, productsTotal, onSelectionComplete, on
       const selection: ShippingSelection = {
         rate_id: selectedOption.rate_id,
         service_type: selectedType!,
+        logistic_type: selectedOption.logistic_type,
+        carrier_id: selectedOption.carrier_id,
         shipping_cost: selectedOption.amounts.price_incl_tax,
         carrier_name: selectedOption.carrier_name,
         contact: { nombre, email, dni, telefono },

@@ -54,6 +54,8 @@ CREATE TABLE IF NOT EXISTS envios (
     id_pedido INT NOT NULL,
     rate_id VARCHAR(100) NOT NULL, -- ID de la tarifa de Zipnova
     service_type VARCHAR(50) NOT NULL, -- standard_delivery o pickup_point
+    logistic_type VARCHAR(50) DEFAULT NULL, -- crossdock, carrier_dropoff, etc.
+    carrier_id INT DEFAULT NULL, -- ID del transportista en Zipnova
     point_id VARCHAR(100) DEFAULT NULL, -- id del punto de retiro si aplica
     costo DECIMAL(10, 2) NOT NULL,
     -- Datos de dirección

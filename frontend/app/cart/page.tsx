@@ -226,6 +226,8 @@ export default function CartPage() {
           cost: shippingSelection.shipping_cost,
           rate_id: shippingSelection.rate_id,
           service_type: shippingSelection.service_type,
+          logistic_type: shippingSelection.logistic_type || null,
+          carrier_id: shippingSelection.carrier_id || null,
           point_id: shippingSelection.point_id || null,
           address: shippingSelection.address || null,
           contact: shippingSelection.contact,

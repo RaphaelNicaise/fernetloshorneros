@@ -42,6 +42,8 @@ export type CreateOrderInput = {
         cost: number;
         rate_id: string;
         service_type: string;
+        logistic_type?: string | null;
+        carrier_id?: number | null;
         point_id?: string | null;
         address?: {
             provincia?: string;
@@ -114,11 +116,11 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
             const envioId = generateShortId();
             await sequelize.query(
                 `INSERT INTO envios (
-                    id, id_pedido, rate_id, service_type, point_id, costo,
+                    id, id_pedido, rate_id, service_type, logistic_type, carrier_id, point_id, costo,
                     provincia, ciudad, codigo_postal, direccion, numero, extra,
                     nombre_cliente, email_cliente, dni_cliente, telefono_cliente
                 ) VALUES (
-                    :id, :id_pedido, :rate_id, :service_type, :point_id, :costo,
+                    :id, :id_pedido, :rate_id, :service_type, :logistic_type, :carrier_id, :point_id, :costo,
                     :provincia, :ciudad, :codigo_postal, :direccion, :numero, :extra,
                     :nombre_cliente, :email_cliente, :dni_cliente, :telefono_cliente
                 )`,
@@ -128,6 +130,8 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
                         id_pedido: orderId,
                         rate_id: ship.rate_id,
                         service_type: ship.service_type,
+                        logistic_type: ship.logistic_type || null,
+                        carrier_id: ship.carrier_id || null,
                         point_id: ship.point_id || null,
                         costo: ship.cost,
                         provincia: ship.address?.provincia || null,
@@ -322,6 +326,8 @@ export type Envio = {
     id_pedido: number;
     rate_id: string;
     service_type: string;
+    logistic_type: string | null;
+    carrier_id: string | null;
     point_id: string | null;
     costo: number;
     provincia: string | null;
