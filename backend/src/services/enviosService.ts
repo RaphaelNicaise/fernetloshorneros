@@ -290,7 +290,11 @@ export async function createShipment(request: CreateShipmentRequest): Promise<Cr
     }
 
     if (request.service_type === 'pickup_point' && request.point_id) {
-      body.point_id = request.point_id;
+      body.destination.point_id = request.point_id;
+      // Para pickup_point con point_id, Zipnova no requiere city/state/zipcode
+      delete body.destination.city;
+      delete body.destination.state;
+      delete body.destination.zipcode;
     }
 
     console.log("Creando envío en Zipnova:", JSON.stringify(body, null, 2));
