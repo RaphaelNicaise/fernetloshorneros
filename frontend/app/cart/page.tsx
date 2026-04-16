@@ -4,7 +4,7 @@ import { useCart } from "@/lib/cart-context"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import Link from "next/link"
-import { fetchProducts, createPaymentPreference, api, type Product } from "@/lib/api"
+import { fetchProducts, createPaymentPreference, api, type Product, API_BASE_URL } from "@/lib/api"
 import { toast } from "@/hooks/use-toast"
 import { useState, useCallback, useEffect } from "react"
 import { ShippingSelector, type ShippingSelection } from "@/components/shipping-selector"
@@ -95,6 +95,8 @@ export default function CartPage() {
   const [loading, setLoading] = useState(false)
   const [minPurchaseAmount, setMinPurchaseAmount] = useState(0)
   const [catalog, setCatalog] = useState<Product[]>([])
+  const [isMaintenance, setIsMaintenance] = useState(false)
+  const skipShippingCost = isMaintenance || process.env.NODE_ENV === 'development'
 
   // Validar carrito cada 20 segundos
   useCartValidation()
@@ -120,8 +122,20 @@ export default function CartPage() {
         setCatalog(FALLBACK_PRODUCTS)
       }
     }
+    const checkMaintenance = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/settings/maintenance-check`)
+        if (res.ok) {
+          const data = await res.json()
+          setIsMaintenance(Boolean(data.maintenance))
+        }
+      } catch {
+        // silencioso
+      }
+    }
     fetchMinPurchaseAmount()
     loadCatalog()
+    checkMaintenance()
   }, [])
 
   const cartIds = new Set(items.map((i) => i.id))
@@ -229,7 +243,7 @@ export default function CartPage() {
           quantity: item.quantity,
         })),
         {
-          cost: shippingSelection.shipping_cost,
+          cost: skipShippingCost ? 0 : shippingSelection.shipping_cost,
           rate_id: shippingSelection.rate_id,
           service_type: shippingSelection.service_type,
           logistic_type: shippingSelection.logistic_type || null,
@@ -435,7 +449,9 @@ export default function CartPage() {
                   
                   <div className="flex justify-between text-muted-foreground">
                     <span>Envío</span>
-                    {shippingSelection ? (
+                    {skipShippingCost ? (
+                      <span className="text-green-600 font-medium">Gratis (modo prueba)</span>
+                    ) : shippingSelection ? (
                       <span>${shippingSelection.shipping_cost.toLocaleString('es-AR')}</span>
                     ) : (
                       <span className="text-sm">Completa los datos</span>
@@ -456,7 +472,7 @@ export default function CartPage() {
                   <div className="border-t border-border pt-3 flex justify-between">
                     <span className="font-bold text-foreground text-lg">Total</span>
                     <span className="font-bold text-foreground text-lg">
-                      ${totalWithShipping.toLocaleString('es-AR')}
+                      ${(skipShippingCost ? totalPrice : totalWithShipping).toLocaleString('es-AR')}
                     </span>
                   </div>
                 </div>
