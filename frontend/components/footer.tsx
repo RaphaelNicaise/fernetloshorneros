@@ -83,7 +83,7 @@ export function Footer() {
       {/* Firma decorativa al pie */}
       <div className="relative w-full mt-6 select-none pointer-events-none">
         <img
-          src="/firma.png"
+          src="/firma.webp"
           alt=""
           aria-hidden
           role="presentation"

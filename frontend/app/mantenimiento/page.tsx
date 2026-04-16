@@ -49,7 +49,7 @@ export default function MantenimientoPage() {
       <section className="relative pt-12 sm:pt-16 pb-16 sm:pb-20 px-4 bg-white overflow-hidden">
         {/* Fondo */}
         <img
-          src="/fontscreen.png"
+          src="/fontscreen.webp"
           alt=""
           aria-hidden
           loading="lazy"
@@ -62,7 +62,7 @@ export default function MantenimientoPage() {
               {/* Logo */}
               <div className="relative inline-block mb-8">
                 <img
-                  src="/horneros.png"
+                  src="/horneros.webp"
                   alt=""
                   aria-hidden
                   role="presentation"
