@@ -83,3 +83,4 @@ CREATE TABLE IF NOT EXISTS settings (
 );
 
 INSERT INTO settings (key_name, value) VALUES ('min_purchase_amount', '1000') ON DUPLICATE KEY UPDATE value=value;
+INSERT INTO settings (key_name, value) VALUES ('maintenance_mode', 'false') ON DUPLICATE KEY UPDATE value=value;
