@@ -12,7 +12,8 @@ export default function PaymentSuccessPage() {
   useEffect(() => {
     // Limpiar el carrito cuando el pago es exitoso
     clearCart()
-  }, [clearCart])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -28,7 +29,7 @@ export default function PaymentSuccessPage() {
                 stroke="currentColor"
                 viewBox="0 0 24 24"
               >
-           ,     <path
+                  <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
