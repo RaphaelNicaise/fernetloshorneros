@@ -12,8 +12,10 @@ import { useCartValidation } from "@/hooks/use-cart-validation"
 
 function RecommendedCard({ product, onAdd, wide }: { product: Product; onAdd: () => void; wide?: boolean }) {
   const [added, setAdded] = useState(false)
+  const outOfStock = (product.stock ?? 0) <= 0
 
   const handleAdd = () => {
+    if (outOfStock) return
     onAdd()
     setAdded(true)
     setTimeout(() => setAdded(false), 1200)
@@ -25,7 +27,7 @@ function RecommendedCard({ product, onAdd, wide }: { product: Product; onAdd: ()
         <img
           src={product.image || "/placeholder.svg"}
           alt={product.name}
-          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+          className={`w-full h-full object-cover transition-transform duration-300 group-hover:scale-105 ${outOfStock ? "opacity-50" : ""}`}
         />
       </div>
       <div className={`p-3 flex flex-col gap-1.5 ${wide ? "flex-1" : ""}`}>
@@ -35,6 +37,9 @@ function RecommendedCard({ product, onAdd, wide }: { product: Product; onAdd: ()
         )}
         <div className="flex items-center justify-between gap-2 mt-auto">
           <span className="text-sm font-bold text-foreground">${product.price.toLocaleString('es-AR')}</span>
+          {outOfStock ? (
+            <span className="text-xs text-muted-foreground">Sin stock</span>
+          ) : (
           <button
             onClick={handleAdd}
             className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg border border-primary/30 text-primary bg-transparent hover:bg-primary/10 active:scale-95 transition-all duration-150 cursor-pointer"
@@ -48,6 +53,7 @@ function RecommendedCard({ product, onAdd, wide }: { product: Product; onAdd: ()
               <>+ Agregar</>
             )}
           </button>
+          )}
         </div>
       </div>
     </div>
@@ -120,7 +126,7 @@ export default function CartPage() {
 
   const cartIds = new Set(items.map((i) => i.id))
   const allRecommended = catalog
-    .filter((p) => !cartIds.has(p.id) && p.status === "disponible")
+    .filter((p) => !cartIds.has(p.id) && p.status === "disponible" && (p.stock ?? 0) > 0)
 
   // Lógica de inventario: 1 en carrito → 2 recs, 2 → 1 rec, 3+ → ocultar
   const maxRecommendations = items.length === 1 ? 2 : items.length === 2 ? 1 : 0
@@ -390,7 +396,7 @@ export default function CartPage() {
                         key={product.id}
                         product={product}
                         wide={recommended.length === 1}
-                        onAdd={() => addItem({ id: product.id, name: product.name, price: product.price, image: product.image })}
+                        onAdd={() => addItem({ id: product.id, name: product.name, price: product.price, image: product.image, stock: product.stock ?? 0, limite: product.limite ?? 0 })}
                       />
                     ))}
                   </div>
