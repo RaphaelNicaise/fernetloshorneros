@@ -195,6 +195,9 @@ importers:
       '@types/react-simple-maps':
         specifier: ^3.0.6
         version: 3.0.6
+      baseline-browser-mapping:
+        specifier: ^2.10.19
+        version: 2.10.19
       postcss:
         specifier: ^8.5
         version: 8.5.6
@@ -1364,8 +1367,9 @@ packages:
     resolution: {integrity: sha512-Cg7TFGpIr01vOQNODXOOaGz2NpCU5gl8x1qJFbb6hbZxR7XrcE2vtbAsTAbJ7/xwJtUuJEw8K8Zr/AE0LHlesg==}
     engines: {node: '>=10', npm: '>=6'}
 
-  baseline-browser-mapping@2.8.21:
-    resolution: {integrity: sha512-JU0h5APyQNsHOlAM7HnQnPToSDQoEBZqzu/YBlqDnEeymPnZDREeXJA3KBMQee+dKteAxZ2AtvQEvVYdZf241Q==}
+  baseline-browser-mapping@2.10.19:
+    resolution: {integrity: sha512-qCkNLi2sfBOn8XhZQ0FXsT1Ki/Yo5P90hrkRamVFRS7/KV9hpfA4HkoWNU152+8w0zPjnxo5psx5NL3PSGgv5g==}
+    engines: {node: '>=6.0.0'}
     hasBin: true
 
   browserslist@4.27.0:
@@ -3244,11 +3248,11 @@ snapshots:
       cosmiconfig: 7.1.0
       resolve: 1.22.11
 
-  baseline-browser-mapping@2.8.21: {}
+  baseline-browser-mapping@2.10.19: {}
 
   browserslist@4.27.0:
     dependencies:
-      baseline-browser-mapping: 2.8.21
+      baseline-browser-mapping: 2.10.19
       caniuse-lite: 1.0.30001751
       electron-to-chromium: 1.5.243
       node-releases: 2.0.27

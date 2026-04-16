@@ -19,7 +19,7 @@ export function LightBackgroundGroup({ children, opacity = 0.25 }: Props) {
       {/* Capa de fondo: se mantiene visible mientras se recorre el grupo */}
       <div aria-hidden className="pointer-events-none sticky top-0 z-0 h-screen">
         <img
-          src="/fontscreen.png"
+          src="/fontscreen.webp"
           alt=""
           className="w-full h-full object-contain"
           style={{ opacity }}

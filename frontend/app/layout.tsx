@@ -33,9 +33,9 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "Los Horneros Fernet" }],
   icons: {
-    icon: "/logonuevo.png",
-    shortcut: "/logonuevo.png",
-    apple: "/logonuevo.png",
+    icon: "/logonuevo.webp",
+    shortcut: "/logonuevo.webp",
+    apple: "/logonuevo.webp",
   },
   openGraph: {
     title: "Los Horneros Fernet — Artesanal Argentino",

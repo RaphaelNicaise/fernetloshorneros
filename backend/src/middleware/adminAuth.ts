@@ -3,7 +3,7 @@ import crypto from 'crypto';
 
 const SECRET = process.env.ADMIN_JWT_SECRET || process.env.ADMIN_PASSWORD || 'default-secret';
 
-function verify(token: string): { valid: boolean; payload?: any } {
+export function verifyToken(token: string): { valid: boolean; payload?: any } {
   const parts = token.split('.');
   if (parts.length !== 3) return { valid: false };
   const [header, body, signature] = parts;
@@ -23,8 +23,15 @@ function verify(token: string): { valid: boolean; payload?: any } {
   }
 }
 
-export function adminAuth(req: Request, res: Response, next: NextFunction) {
-  // Extraer token de Authorization header o cookies
+export function signToken(payload: object): string {
+  const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
+  const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const data = `${header}.${body}`;
+  const signature = crypto.createHmac('sha256', SECRET).update(data).digest('base64url');
+  return `${data}.${signature}`;
+}
+
+function extractToken(req: Request): string {
   const auth = req.headers.authorization || '';
   let token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
   
@@ -43,16 +50,21 @@ export function adminAuth(req: Request, res: Response, next: NextFunction) {
     }
   }
   
+  return token;
+}
+
+export function adminAuth(req: Request, res: Response, next: NextFunction) {
+  const token = extractToken(req);
+  
   if (!token) {
     return res.status(401).json({ error: 'Token requerido' });
   }
   
-  const { valid, payload } = verify(token);
+  const { valid, payload } = verifyToken(token);
   if (!valid) {
     return res.status(401).json({ error: 'Token inválido o expirado' });
   }
   
-  // Adjuntar información del usuario al request
   (req as any).adminUser = payload;
   return next();
 }

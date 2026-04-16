@@ -1,28 +1,8 @@
-import { Router, Request, Response, NextFunction } from "express";
+import { Router } from "express";
 import { addToWaitlist, getWaitlistUsers, getCountWaitlistUsers, importWaitlist, WaitlistImportRow } from "@/services/waitlistService";
-
-// Sencillo middleware para requerir autenticación admin usando el mismo token del router admin
-function requireAdmin(req: Request, res: Response, next: NextFunction) {
-    const auth = req.headers.authorization || '';
-    const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
-    if (!token) return res.status(401).json({ error: 'No autorizado' });
-    // Reusar lógica ligera: verificar estructura del token (no dependencia circular)
-    try {
-        const parts = token.split('.');
-        if (parts.length !== 3) return res.status(401).json({ error: 'Token inválido' });
-        const body = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
-        if (body.sub !== 'admin' || (typeof body.exp === 'number' && Date.now() > body.exp)) {
-            return res.status(401).json({ error: 'Token expirado o inválido' });
-        }
-    } catch {
-        return res.status(401).json({ error: 'Token inválido' });
-    }
-    next();
-}
+import { adminAuth } from "@/middleware/adminAuth";
 
 const waitlistRouter = Router();
-
-
 
 waitlistRouter.post("/", async (req, res) => {
     try {
@@ -44,7 +24,7 @@ waitlistRouter.post("/", async (req, res) => {
 });
 
 // Protección: solo el admin puede listar usuarios completos
-waitlistRouter.get("/", requireAdmin, async (req, res) => {
+waitlistRouter.get("/", adminAuth, async (req, res) => {
     try {
         const users = await getWaitlistUsers();
         res.json(users);
@@ -64,7 +44,7 @@ waitlistRouter.get("/count", async (req, res) => {
 });
 
 // Import masivo CSV -> JSON { rows: [...] }
-waitlistRouter.post('/import', requireAdmin, async (req, res) => {
+waitlistRouter.post('/import', adminAuth, async (req, res) => {
     try {
         const { rows } = req.body as { rows?: WaitlistImportRow[] };
         if (!Array.isArray(rows)) return res.status(400).json({ error: 'rows debe ser un array' });

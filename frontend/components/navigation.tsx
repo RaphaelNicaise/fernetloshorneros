@@ -60,7 +60,7 @@ export function Navigation() {
           >
             <motion.div whileHover={{ scale: 1.05 }} transition={{ duration: 0.2 }}>
               <Image
-                src="/logonuevo.png"
+                src="/logonuevo.webp"
                 alt="Fernet Los Horneros"
                 width={40}
                 height={40}
@@ -70,7 +70,7 @@ export function Navigation() {
             </motion.div>
             <motion.div whileHover={{ scale: 1.02 }} transition={{ duration: 0.2 }}>
               <Image
-                src="/logo-fernet.png"
+                src="/logo-fernet.webp"
                 alt="Fernet Los Horneros"
                 width={190}
                 height={40}

@@ -4,7 +4,7 @@ import { useCart } from "@/lib/cart-context"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import Link from "next/link"
-import { fetchProducts, createPaymentPreference, api, type Product } from "@/lib/api"
+import { fetchProducts, createPaymentPreference, api, type Product, API_BASE_URL } from "@/lib/api"
 import { toast } from "@/hooks/use-toast"
 import { useState, useCallback, useEffect } from "react"
 import { ShippingSelector, type ShippingSelection } from "@/components/shipping-selector"
@@ -12,8 +12,10 @@ import { useCartValidation } from "@/hooks/use-cart-validation"
 
 function RecommendedCard({ product, onAdd, wide }: { product: Product; onAdd: () => void; wide?: boolean }) {
   const [added, setAdded] = useState(false)
+  const outOfStock = (product.stock ?? 0) <= 0
 
   const handleAdd = () => {
+    if (outOfStock) return
     onAdd()
     setAdded(true)
     setTimeout(() => setAdded(false), 1200)
@@ -25,7 +27,7 @@ function RecommendedCard({ product, onAdd, wide }: { product: Product; onAdd: ()
         <img
           src={product.image || "/placeholder.svg"}
           alt={product.name}
-          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+          className={`w-full h-full object-cover transition-transform duration-300 group-hover:scale-105 ${outOfStock ? "opacity-50" : ""}`}
         />
       </div>
       <div className={`p-3 flex flex-col gap-1.5 ${wide ? "flex-1" : ""}`}>
@@ -35,6 +37,9 @@ function RecommendedCard({ product, onAdd, wide }: { product: Product; onAdd: ()
         )}
         <div className="flex items-center justify-between gap-2 mt-auto">
           <span className="text-sm font-bold text-foreground">${product.price.toLocaleString('es-AR')}</span>
+          {outOfStock ? (
+            <span className="text-xs text-muted-foreground">Sin stock</span>
+          ) : (
           <button
             onClick={handleAdd}
             className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg border border-primary/30 text-primary bg-transparent hover:bg-primary/10 active:scale-95 transition-all duration-150 cursor-pointer"
@@ -48,6 +53,7 @@ function RecommendedCard({ product, onAdd, wide }: { product: Product; onAdd: ()
               <>+ Agregar</>
             )}
           </button>
+          )}
         </div>
       </div>
     </div>
@@ -89,6 +95,8 @@ export default function CartPage() {
   const [loading, setLoading] = useState(false)
   const [minPurchaseAmount, setMinPurchaseAmount] = useState(0)
   const [catalog, setCatalog] = useState<Product[]>([])
+  const [isMaintenance, setIsMaintenance] = useState(false)
+  const skipShippingCost = isMaintenance || process.env.NODE_ENV === 'development'
 
   // Validar carrito cada 20 segundos
   useCartValidation()
@@ -114,13 +122,25 @@ export default function CartPage() {
         setCatalog(FALLBACK_PRODUCTS)
       }
     }
+    const checkMaintenance = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/settings/maintenance-check`)
+        if (res.ok) {
+          const data = await res.json()
+          setIsMaintenance(Boolean(data.maintenance))
+        }
+      } catch {
+        // silencioso
+      }
+    }
     fetchMinPurchaseAmount()
     loadCatalog()
+    checkMaintenance()
   }, [])
 
   const cartIds = new Set(items.map((i) => i.id))
   const allRecommended = catalog
-    .filter((p) => !cartIds.has(p.id) && p.status === "disponible")
+    .filter((p) => !cartIds.has(p.id) && p.status === "disponible" && (p.stock ?? 0) > 0)
 
   // Lógica de inventario: 1 en carrito → 2 recs, 2 → 1 rec, 3+ → ocultar
   const maxRecommendations = items.length === 1 ? 2 : items.length === 2 ? 1 : 0
@@ -223,9 +243,11 @@ export default function CartPage() {
           quantity: item.quantity,
         })),
         {
-          cost: shippingSelection.shipping_cost,
+          cost: skipShippingCost ? 0 : shippingSelection.shipping_cost,
           rate_id: shippingSelection.rate_id,
           service_type: shippingSelection.service_type,
+          logistic_type: shippingSelection.logistic_type || null,
+          carrier_id: shippingSelection.carrier_id || null,
           point_id: shippingSelection.point_id || null,
           address: shippingSelection.address || null,
           contact: shippingSelection.contact,
@@ -388,7 +410,7 @@ export default function CartPage() {
                         key={product.id}
                         product={product}
                         wide={recommended.length === 1}
-                        onAdd={() => addItem({ id: product.id, name: product.name, price: product.price, image: product.image })}
+                        onAdd={() => addItem({ id: product.id, name: product.name, price: product.price, image: product.image, stock: product.stock ?? 0, limite: product.limite ?? 0 })}
                       />
                     ))}
                   </div>
@@ -427,7 +449,9 @@ export default function CartPage() {
                   
                   <div className="flex justify-between text-muted-foreground">
                     <span>Envío</span>
-                    {shippingSelection ? (
+                    {skipShippingCost ? (
+                      <span className="text-green-600 font-medium">Gratis (modo prueba)</span>
+                    ) : shippingSelection ? (
                       <span>${shippingSelection.shipping_cost.toLocaleString('es-AR')}</span>
                     ) : (
                       <span className="text-sm">Completa los datos</span>
@@ -448,7 +472,7 @@ export default function CartPage() {
                   <div className="border-t border-border pt-3 flex justify-between">
                     <span className="font-bold text-foreground text-lg">Total</span>
                     <span className="font-bold text-foreground text-lg">
-                      ${totalWithShipping.toLocaleString('es-AR')}
+                      ${(skipShippingCost ? totalPrice : totalWithShipping).toLocaleString('es-AR')}
                     </span>
                   </div>
                 </div>

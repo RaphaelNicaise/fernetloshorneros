@@ -12,9 +12,10 @@ import { toast } from "@/hooks/use-toast"
  * - Alerta al usuario de cambios
  */
 export function useCartValidation() {
-  const { items, updateQuantity, removeItem } = useCart()
+  const { items, updateQuantity, updatePrice, removeItem } = useCart()
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const lastCheckRef = useRef<Record<string, number>>({})
+  const lastPriceRef = useRef<Record<string, number>>({})
 
   useEffect(() => {
     if (items.length === 0) {
@@ -44,37 +45,48 @@ export function useCartValidation() {
             continue
           }
 
+          // Detectar cambio de precio
+          const currentPrice = Number(product.price)
+          const lastPrice = lastPriceRef.current[item.id]
+          if (lastPrice !== undefined && lastPrice !== currentPrice) {
+            updatePrice(item.id, currentPrice)
+            toast({
+              title: "Precio actualizado",
+              description: `"${item.name}" cambió de $${lastPrice.toLocaleString('es-AR')} a $${currentPrice.toLocaleString('es-AR')}.`,
+            })
+          }
+          lastPriceRef.current[item.id] = currentPrice
+
           const availableStock = product.stock ?? 0
           const lastStock = lastCheckRef.current[item.id] ?? availableStock
 
-          // Si el stock cambió
-          if (lastStock !== availableStock) {
+          // Siempre verificar que la cantidad en carrito no supere el stock actual
+          if (availableStock === 0) {
+            removeItem(item.id)
+            lastCheckRef.current[item.id] = 0
+            toast({
+              title: "Producto agotado",
+              description: `"${item.name}" se agotó y fue removido de tu carrito.`,
+              variant: "destructive",
+            })
+          } else if (availableStock < item.quantity) {
+            updateQuantity(item.id, availableStock)
             lastCheckRef.current[item.id] = availableStock
-
-            // Si no hay stock, remover
-            if (availableStock === 0) {
-              removeItem(item.id)
-              toast({
-                title: "Producto agotado",
-                description: `"${item.name}" se agotó y fue removido de tu carrito.`,
-                variant: "destructive",
-              })
-            }
-            // Si el stock es menor que la cantidad en carrito, ajustar
-            else if (availableStock < item.quantity) {
-              updateQuantity(item.id, availableStock)
-              toast({
-                title: "Stock actualizado",
-                description: `"${item.name}": cantidad ajustada a ${availableStock} (stock disponible).`,
-              })
-            }
-            // Si hay más stock ahora
-            else if (availableStock > lastStock) {
+            toast({
+              title: "Stock actualizado",
+              description: `"${item.name}": cantidad ajustada a ${availableStock} (stock disponible).`,
+            })
+          } else if (lastStock !== availableStock) {
+            // Stock cambió pero sigue siendo suficiente
+            lastCheckRef.current[item.id] = availableStock
+            if (availableStock > lastStock) {
               toast({
                 title: "Stock disponible",
                 description: `"${item.name}" tiene más stock disponible.`,
               })
             }
+          } else {
+            lastCheckRef.current[item.id] = availableStock
           }
         }
       } catch (error) {
@@ -82,9 +94,9 @@ export function useCartValidation() {
       }
     }
 
-    // Validar inmediatamente y luego cada 20 segundos
+    // Validar inmediatamente y luego cada 15 segundos
     validateCart()
-    intervalRef.current = setInterval(validateCart, 20000)
+    intervalRef.current = setInterval(validateCart, 15000)
 
     return () => {
       if (intervalRef.current) {

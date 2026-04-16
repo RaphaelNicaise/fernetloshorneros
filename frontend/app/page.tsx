@@ -103,7 +103,7 @@ export default function HomePage() {
       <section className="relative pt-20 sm:pt-24 pb-16 sm:pb-20 px-4 bg-white overflow-hidden">
         {/* Fondo visible del hero */}
         <img
-          src="/fontscreen.png"
+          src="/fontscreen.webp"
           alt=""
           aria-hidden
           loading="lazy"
@@ -116,7 +116,7 @@ export default function HomePage() {
               {/* Logo */}
               <div className="relative inline-block mb-8">
                 <img
-                  src="/horneros.png"
+                  src="/horneros.webp"
                   alt=""
                   aria-hidden
                   role="presentation"
@@ -337,7 +337,7 @@ export default function HomePage() {
       <section id="productos" className="relative py-16 sm:py-24 px-4 bg-accent overflow-hidden scroll-mt-20">
         {/* Fondo visible de productos */}
         <img
-          src="/fontscreen.png"
+          src="/fontscreen.webp"
           alt=""
           aria-hidden
           role="presentation"

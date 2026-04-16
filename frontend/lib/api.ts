@@ -87,6 +87,8 @@ export interface ShippingInfo {
   cost: number
   rate_id: string
   service_type: string
+  logistic_type?: string | null
+  carrier_id?: number | null
   point_id?: string | null
   address?: {
     provincia: string
@@ -156,9 +158,11 @@ export interface PickupPoint {
 export interface ShippingOption {
   rate_id: string
   carrier_name: string
+  carrier_id: number
   carrier_logo?: string
   service_type: 'standard_delivery' | 'pickup_point'
   service_name?: string
+  logistic_type: string
   amounts: {
     price: number
     price_incl_tax: number

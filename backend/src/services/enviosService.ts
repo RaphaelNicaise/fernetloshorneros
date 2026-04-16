@@ -40,9 +40,11 @@ export interface PickupPoint {
 export interface ShippingOption {
   rate_id: string;
   carrier_name: string;
+  carrier_id: number;
   carrier_logo?: string;
   service_type: 'standard_delivery' | 'pickup_point';
   service_name?: string;
+  logistic_type: string;
   amounts: {
     price: number;
     price_incl_tax: number;
@@ -116,10 +118,12 @@ export async function quoteShipmentFull(request: QuoteRequest): Promise<FullQuot
         rate_id: option.rate?.id || option.rate?.tariff_id || String(Math.random()),
         
         carrier_name: option.carrier?.name || 'Transportista',
+        carrier_id: option.carrier?.id || 0,
         carrier_logo: option.carrier?.logo,
         
         service_type: option.service_type?.code || (option.pickup_points?.length > 0 ? 'pickup_point' : 'standard_delivery'),
         service_name: option.service_type?.name,
+        logistic_type: option.logistic_type || 'crossdock',
 
         amounts: {
           price: option.amounts?.price || 0,
@@ -162,7 +166,9 @@ export async function quoteShipmentFull(request: QuoteRequest): Promise<FullQuot
         all_results: [{
           rate_id: data.rate?.id || String(Math.random()),
           carrier_name: data.carrier?.name || 'Transportista',
+          carrier_id: data.carrier?.id || 0,
           service_type: data.service_type?.code || 'standard_delivery',
+          logistic_type: data.logistic_type || 'crossdock',
           amounts: {
             price: data.amounts?.price || 0,
             price_incl_tax: data.amounts?.price_incl_tax || data.amounts?.price || 0,
@@ -219,6 +225,8 @@ export interface CreateShipmentRequest {
   external_id: string
   declared_value: number;
   service_type: 'standard_delivery' | 'pickup_point';
+  logistic_type?: string;
+  carrier_id?: number;
   destination: {
     name: string;
     email: string;
@@ -267,6 +275,14 @@ export async function createShipment(request: CreateShipmentRequest): Promise<Cr
       items: request.items,
     };
 
+    // logistic_type y carrier_id son requeridos por Zipnova para crear el envío
+    if (request.logistic_type) {
+      body.logistic_type = request.logistic_type;
+    }
+    if (request.carrier_id) {
+      body.carrier_id = request.carrier_id;
+    }
+
     if (request.service_type === 'standard_delivery') {
       body.destination.street = request.destination.street || '';
       body.destination.street_number = request.destination.street_number || '';
@@ -274,7 +290,11 @@ export async function createShipment(request: CreateShipmentRequest): Promise<Cr
     }
 
     if (request.service_type === 'pickup_point' && request.point_id) {
-      body.point_id = request.point_id;
+      body.destination.point_id = request.point_id;
+      // Para pickup_point con point_id, Zipnova no requiere city/state/zipcode
+      delete body.destination.city;
+      delete body.destination.state;
+      delete body.destination.zipcode;
     }
 
     console.log("Creando envío en Zipnova:", JSON.stringify(body, null, 2));
