@@ -12,9 +12,10 @@ import { toast } from "@/hooks/use-toast"
  * - Alerta al usuario de cambios
  */
 export function useCartValidation() {
-  const { items, updateQuantity, removeItem } = useCart()
+  const { items, updateQuantity, updatePrice, removeItem } = useCart()
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const lastCheckRef = useRef<Record<string, number>>({})
+  const lastPriceRef = useRef<Record<string, number>>({})
 
   useEffect(() => {
     if (items.length === 0) {
@@ -43,6 +44,18 @@ export function useCartValidation() {
             })
             continue
           }
+
+          // Detectar cambio de precio
+          const currentPrice = Number(product.price)
+          const lastPrice = lastPriceRef.current[item.id]
+          if (lastPrice !== undefined && lastPrice !== currentPrice) {
+            updatePrice(item.id, currentPrice)
+            toast({
+              title: "Precio actualizado",
+              description: `"${item.name}" cambió de $${lastPrice.toLocaleString('es-AR')} a $${currentPrice.toLocaleString('es-AR')}.`,
+            })
+          }
+          lastPriceRef.current[item.id] = currentPrice
 
           const availableStock = product.stock ?? 0
           const lastStock = lastCheckRef.current[item.id] ?? availableStock
