@@ -54,6 +54,7 @@ services:
       NEXT_PUBLIC_API_URL: "/api"
       NEXT_INTERNAL_API_URL: "http://backend:3001"
       INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      MAINTENANCE_ALLOWED_IPS: ${MAINTENANCE_ALLOWED_IPS:-}
     networks:
       - app_network
 
@@ -93,6 +94,8 @@ services:
     depends_on:
       - frontend
       - backend
+      - phpmyadmin
+      - portainer
     networks:
       - app_network
       
@@ -112,8 +115,20 @@ services:
     networks:
       - app_network
 
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer_prod
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    networks:
+      - app_network
+
 volumes:
   mysql_data:
+    driver: local
+  portainer_data:
     driver: local
 
 networks:

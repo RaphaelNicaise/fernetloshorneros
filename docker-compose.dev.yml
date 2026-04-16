@@ -50,6 +50,7 @@
           WATCHPACK_POLLING_INTERVAL: "1000"
           CI: "true"
           NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+          MAINTENANCE_ALLOWED_IPS: ${MAINTENANCE_ALLOWED_IPS:-}
         volumes:
           - ./frontend:/app
           - /app/node_modules
@@ -96,6 +97,17 @@
           - app_network
       # temporal porque el vps usa dev
 
+      portainer:
+        image: portainer/portainer-ce:latest
+        container_name: portainer_prod
+        restart: unless-stopped
+        ports:
+          - "9000:9000" # Accedés por el puerto 9000 de tu VPS
+        volumes:
+          - /var/run/docker.sock:/var/run/docker.sock # Necesario para leer la info de Docker
+          - portainer_data:/data
+        networks:
+          - app_network
 
 
   networks:
@@ -108,4 +120,6 @@
     frontend_node_modules:
       driver: local
     uploads_data:
+      driver: local
+    portainer_data:
       driver: local
