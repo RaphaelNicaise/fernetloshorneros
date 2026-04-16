@@ -47,7 +47,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: "/admin/pedidos", label: "Pedidos" },
     { href: "/admin/lista-espera", label: "Lista de espera" },
     { href: "/admin/config", label: "Configuración" },
-    { href: "/phpmyadmin", label: "phpmyadmin" },
+    { href: "/phpmyadmin", label: "phpMyAdmin" },
+    { href: "/portainer", label: "Portainer" },
   ], [])
 
   if (!checked) return null
