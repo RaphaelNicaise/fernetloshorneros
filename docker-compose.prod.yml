@@ -151,7 +151,7 @@ services:
       DATABASE_URL: postgresql://umami_user:${UMAMI_DB_PASSWORD}@umami_db:5432/umami
       DATABASE_TYPE: postgresql
       APP_SECRET: ${UMAMI_APP_SECRET}
-      BASE_PATH: /stats 
+      BASE_PATH: /stats
     depends_on:
       umami_db:
         condition: service_healthy
