@@ -47,9 +47,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: "/admin/pedidos", label: "Pedidos" },
     { href: "/admin/lista-espera", label: "Lista de espera" },
     { href: "/admin/config", label: "Configuración" },
-    { href: "/stats/", label: "Analytics" },
-    { href: "/phpmyadmin", label: "phpMyAdmin" },
-    { href: "/portainer", label: "Portainer" },
+    { href: "/stats/", label: "Analytics", external: true },
+    { href: "/phpmyadmin", label: "phpMyAdmin", external: true },
+    { href: "/portainer", label: "Portainer", external: true },
   ], [])
 
   if (!checked) return null
@@ -76,21 +76,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <nav className="mb-4 border-b border-accent/40">
                 <ul className="flex gap-3">
                   {tabs.map((t) => {
-                    const active = pathname.startsWith(t.href)
+                    const active = !t.external && pathname.startsWith(t.href)
+                    const cls =
+                      "px-4 py-2 -mb-[1px] inline-flex items-center rounded-t-md border-b-2 transition-colors " +
+                      (active
+                        ? "border-white text-white"
+                        : "border-transparent text-text hover:text-white")
                     return (
                       <li key={t.href}>
-                        <Link
-                          href={t.href}
-                          className={
-                            "px-4 py-2 -mb-[1px] inline-flex items-center rounded-t-md border-b-2 transition-colors " +
-                            (active
-                              ? "border-white text-white"
-                              : "border-transparent text-text hover:text-white")
-                          }
-                          aria-current={active ? "page" : undefined}
-                        >
-                          {t.label}
-                        </Link>
+                        {t.external ? (
+                          <a href={t.href} target="_blank" rel="noopener noreferrer" className={cls}>
+                            {t.label}
+                          </a>
+                        ) : (
+                          <Link href={t.href} className={cls} aria-current={active ? "page" : undefined}>
+                            {t.label}
+                          </Link>
+                        )}
                       </li>
                     )
                   })}
