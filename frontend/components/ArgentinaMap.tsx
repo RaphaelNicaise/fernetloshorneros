@@ -1,11 +1,11 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState, useCallback } from "react"
 import { geoMercator, geoPath } from "d3-geo"
 import { scaleLinear } from "d3-scale"
 
 interface ProvinceData {
-  name: string      // lowercase
+  name: string
   value: number
 }
 
@@ -14,159 +14,191 @@ interface ArgentinaMapProps {
   colorRange?: [string, string]
   emptyColor?: string
   tooltipLabel?: string
-  hoveredFromOutside?: string | null   // lowercase province name to highlight from list
-  onHoverChange?: (name: string | null) => void // notifies parent
-  width?: number
-  height?: number
+  hoveredFromOutside?: string | null
+  onHoverChange?: (name: string | null) => void
+}
+
+function normalizeName(name: string): string {
+  const n = name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+  if (n === "caba" || n.includes("ciudad autonoma") || n.includes("ciudad de buenos aires")) {
+    return "ciudad autonoma de buenos aires"
+  }
+  if (n.includes("tierra del fuego")) return "tierra del fuego"
+  return n
+}
+
+/**
+ * Clips a MultiPolygon by removing sub-polygons whose centroid latitude is below cutoffLat.
+ * This removes the Antarctic territory from Tierra del Fuego without touching the rest.
+ */
+function clipMultiPolygonByLat(coordinates: number[][][][], cutoffLat: number): number[][][][] {
+  return coordinates.filter((polygon) => {
+    const ring = polygon[0]
+    if (!ring || ring.length === 0) return false
+    // compute centroid latitude of the outer ring
+    const avgLat = ring.reduce((sum, [, lat]) => sum + lat, 0) / ring.length
+    return avgLat > cutoffLat
+  })
+}
+
+/** Pre-process GeoJSON: clip TDF to remove Antarctic sub-polygons */
+function cleanFeatures(features: any[]): any[] {
+  return features.map((f) => {
+    const name = (f.properties?.nombre || "").toLowerCase()
+    if (name.includes("tierra del fuego") && f.geometry?.type === "MultiPolygon") {
+      const clipped = clipMultiPolygonByLat(f.geometry.coordinates, -58)
+      return { ...f, geometry: { ...f.geometry, coordinates: clipped } }
+    }
+    return f
+  })
 }
 
 export default function ArgentinaMap({
   data,
   colorRange = ["#c8a97a", "#7a3e0f"],
-  emptyColor = "#d1c9ba",
+  emptyColor = "#c5bfb5",
   tooltipLabel = "envíos",
   hoveredFromOutside = null,
   onHoverChange,
-  width = 280,
-  height = 520,
 }: ArgentinaMapProps) {
-  const [geoData, setGeoData] = useState<any>(null)
-  const [tooltip, setTooltip] = useState<{ x: number; y: number; text: string } | null>(null)
-  const [internalHovered, setInternalHovered] = useState<string | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
   const svgRef = useRef<SVGSVGElement>(null)
 
+  const [size, setSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 })
+  const [features, setFeatures] = useState<any[]>([])
+  const [tooltip, setTooltip] = useState<{ x: number; y: number; text: string } | null>(null)
+  const [internalHovered, setInternalHovered] = useState<string | null>(null)
+
+  // Observe container size so projection always fits
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const ro = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect
+      if (width > 0 && height > 0) setSize({ w: width, h: height })
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
+  // Load & clean GeoJSON once
   useEffect(() => {
     fetch("/argentina.geojson")
       .then((r) => r.json())
-      .then((d) => {
-        const cleanedFeatures = (d.features || []).map((f: any) => {
-          const name = (f.properties?.nombre || "").toLowerCase()
-          if (name.includes("tierra del fuego")) {
-            if (f.geometry.type === "MultiPolygon") {
-              const filteredCoords = f.geometry.coordinates.filter((polygon: any) => {
-                const firstRing = polygon[0]
-                if (!firstRing) return false
-                const isInvalid = firstRing.some((coord: any) => coord[1] < -56 || coord[0] > -60)
-                return !isInvalid
-              })
-              return {
-                ...f,
-                geometry: {
-                  ...f.geometry,
-                  coordinates: filteredCoords
-                }
-              }
-            }
-          }
-          return f
-        })
-        setGeoData({ ...d, features: cleanedFeatures })
-      })
+      .then((d) => setFeatures(cleanFeatures(d.features || [])))
       .catch(console.error)
   }, [])
 
   const maxValue = useMemo(() => Math.max(...data.map((d) => d.value), 1), [data])
   const colorScale = useMemo(
-    () => scaleLinear<string>().domain([0, maxValue]).range(colorRange),
+    () => scaleLinear<string>().domain([0, maxValue]).range(colorRange).clamp(true),
     [maxValue, colorRange]
   )
 
-  const { features, projection, pathGen } = useMemo(() => {
-    if (!geoData) return { features: [], projection: null, pathGen: null }
-
-    const fc = { type: "FeatureCollection" as const, features: geoData.features }
-    const proj = geoMercator().fitSize([width, height], fc)
-    const pg = geoPath().projection(proj)
-
-    return { features: geoData.features, projection: proj, pathGen: pg }
-  }, [geoData, width, height])
-
-  const normalizeProvinceName = (name: string) => {
-    let n = name
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .trim()
-
-    if (n === "caba" || n.includes("ciudad autonoma")) {
-      return "ciudad autonoma de buenos aires"
-    }
-    if (n.includes("tierra del fuego")) {
-      return "tierra del fuego, antartida e islas del atlantico sur"
-    }
-    return n
-  }
-
-  const getColor = (featureName: string) => {
-    const featNorm = normalizeProvinceName(featureName)
-    const d = data.find(
-      (s) => s.name && normalizeProvinceName(s.name) === featNorm
+  // Build projection & path generator whenever size or features change
+  const { projection, pathGen } = useMemo(() => {
+    if (!features.length || size.w === 0 || size.h === 0) return { projection: null, pathGen: null }
+    const padding = 12
+    const fc = { type: "FeatureCollection" as const, features }
+    const proj = geoMercator().fitExtent(
+      [
+        [padding, padding],
+        [size.w - padding, size.h - padding],
+      ],
+      fc
     )
-    return { color: d ? colorScale(d.value) : emptyColor, value: d?.value ?? 0 }
-  }
+    return { projection: proj, pathGen: geoPath().projection(proj) }
+  }, [features, size.w, size.h])
+
+  const getProvinceData = useCallback(
+    (geoName: string) => {
+      const norm = normalizeName(geoName)
+      return data.find((d) => d.name && normalizeName(d.name) === norm)
+    },
+    [data]
+  )
 
   const hoveredKey = internalHovered || hoveredFromOutside
 
   return (
-    <div className="relative w-full h-full">
+    <div ref={containerRef} className="relative w-full h-full">
+      {/* Tooltip */}
       {tooltip && (
         <div
-          className="absolute z-30 pointer-events-none rounded-xl border border-[#AA6F3B]/40 bg-[#0b0a07]/95 px-4 py-2 backdrop-blur-xl shadow-2xl text-white text-xs font-semibold"
-          style={{ left: tooltip.x + 10, top: tooltip.y - 30 }}
+          className="absolute z-30 pointer-events-none rounded-xl border border-[#AA6F3B]/40 bg-[#0b0a07]/95 px-3 py-1.5 backdrop-blur-xl shadow-2xl text-white text-xs font-semibold whitespace-nowrap"
+          style={{ left: tooltip.x + 12, top: Math.max(tooltip.y - 36, 4) }}
         >
           {tooltip.text}
         </div>
       )}
+
+      {/* Loading skeleton */}
+      {(!pathGen || size.w === 0) && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="h-6 w-6 rounded-full border-2 border-[#AA6F3B] border-t-transparent animate-spin" />
+        </div>
+      )}
+
+      {/* SVG map — sized to container via width/height attrs */}
       <svg
         ref={svgRef}
-        viewBox={`0 0 ${width} ${height}`}
-        className="w-full h-full"
-        style={{ display: "block" }}
+        width={size.w || "100%"}
+        height={size.h || "100%"}
+        style={{ display: "block", width: "100%", height: "100%" }}
       >
-        {features.map((feature: any, i: number) => {
-          const rawName = feature.properties?.nombre || ""
-          const featNorm = normalizeProvinceName(rawName)
-          const { color, value } = getColor(rawName)
-          
-          const hoveredNorm = hoveredKey ? normalizeProvinceName(hoveredKey) : null
-          const isHovered = hoveredNorm && featNorm === hoveredNorm
+        {pathGen &&
+          features.map((feature, i) => {
+            const rawName: string = feature.properties?.nombre || ""
+            const prov = getProvinceData(rawName)
+            const value = prov?.value ?? 0
+            const baseFill = prov ? colorScale(value) : emptyColor
 
-          return (
-            <path
-              key={i}
-              d={pathGen!(feature) || ""}
-              fill={isHovered ? "#AA6F3B" : color}
-              stroke="white"
-              strokeWidth={isHovered ? 1.2 : 0.6}
-              style={{ cursor: "pointer", transition: "fill 150ms ease" }}
-              onMouseEnter={(e) => {
-                const svgRect = svgRef.current?.getBoundingClientRect()
-                if (svgRect) {
-                  setTooltip({
-                    x: e.clientX - svgRect.left,
-                    y: e.clientY - svgRect.top,
-                    text: `${feature.properties.nombre}: ${value} ${tooltipLabel}`,
-                  })
-                }
-                setInternalHovered(rawName)
-                onHoverChange?.(rawName)
-              }}
-              onMouseMove={(e) => {
-                const svgRect = svgRef.current?.getBoundingClientRect()
-                if (svgRect) {
-                  setTooltip((prev) =>
-                    prev ? { ...prev, x: e.clientX - svgRect.left, y: e.clientY - svgRect.top } : null
-                  )
-                }
-              }}
-              onMouseLeave={() => {
-                setTooltip(null)
-                setInternalHovered(null)
-                onHoverChange?.(null)
-              }}
-            />
-          )
-        })}
+            const normRaw = normalizeName(rawName)
+            const normHov = hoveredKey ? normalizeName(hoveredKey) : null
+            const isHovered = normHov !== null && normRaw === normHov
+
+            const pathD = pathGen(feature) || ""
+
+            return (
+              <path
+                key={i}
+                d={pathD}
+                fill={isHovered ? "#AA6F3B" : baseFill}
+                stroke="#ffffff"
+                strokeWidth={isHovered ? 1.2 : 0.5}
+                style={{ cursor: "pointer", transition: "fill 150ms ease" }}
+                onMouseEnter={(e) => {
+                  const rect = containerRef.current?.getBoundingClientRect()
+                  if (rect) {
+                    setTooltip({
+                      x: e.clientX - rect.left,
+                      y: e.clientY - rect.top,
+                      text: `${rawName}: ${value.toLocaleString("es-AR")} ${tooltipLabel}`,
+                    })
+                  }
+                  setInternalHovered(rawName)
+                  onHoverChange?.(rawName)
+                }}
+                onMouseMove={(e) => {
+                  const rect = containerRef.current?.getBoundingClientRect()
+                  if (rect) {
+                    setTooltip((prev) =>
+                      prev ? { ...prev, x: e.clientX - rect.left, y: e.clientY - rect.top } : null
+                    )
+                  }
+                }}
+                onMouseLeave={() => {
+                  setTooltip(null)
+                  setInternalHovered(null)
+                  onHoverChange?.(null)
+                }}
+              />
+            )
+          })}
       </svg>
     </div>
   )

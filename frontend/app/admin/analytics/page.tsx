@@ -34,7 +34,6 @@ import {
 
 // Mapa
 import ArgentinaMap from "@/components/ArgentinaMap"
-import { scaleLinear } from "d3-scale"
 
 type BIStats = {
   revenue: any[]
