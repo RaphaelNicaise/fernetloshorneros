@@ -58,7 +58,7 @@ type BIStats = {
   }
 }
 
-const geoUrl = "https://apis.datos.gob.ar/georef/api/v2.0/provincias.geojson"
+const geoUrl = "/argentina.geojson"
 
 export default function AnalyticsPage() {
   const [stats, setStats] = useState<BIStats | null>(null)
@@ -282,10 +282,10 @@ export default function AnalyticsPage() {
           <div className="rounded-2xl border border-white/8 bg-white/4 p-5 lg:col-span-2">
             <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <p className="font-serif text-lg font-bold text-white">Evolución de Ingresos</p>
-              <div className="flex w-full sm:w-auto bg-[#0b0a07] border border-white/10 rounded-lg overflow-hidden">
-                <button onClick={() => setRevenueGroup("day")} className={`flex-1 sm:flex-none px-3 py-1.5 text-xs font-medium transition-colors ${revenueGroup === "day" ? "bg-[#AA6F3B] text-white" : "text-white/40 hover:text-white"}`}>Días</button>
-                <button onClick={() => setRevenueGroup("week")} className={`flex-1 sm:flex-none px-3 py-1.5 text-xs font-medium transition-colors border-l border-white/5 ${revenueGroup === "week" ? "bg-[#AA6F3B] text-white" : "text-white/40 hover:text-white"}`}>Semanas</button>
-                <button onClick={() => setRevenueGroup("month")} className={`flex-1 sm:flex-none px-3 py-1.5 text-xs font-medium transition-colors border-l border-white/5 ${revenueGroup === "month" ? "bg-[#AA6F3B] text-white" : "text-white/40 hover:text-white"}`}>Meses</button>
+              <div className="inline-flex w-full sm:w-auto bg-[#1a1511] p-1 rounded-xl">
+                <button onClick={() => setRevenueGroup("day")} className={`flex-1 sm:flex-none rounded-lg px-4 py-1.5 text-xs font-semibold transition-all ${revenueGroup === "day" ? "bg-[#AA6F3B] text-white shadow-md" : "text-white/40 hover:text-white"}`}>Días</button>
+                <button onClick={() => setRevenueGroup("week")} className={`flex-1 sm:flex-none rounded-lg px-4 py-1.5 text-xs font-semibold transition-all ${revenueGroup === "week" ? "bg-[#AA6F3B] text-white shadow-md" : "text-white/40 hover:text-white"}`}>Semanas</button>
+                <button onClick={() => setRevenueGroup("month")} className={`flex-1 sm:flex-none rounded-lg px-4 py-1.5 text-xs font-semibold transition-all ${revenueGroup === "month" ? "bg-[#AA6F3B] text-white shadow-md" : "text-white/40 hover:text-white"}`}>Meses</button>
               </div>
             </div>
             <div className="h-[300px] w-full">
