@@ -58,17 +58,17 @@ type BIStats = {
   }
 }
 
-const geoUrl = "https://raw.githubusercontent.com/deldersveld/topojson/master/countries/argentina/argentina-provinces.json"
+const geoUrl = "https://apis.datos.gob.ar/georef/api/v2.0/provincias.geojson"
 
 export default function AnalyticsPage() {
   const [stats, setStats] = useState<BIStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
-  const [mapTooltip, setMapTooltip] = useState("")
+  const [mapTooltip, setMapTooltip] = useState<string | null>(null)
 
   // Filtros Globales
-  const [dateRange, setDateRange] = useState("30") // dias
+  const [dateRange, setDateRange] = useState("all") // histórico completo por defecto
   
   // Filtros Locales
   const [revenueGroup, setRevenueGroup] = useState("day")
@@ -175,13 +175,15 @@ export default function AnalyticsPage() {
   const funnelColors: Record<string, string> = { paid: "#22c55e", pending: "#eab308", failed: "#ef4444", cancelled: "#64748b" }
   
   // Mapa
-  const maxGeo = Math.max(...stats.shipping.geoDistribution.map(p => Number(p.count)), 1)
-  const colorScale = scaleLinear<string>().domain([0, maxGeo]).range(["#1a1511", "#AA6F3B"])
+  const mapData = stats.shipping.geoDistribution.map((p: any) => ({ name: p.provincia.toLowerCase(), value: Number(p.count) }))
+  const maxGeo = Math.max(...mapData.map(p => p.value), 1)
+  const colorScaleFn = scaleLinear<string>().domain([0, maxGeo]).range(["#1a1511", "#AA6F3B"])
 
   // Conversión
-  const waitData = stats.clients.waitlistConversion[0] || { total_anotados: 0, total_compraron: 0 }
+  const waitData = Array.isArray(stats.clients?.waitlistConversion) ? stats.clients.waitlistConversion[0] : (stats.clients?.waitlistConversion || { total_anotados: 0, total_compraron: 0 })
   const anotados = Number(waitData.total_anotados) || 0
   const compraron = Number(waitData.total_compraron) || 0
+  const conversionRate = anotados > 0 ? ((compraron / anotados) * 100).toFixed(1) : "0"
   const pendingToPrepare = stats.shipping.funnel.find(f => f.status === 'pending' || f.status === 'created')?.count || 0
 
   return (
@@ -278,12 +280,12 @@ export default function AnalyticsPage() {
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Gráfico de Evolución */}
           <div className="rounded-2xl border border-white/8 bg-white/4 p-5 lg:col-span-2">
-            <div className="mb-6 flex items-center justify-between">
+            <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <p className="font-serif text-lg font-bold text-white">Evolución de Ingresos</p>
-              <div className="flex bg-[#0b0a07] border border-white/10 rounded-lg overflow-hidden">
-                <button onClick={() => setRevenueGroup("day")} className={`px-3 py-1.5 text-xs font-medium transition-colors ${revenueGroup === "day" ? "bg-[#AA6F3B] text-white" : "text-white/40 hover:text-white"}`}>Días</button>
-                <button onClick={() => setRevenueGroup("week")} className={`px-3 py-1.5 text-xs font-medium transition-colors border-l border-white/5 ${revenueGroup === "week" ? "bg-[#AA6F3B] text-white" : "text-white/40 hover:text-white"}`}>Semanas</button>
-                <button onClick={() => setRevenueGroup("month")} className={`px-3 py-1.5 text-xs font-medium transition-colors border-l border-white/5 ${revenueGroup === "month" ? "bg-[#AA6F3B] text-white" : "text-white/40 hover:text-white"}`}>Meses</button>
+              <div className="flex w-full sm:w-auto bg-[#0b0a07] border border-white/10 rounded-lg overflow-hidden">
+                <button onClick={() => setRevenueGroup("day")} className={`flex-1 sm:flex-none px-3 py-1.5 text-xs font-medium transition-colors ${revenueGroup === "day" ? "bg-[#AA6F3B] text-white" : "text-white/40 hover:text-white"}`}>Días</button>
+                <button onClick={() => setRevenueGroup("week")} className={`flex-1 sm:flex-none px-3 py-1.5 text-xs font-medium transition-colors border-l border-white/5 ${revenueGroup === "week" ? "bg-[#AA6F3B] text-white" : "text-white/40 hover:text-white"}`}>Semanas</button>
+                <button onClick={() => setRevenueGroup("month")} className={`flex-1 sm:flex-none px-3 py-1.5 text-xs font-medium transition-colors border-l border-white/5 ${revenueGroup === "month" ? "bg-[#AA6F3B] text-white" : "text-white/40 hover:text-white"}`}>Meses</button>
               </div>
             </div>
             <div className="h-[300px] w-full">
@@ -502,8 +504,7 @@ export default function AnalyticsPage() {
                 <div className="relative flex-1 -mx-5 bg-[#080705]">
                     {mapTooltip && (
                     <div className="absolute top-4 right-4 z-20 rounded-lg border border-white/10 bg-[#0b0a07]/90 px-4 py-2 backdrop-blur-md shadow-xl pointer-events-none">
-                        <p className="text-sm font-bold text-white">{mapTooltip.split(':')[0]}</p>
-                        <p className="text-xs text-[#AA6F3B]">{mapTooltip.split(':')[1]}</p>
+                        <p className="text-sm font-bold text-white">{mapTooltip}</p>
                     </div>
                     )}
                     <ComposableMap projection="geoMercator" projectionConfig={{ scale: 850, center: [-65, -38] }} className="w-full h-full outline-none">
@@ -511,22 +512,26 @@ export default function AnalyticsPage() {
                             <Geographies geography={geoUrl}>
                                 {({ geographies }) =>
                                     geographies.map((geo) => {
-                                        const provName = geo.properties.name || geo.properties.NAME_1;
-                                        const dataRow = stats.shipping.geoDistribution.find((s:any) => (s.provincia||"").toLowerCase() === provName.toLowerCase());
-                                        const count = dataRow ? Number(dataRow.count) : 0;
+                                        const geoName = geo.properties.nombre ? geo.properties.nombre.toLowerCase() : ""
+                                        const d = mapData.find((s) => s.name.includes(geoName) || geoName.includes(s.name))
                                         return (
                                             <Geography
                                                 key={geo.rsmKey}
                                                 geography={geo}
-                                                onMouseEnter={() => setMapTooltip(`${provName}: ${count} envíos`)}
-                                                onMouseLeave={() => setMapTooltip("")}
+                                                fill={d ? colorScaleFn(d.value) : "#ffffff0a"}
+                                                stroke="#1a1a1a"
+                                                strokeWidth={0.5}
+                                                onMouseEnter={() => {
+                                                    setMapTooltip(`${geo.properties.nombre}: ${d ? d.value : 0} pedidos`)
+                                                }}
+                                                onMouseLeave={() => setMapTooltip(null)}
                                                 style={{
-                                                    default: { fill: count > 0 ? colorScale(count) : "#1a1511", stroke: "#ffffff20", strokeWidth: 0.5, outline: "none", transition: "all 250ms" },
-                                                    hover: { fill: "#d98c4a", stroke: "#ffffff", strokeWidth: 1, outline: "none", cursor: "pointer", transition: "all 250ms" },
-                                                    pressed: { fill: "#AA6F3B", outline: "none" }
+                                                    default: { outline: "none", transition: "all 250ms" },
+                                                    hover: { fill: "#AA6F3B", outline: "none", cursor: "pointer", transition: "all 250ms" },
+                                                    pressed: { outline: "none" },
                                                 }}
                                             />
-                                        );
+                                        )
                                     })
                                 }
                             </Geographies>

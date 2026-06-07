@@ -89,7 +89,7 @@ export default function MantenimientoPage() {
 
               {/* Subheadline */}
               <p className="text-neutral-500 text-base sm:text-lg leading-[1.75] mb-8 max-w-lg text-center md:text-left">
-                Solo <span className="font-semibold text-neutral-700">2.500 botellas</span>.
+                Solo <span className="font-semibold text-neutral-700">17.500 botellas</span>.
                 Reservá tu lugar en la lista para asegurar tu unidad antes de que se abra al público.
               </p>
 

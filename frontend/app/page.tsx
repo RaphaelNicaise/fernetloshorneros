@@ -164,7 +164,7 @@ export default function HomePage() {
                 </h1>
 
                 <p className="mb-8 max-w-[42ch] text-center text-base leading-[1.85] text-white/82 sm:text-lg md:text-left">
-                  Solo <span className="font-semibold text-white">2.500 botellas numeradas</span>. Reservá tu lugar ahora para asegurar tu unidad antes del lanzamiento público.
+                  Solo <span className="font-semibold text-white">17.500 botellas numeradas</span>. Reservá tu lugar ahora para asegurar tu unidad antes del lanzamiento público.
                 </p>
 
                 <div className="flex w-full flex-col items-center gap-4 md:w-auto md:flex-row md:gap-5">
