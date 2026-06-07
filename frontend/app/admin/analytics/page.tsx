@@ -175,7 +175,7 @@ export default function AnalyticsPage() {
   const funnelColors: Record<string, string> = { paid: "#22c55e", pending: "#eab308", failed: "#ef4444", cancelled: "#64748b" }
   
   // Mapa
-  const mapData = stats.shipping.geoDistribution.map((p: any) => ({ name: p.provincia.toLowerCase(), value: Number(p.count) }))
+  const mapData = stats.shipping.geoDistribution.map((p: any) => ({ name: (p.provincia || "").toLowerCase(), value: Number(p.count) }))
   const maxGeo = Math.max(...mapData.map(p => p.value), 1)
   const colorScaleFn = scaleLinear<string>().domain([0, maxGeo]).range(["#1a1511", "#AA6F3B"])
 
@@ -513,7 +513,7 @@ export default function AnalyticsPage() {
                                 {({ geographies }) =>
                                     geographies.map((geo) => {
                                         const geoName = geo.properties.nombre ? geo.properties.nombre.toLowerCase() : ""
-                                        const d = mapData.find((s) => s.name.includes(geoName) || geoName.includes(s.name))
+                                        const d = geoName ? mapData.find((s) => s.name && (s.name.includes(geoName) || geoName.includes(s.name))) : undefined
                                         return (
                                             <Geography
                                                 key={geo.rsmKey}
