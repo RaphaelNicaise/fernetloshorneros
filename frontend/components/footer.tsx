@@ -58,12 +58,12 @@ export function Footer() {
           </div>
           <div>
             <h4 className="mb-4 font-semibold text-white">Síguenos</h4>
-            <div className="flex gap-4">
+            <div className="flex items-start gap-4">
               <a
                 href="https://www.instagram.com/fernetloshorneros/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/4 transition-colors hover:border-[#AA6F3B] hover:text-[#AA6F3B]"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/4 transition-colors hover:border-[#AA6F3B] hover:text-[#AA6F3B]"
                 aria-label="Instagram"
               >
                 <svg className="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -74,7 +74,7 @@ export function Footer() {
                 href="https://www.tiktok.com/@santiredruelloo"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/4 transition-colors hover:border-[#AA6F3B] hover:text-[#AA6F3B]"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/4 transition-colors hover:border-[#AA6F3B] hover:text-[#AA6F3B]"
                 aria-label="TikTok"
               >
                 <svg className="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 24 24">

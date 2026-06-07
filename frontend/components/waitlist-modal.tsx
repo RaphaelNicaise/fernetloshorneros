@@ -200,7 +200,7 @@ export function WaitlistModal() {
 									<p className="mb-1 text-xs font-semibold uppercase tracking-[0.25em] text-[#aa825e]">Preventa · Lote 2</p>
 									<h2 className="font-serif text-2xl font-bold text-[#f5f0e6]">Lista de Espera</h2>
 									<p className="mt-1 text-sm leading-snug text-[#f5f0e6]/60">
-										Solo 2.500 botellas. Te avisamos 24hs antes del lanzamiento.
+										Solo 17.500 botellas. Te avisamos 24hs antes del lanzamiento.
 									</p>
 								</div>
 								<button

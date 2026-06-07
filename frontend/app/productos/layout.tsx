@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Productos | Los Horneros Fernet",
     description:
-      "Fernet artesanal en lotes limitados. Solo 2.500 botellas numeradas por lote.",
+      "Fernet artesanal en lotes limitados. Solo 17.500 botellas numeradas por lote.",
     images: [{ url: "/fernet1.webp", width: 1200, height: 630, alt: "Productos Los Horneros Fernet" }],
   },
 }

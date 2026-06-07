@@ -18,7 +18,8 @@ import {
   Truck,
   Users,
   AlertTriangle,
-  ChevronDown
+  ChevronDown,
+  Info
 } from "lucide-react"
 
 // Gráficos Recharts
@@ -57,17 +58,17 @@ type BIStats = {
   }
 }
 
-const geoUrl = "https://raw.githubusercontent.com/deldersveld/topojson/master/countries/argentina/argentina-provinces.json"
+const geoUrl = "https://apis.datos.gob.ar/georef/api/v2.0/provincias.geojson"
 
 export default function AnalyticsPage() {
   const [stats, setStats] = useState<BIStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
-  const [mapTooltip, setMapTooltip] = useState("")
+  const [mapTooltip, setMapTooltip] = useState<string | null>(null)
 
   // Filtros Globales
-  const [dateRange, setDateRange] = useState("30") // dias
+  const [dateRange, setDateRange] = useState("all") // histórico completo por defecto
   
   // Filtros Locales
   const [revenueGroup, setRevenueGroup] = useState("day")
@@ -174,14 +175,16 @@ export default function AnalyticsPage() {
   const funnelColors: Record<string, string> = { paid: "#22c55e", pending: "#eab308", failed: "#ef4444", cancelled: "#64748b" }
   
   // Mapa
-  const maxGeo = Math.max(...stats.shipping.geoDistribution.map(p => Number(p.count)), 1)
-  const colorScale = scaleLinear<string>().domain([0, maxGeo]).range(["#1a1511", "#AA6F3B"])
+  const mapData = stats.shipping.geoDistribution.map((p: any) => ({ name: p.provincia.toLowerCase(), value: Number(p.count) }))
+  const maxGeo = Math.max(...mapData.map(p => p.value), 1)
+  const colorScaleFn = scaleLinear<string>().domain([0, maxGeo]).range(["#1a1511", "#AA6F3B"])
 
   // Conversión
-  const waitData = stats.clients.waitlistConversion[0] || { total_anotados: 0, total_compraron: 0 }
+  const waitData = Array.isArray(stats.clients?.waitlistConversion) ? stats.clients.waitlistConversion[0] : (stats.clients?.waitlistConversion || { total_anotados: 0, total_compraron: 0 })
   const anotados = Number(waitData.total_anotados) || 0
   const compraron = Number(waitData.total_compraron) || 0
-  const conversionRate = anotados > 0 ? ((compraron / anotados) * 100).toFixed(1) : "0.0"
+  const conversionRate = anotados > 0 ? ((compraron / anotados) * 100).toFixed(1) : "0"
+  const pendingToPrepare = stats.shipping.funnel.find(f => f.status === 'pending' || f.status === 'created')?.count || 0
 
   return (
     <div className="space-y-10 pb-20">
@@ -235,21 +238,37 @@ export default function AnalyticsPage() {
         </div>
 
         {/* KPIs Core */}
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
           <div className="rounded-2xl border border-white/8 bg-white/4 p-5">
             <p className="mb-1 text-xs font-semibold uppercase tracking-[0.15em] text-white/40">Facturación</p>
             <p className="font-serif text-3xl font-bold text-green-400">${totalRevenue.toLocaleString("es-AR")}</p>
           </div>
           <div className="rounded-2xl border border-white/8 bg-white/4 p-5">
-            <p className="mb-1 text-xs font-semibold uppercase tracking-[0.15em] text-white/40">Pedidos Pagados</p>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-[0.15em] text-white/40">Pedidos Totales</p>
             <p className="font-serif text-3xl font-bold text-white">{totalOrders}</p>
+          </div>
+          <div className="rounded-2xl border border-white/8 bg-white/4 p-5">
+            <div className="flex items-center gap-2 mb-1 group relative">
+                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-white/40">A Preparar</p>
+                <Info size={12} className="text-white/30 cursor-help" />
+                <div className="absolute bottom-full mb-2 left-0 hidden w-48 rounded-md bg-[#1a1a1a] p-2 text-xs text-white/80 shadow-xl group-hover:block border border-white/10 z-50">
+                    Pedidos que ya fueron pagados y están a la espera de ser armados o despachados.
+                </div>
+            </div>
+            <p className="font-serif text-3xl font-bold text-indigo-400">{pendingToPrepare}</p>
           </div>
           <div className="rounded-2xl border border-white/8 bg-white/4 p-5">
             <p className="mb-1 text-xs font-semibold uppercase tracking-[0.15em] text-white/40">Ticket Promedio</p>
             <p className="font-serif text-3xl font-bold text-[#AA6F3B]">${stats.avgTicket.toLocaleString("es-AR", {maximumFractionDigits:0})}</p>
           </div>
           <div className="rounded-2xl border border-white/8 bg-white/4 p-5">
-            <p className="mb-1 text-xs font-semibold uppercase tracking-[0.15em] text-white/40">Tasa de Cierre</p>
+            <div className="flex items-center gap-2 mb-1 group relative">
+                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-white/40">Tasa de Cierre</p>
+                <Info size={12} className="text-white/30 cursor-help" />
+                <div className="absolute bottom-full right-0 mb-2 hidden w-48 rounded-md bg-[#1a1a1a] p-2 text-xs text-white/80 shadow-xl group-hover:block border border-white/10 z-50">
+                    Porcentaje de carritos que llegaron a pagarse exitosamente vs los que fueron abandonados o fallaron.
+                </div>
+            </div>
             <p className="font-serif text-3xl font-bold text-blue-400">
               {stats.funnel.length > 0 
                 ? ((Number(stats.funnel.find(f => f.status === 'paid')?.count || 0) / stats.funnel.reduce((a,c) => a + Number(c.count), 0)) * 100).toFixed(1)
@@ -261,12 +280,12 @@ export default function AnalyticsPage() {
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Gráfico de Evolución */}
           <div className="rounded-2xl border border-white/8 bg-white/4 p-5 lg:col-span-2">
-            <div className="mb-6 flex items-center justify-between">
+            <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <p className="font-serif text-lg font-bold text-white">Evolución de Ingresos</p>
-              <div className="flex bg-[#0b0a07] border border-white/10 rounded-lg overflow-hidden">
-                <button onClick={() => setRevenueGroup("day")} className={`px-3 py-1.5 text-xs font-medium transition-colors ${revenueGroup === "day" ? "bg-[#AA6F3B] text-white" : "text-white/40 hover:text-white"}`}>Días</button>
-                <button onClick={() => setRevenueGroup("week")} className={`px-3 py-1.5 text-xs font-medium transition-colors border-l border-white/5 ${revenueGroup === "week" ? "bg-[#AA6F3B] text-white" : "text-white/40 hover:text-white"}`}>Semanas</button>
-                <button onClick={() => setRevenueGroup("month")} className={`px-3 py-1.5 text-xs font-medium transition-colors border-l border-white/5 ${revenueGroup === "month" ? "bg-[#AA6F3B] text-white" : "text-white/40 hover:text-white"}`}>Meses</button>
+              <div className="flex w-full sm:w-auto bg-[#0b0a07] border border-white/10 rounded-lg overflow-hidden">
+                <button onClick={() => setRevenueGroup("day")} className={`flex-1 sm:flex-none px-3 py-1.5 text-xs font-medium transition-colors ${revenueGroup === "day" ? "bg-[#AA6F3B] text-white" : "text-white/40 hover:text-white"}`}>Días</button>
+                <button onClick={() => setRevenueGroup("week")} className={`flex-1 sm:flex-none px-3 py-1.5 text-xs font-medium transition-colors border-l border-white/5 ${revenueGroup === "week" ? "bg-[#AA6F3B] text-white" : "text-white/40 hover:text-white"}`}>Semanas</button>
+                <button onClick={() => setRevenueGroup("month")} className={`flex-1 sm:flex-none px-3 py-1.5 text-xs font-medium transition-colors border-l border-white/5 ${revenueGroup === "month" ? "bg-[#AA6F3B] text-white" : "text-white/40 hover:text-white"}`}>Meses</button>
               </div>
             </div>
             <div className="h-[300px] w-full">
@@ -295,7 +314,13 @@ export default function AnalyticsPage() {
 
           {/* Funnel Pedidos */}
           <div className="rounded-2xl border border-white/8 bg-white/4 p-5">
-            <p className="mb-6 font-serif text-lg font-bold text-white">Embudo de Carritos</p>
+            <div className="flex items-center gap-2 mb-6 group relative">
+                <p className="font-serif text-lg font-bold text-white">Embudo de Carritos</p>
+                <Info size={16} className="text-white/30 cursor-help" />
+                <div className="absolute bottom-full mb-2 left-0 hidden w-56 rounded-md bg-[#1a1a1a] p-3 text-xs text-white/80 shadow-xl group-hover:block border border-white/10 z-50">
+                    Compara visualmente la cantidad de carritos iniciados ("pending"), pagados con éxito ("paid") y los que tuvieron errores de tarjeta ("failed").
+                </div>
+            </div>
             <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={stats.funnel} layout="vertical" margin={{ top: 0, right: 0, left: 10, bottom: 0 }}>
@@ -390,7 +415,13 @@ export default function AnalyticsPage() {
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Tasa de Aprobación */}
           <div className="rounded-2xl border border-white/8 bg-white/4 p-5 flex flex-col items-center">
-            <p className="mb-2 self-start font-serif text-lg font-bold text-white">Tasa de Aprobación / Rechazo</p>
+            <div className="flex items-center gap-2 mb-2 self-start group relative">
+                <p className="font-serif text-lg font-bold text-white">Tasa de Aprobación / Rechazo</p>
+                <Info size={16} className="text-white/30 cursor-help" />
+                <div className="absolute bottom-full mb-2 left-0 hidden w-64 rounded-md bg-[#1a1a1a] p-3 text-xs text-white/80 shadow-xl group-hover:block border border-white/10 z-50">
+                    Muestra qué porcentaje de los intentos de pago en MercadoPago pasan limpio (Approved) frente a los que son rebotados por falta de fondos o seguridad (Rejected).
+                </div>
+            </div>
             <div className="h-[280px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -416,7 +447,13 @@ export default function AnalyticsPage() {
 
           {/* Mix de Medios */}
           <div className="rounded-2xl border border-white/8 bg-white/4 p-5">
-            <p className="mb-6 font-serif text-lg font-bold text-white">Mix de Medios de Pago</p>
+            <div className="flex items-center gap-2 mb-6 group relative">
+                <p className="font-serif text-lg font-bold text-white">Mix de Medios de Pago</p>
+                <Info size={16} className="text-white/30 cursor-help" />
+                <div className="absolute bottom-full mb-2 left-0 hidden w-64 rounded-md bg-[#1a1a1a] p-3 text-xs text-white/80 shadow-xl group-hover:block border border-white/10 z-50">
+                    Desglosa cómo prefiere pagar tu clientela (por ejemplo, saldo en cuenta, tarjeta de crédito, débito, etc.). Útil para planificar promociones bancarias.
+                </div>
+            </div>
             <div className="h-[280px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={stats.payments.methods} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
@@ -467,8 +504,7 @@ export default function AnalyticsPage() {
                 <div className="relative flex-1 -mx-5 bg-[#080705]">
                     {mapTooltip && (
                     <div className="absolute top-4 right-4 z-20 rounded-lg border border-white/10 bg-[#0b0a07]/90 px-4 py-2 backdrop-blur-md shadow-xl pointer-events-none">
-                        <p className="text-sm font-bold text-white">{mapTooltip.split(':')[0]}</p>
-                        <p className="text-xs text-[#AA6F3B]">{mapTooltip.split(':')[1]}</p>
+                        <p className="text-sm font-bold text-white">{mapTooltip}</p>
                     </div>
                     )}
                     <ComposableMap projection="geoMercator" projectionConfig={{ scale: 850, center: [-65, -38] }} className="w-full h-full outline-none">
@@ -476,22 +512,26 @@ export default function AnalyticsPage() {
                             <Geographies geography={geoUrl}>
                                 {({ geographies }) =>
                                     geographies.map((geo) => {
-                                        const provName = geo.properties.name || geo.properties.NAME_1;
-                                        const dataRow = stats.shipping.geoDistribution.find((s:any) => (s.provincia||"").toLowerCase() === provName.toLowerCase());
-                                        const count = dataRow ? Number(dataRow.count) : 0;
+                                        const geoName = geo.properties.nombre ? geo.properties.nombre.toLowerCase() : ""
+                                        const d = mapData.find((s) => s.name.includes(geoName) || geoName.includes(s.name))
                                         return (
                                             <Geography
                                                 key={geo.rsmKey}
                                                 geography={geo}
-                                                onMouseEnter={() => setMapTooltip(`${provName}: ${count} envíos`)}
-                                                onMouseLeave={() => setMapTooltip("")}
+                                                fill={d ? colorScaleFn(d.value) : "#ffffff0a"}
+                                                stroke="#1a1a1a"
+                                                strokeWidth={0.5}
+                                                onMouseEnter={() => {
+                                                    setMapTooltip(`${geo.properties.nombre}: ${d ? d.value : 0} pedidos`)
+                                                }}
+                                                onMouseLeave={() => setMapTooltip(null)}
                                                 style={{
-                                                    default: { fill: count > 0 ? colorScale(count) : "#1a1511", stroke: "#ffffff20", strokeWidth: 0.5, outline: "none", transition: "all 250ms" },
-                                                    hover: { fill: "#d98c4a", stroke: "#ffffff", strokeWidth: 1, outline: "none", cursor: "pointer", transition: "all 250ms" },
-                                                    pressed: { fill: "#AA6F3B", outline: "none" }
+                                                    default: { outline: "none", transition: "all 250ms" },
+                                                    hover: { fill: "#AA6F3B", outline: "none", cursor: "pointer", transition: "all 250ms" },
+                                                    pressed: { outline: "none" },
                                                 }}
                                             />
-                                        );
+                                        )
                                     })
                                 }
                             </Geographies>
@@ -537,8 +577,14 @@ export default function AnalyticsPage() {
             
             {/* Funnel Logistico */}
             <div className="rounded-2xl border border-white/8 bg-white/4 p-5">
-                <p className="mb-4 font-serif text-lg font-bold text-white">Estado del Embudo de Envíos</p>
-                    <div className="h-[180px] w-full">
+                <div className="flex items-center gap-2 mb-4 group relative">
+                    <p className="font-serif text-lg font-bold text-white">Estado del Embudo de Envíos</p>
+                    <Info size={16} className="text-white/30 cursor-help" />
+                    <div className="absolute bottom-full mb-2 left-0 hidden w-64 rounded-md bg-[#1a1a1a] p-3 text-xs text-white/80 shadow-xl group-hover:block border border-white/10 z-50">
+                        Te permite detectar cuellos de botella logísticos mostrando cuántos pedidos siguen pendientes de armar, cuántos tienen etiqueta creada y cuántos están ya en tránsito.
+                    </div>
+                </div>
+                <div className="h-[250px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={stats.shipping.funnel} layout="vertical" margin={{ top: 0, right: 20, left: 20, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#ffffff0a" horizontal={true} vertical={false} />
@@ -553,7 +599,13 @@ export default function AnalyticsPage() {
 
             {/* Proporción de Entrega */}
             <div className="rounded-2xl border border-white/8 bg-white/4 p-5">
-                <p className="mb-4 font-serif text-lg font-bold text-white">Proporción de Entrega</p>
+                <div className="flex items-center gap-2 mb-4 group relative">
+                    <p className="font-serif text-lg font-bold text-white">Proporción de Entrega</p>
+                    <Info size={16} className="text-white/30 cursor-help" />
+                    <div className="absolute bottom-full mb-2 left-0 hidden w-64 rounded-md bg-[#1a1a1a] p-3 text-xs text-white/80 shadow-xl group-hover:block border border-white/10 z-50">
+                        Compara la cantidad de gente que prefiere retirar en un punto logístico o sucursal vs los que prefieren el envío a domicilio.
+                    </div>
+                </div>
                 <div className="h-[250px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
