@@ -22,11 +22,16 @@ export type WaitlistImportRow = {
     fecha_registro?: string; // puede venir en CSV
 };
 
-export const PROVINCIAS_ARGENTINA = ["Buenos Aires", "Catamarca", "Chaco", "Chubut", "Córdoba", "Corrientes", "Entre Ríos", "Formosa", "Jujuy", "La Pampa", "La Rioja", "Mendoza", "Misiones", "Neuquén", "Río Negro", "Salta", "San Juan", "San Luis", "Santa Cruz", "Santa Fe", "Santiago del Estero", "Tierra del Fuego", "Tucumán"];
+export const PROVINCIAS_ARGENTINA = [
+    "Buenos Aires", "Catamarca", "Chaco", "Chubut", "Ciudad Autónoma de Buenos Aires", "Córdoba", "Corrientes",
+    "Entre Ríos", "Formosa", "Jujuy", "La Pampa", "La Rioja", "Mendoza",
+    "Misiones", "Neuquén", "Río Negro", "Salta", "San Juan", "San Luis",
+    "Santa Cruz", "Santa Fe", "Santiago del Estero", "Tierra del Fuego, Antártida e Islas del Atlántico Sur", "Tucumán"
+];
 
 export async function addToWaitlist({ nombre, email, provincia }: WaitlistInput): Promise<void> {
     if (!PROVINCIAS_ARGENTINA.includes(provincia)) {
-        throw new Error("Provincia inválida. Debe ser una de las 23 provincias de Argentina.");
+        throw new Error("Provincia inválida. Debe ser una de las 24 jurisdicciones de Argentina.");
     }
     
     try {

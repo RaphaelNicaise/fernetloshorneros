@@ -64,10 +64,26 @@ export default function ArgentinaMap({
     return { features: filtered, projection: proj, pathGen: pg }
   }, [geoData, width, height])
 
+  const normalizeProvinceName = (name: string) => {
+    let n = name
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim()
+
+    if (n === "caba" || n.includes("ciudad autonoma")) {
+      return "ciudad autonoma de buenos aires"
+    }
+    if (n.includes("tierra del fuego")) {
+      return "tierra del fuego, antartida e islas del atlantico sur"
+    }
+    return n
+  }
+
   const getColor = (featureName: string) => {
-    const nameLower = featureName.toLowerCase()
+    const featNorm = normalizeProvinceName(featureName)
     const d = data.find(
-      (s) => s.name && (s.name.includes(nameLower) || nameLower.includes(s.name))
+      (s) => s.name && normalizeProvinceName(s.name) === featNorm
     )
     return { color: d ? colorScale(d.value) : emptyColor, value: d?.value ?? 0 }
   }
@@ -91,11 +107,12 @@ export default function ArgentinaMap({
         style={{ display: "block" }}
       >
         {features.map((feature: any, i: number) => {
-          const nameLower = (feature.properties?.nombre || "").toLowerCase()
-          const { color, value } = getColor(nameLower)
-          const isHovered =
-            hoveredKey &&
-            (nameLower.includes(hoveredKey) || hoveredKey.includes(nameLower))
+          const rawName = feature.properties?.nombre || ""
+          const featNorm = normalizeProvinceName(rawName)
+          const { color, value } = getColor(rawName)
+          
+          const hoveredNorm = hoveredKey ? normalizeProvinceName(hoveredKey) : null
+          const isHovered = hoveredNorm && featNorm === hoveredNorm
 
           return (
             <path
@@ -114,8 +131,8 @@ export default function ArgentinaMap({
                     text: `${feature.properties.nombre}: ${value} ${tooltipLabel}`,
                   })
                 }
-                setInternalHovered(nameLower)
-                onHoverChange?.(nameLower)
+                setInternalHovered(rawName)
+                onHoverChange?.(rawName)
               }}
               onMouseMove={(e) => {
                 const svgRect = svgRef.current?.getBoundingClientRect()
