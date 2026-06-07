@@ -2,7 +2,7 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Playfair_Display, Montserrat } from "next/font/google"
 import "./globals.css"
-import { CartProvider } from "@/lib/cart-context"
+import { Providers } from "@/app/providers"
 import { Toaster } from "@/components/ui/toaster"
 
 const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-serif" })
@@ -88,10 +88,10 @@ export default function RootLayout({
         />
       </head>
       <body suppressHydrationWarning className={`${playfair.variable} ${montserrat.variable} font-sans antialiased`}>
-        <CartProvider>
+        <Providers>
           {children}
           <Toaster />
-        </CartProvider>
+        </Providers>
       </body>
     </html>
   )

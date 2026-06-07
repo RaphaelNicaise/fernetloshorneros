@@ -6,18 +6,20 @@ import { useEffect, useRef, useState } from "react"
 import { usePathname } from "next/navigation"
 import { ShoppingCart, Menu, X } from "lucide-react"
 import { useCart } from "@/lib/cart-context"
+import { useWaitlistModal } from "@/lib/waitlist-modal-context"
 import { motion, AnimatePresence } from "framer-motion"
 
 const navLinks = [
   { href: "/", label: "Inicio" },
   { href: "/productos", label: "Productos" },
-  { href: "/lista-espera", label: "Lista de Espera" },
+  { href: "modal:waitlist", label: "Lista de Espera" },
 ]
 
 export function Navigation() {
   const { items } = useCart()
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0)
   const pathname = usePathname()
+  const { open } = useWaitlistModal()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
 
@@ -42,121 +44,124 @@ export function Navigation() {
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href)
 
+  const handleNavClick = (href: string) => {
+    if (href === "modal:waitlist") {
+      open()
+      setMobileOpen(false)
+    }
+  }
+
   return (
-    <>
-      <header
-        className={`sticky top-0 z-50 transition-all duration-300 ${
-          scrolled
-            ? "bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100"
-            : "bg-white border-b border-gray-200"
-        }`}
-      >
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between md:grid md:grid-cols-[1fr_auto_1fr]">
-          {/* Logo */}
-          <Link
-            href="/"
-            className="group flex items-center gap-3 justify-self-start"
-            aria-label="Ir al inicio"
-          >
-            <motion.div whileHover={{ scale: 1.05 }} transition={{ duration: 0.2 }}>
-              <Image
-                src="/logonuevo.webp"
-                alt="Fernet Los Horneros"
-                width={40}
-                height={40}
-                className="rounded-full"
-                priority
-              />
-            </motion.div>
-            <motion.div whileHover={{ scale: 1.02 }} transition={{ duration: 0.2 }}>
-              <Image
-                src="/logo-fernet.webp"
-                alt="Fernet Los Horneros"
-                width={190}
-                height={40}
-                className="h-10 w-auto object-contain"
-                priority
-              />
-            </motion.div>
-          </Link>
+    <header
+      className={`fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-[#0b0a07]/80 backdrop-blur-xl transition-all duration-400 ${
+        scrolled
+          ? "py-2 shadow-[0_14px_40px_rgba(0,0,0,0.22)]"
+          : "py-4"
+      }`}
+    >
+      <div className="container mx-auto flex items-center justify-between px-4 md:grid md:grid-cols-[1fr_auto_1fr]">
+        {/* Logo */}
+        <Link
+          href="/"
+          className="group flex items-center gap-3 justify-self-start"
+          aria-label="Ir al inicio"
+        >
+          <motion.div whileHover={{ rotate: -8, scale: 1.08 }} transition={{ duration: 0.3 }}>
+            <Image
+              src="/logonuevo.webp"
+              alt="Fernet Los Horneros"
+              width={46}
+              height={46}
+              className={`object-contain brightness-0 invert transition-all duration-500 ${scrolled ? "h-[38px] w-[38px]" : "h-[46px] w-[46px]"}`}
+              priority
+            />
+          </motion.div>
+          <motion.div whileHover={{ scale: 1.02 }} transition={{ duration: 0.2 }} className="leading-none">
+            <Image
+              src="/logo-fernet.webp"
+              alt="Fernet Los Horneros"
+              width={190}
+              height={40}
+              className={`h-auto w-auto object-contain brightness-0 invert transition-all duration-500 ${scrolled ? "max-h-8" : "max-h-10"}`}
+              priority
+            />
+          </motion.div>
+        </Link>
 
-          {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-1 justify-self-center">
-            {navLinks.map(({ href, label }) => {
-              const active = isActive(href)
+        {/* Desktop Nav */}
+        <nav className="hidden items-center gap-2 justify-self-center md:flex">
+          {navLinks.map(({ href, label }) => {
+            const active = href.startsWith("modal:") ? false : isActive(href)
+            const linkClasses = `group relative px-4 py-2 text-sm font-medium transition-colors duration-200 ${
+              active ? "text-white" : "text-white/72 hover:text-white"
+            }`
+
+            if (href.startsWith("modal:")) {
               return (
-                <Link key={href} href={href} className="relative px-4 py-2 group">
-                  <span
-                    className={`relative z-10 text-sm font-medium transition-colors duration-200 ${
-                      active ? "text-primary" : "text-gray-500 group-hover:text-primary"
-                    }`}
-                  >
-                    {label}
-                  </span>
-                  {/* Active underline */}
-                  {active && (
-                    <motion.div
-                      layoutId="nav-underline"
-                      className="absolute bottom-0 left-3 right-3 h-0.5 bg-primary rounded-full"
-                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                    />
-                  )}
-                  {/* Hover background */}
-                  <span className="absolute inset-0 rounded-lg bg-primary/0 group-hover:bg-primary/5 transition-colors duration-200" />
-                </Link>
+                <button key={href} type="button" className={linkClasses} onClick={() => handleNavClick(href)}>
+                  <span className="relative z-10">{label}</span>
+                  <span className="pointer-events-none absolute bottom-1 left-4 right-4 h-px origin-left scale-x-0 bg-[#6B5743] transition-transform duration-300 ease-out group-hover:scale-x-100" />
+                </button>
               )
-            })}
-          </nav>
+            }
 
-          {/* Right side: cart + hamburger */}
-          <div className="flex items-center gap-2 justify-self-end">
-            <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-              <Link
-                href="/cart"
-                className="relative flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 transition-colors"
-                aria-label="Ver carrito"
-              >
-                <motion.span animate={bump ? { scale: [1, 1.3, 1] } : {}} transition={{ duration: 0.35 }}>
-                  <ShoppingCart className="w-5 h-5 text-gray-700" />
-                </motion.span>
-                <AnimatePresence>
-                  {itemCount > 0 && (
-                    <motion.span
-                      key="badge"
-                      initial={{ scale: 0, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      exit={{ scale: 0, opacity: 0 }}
-                      className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center"
-                    >
-                      {itemCount}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
+            return (
+              <Link key={href} href={href} className={linkClasses}>
+                <span className="relative z-10">{label}</span>
+                <span className={`pointer-events-none absolute bottom-1 left-4 right-4 h-px origin-left bg-[#6B5743] transition-transform duration-300 ease-out ${active ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"}`} />
               </Link>
-            </motion.div>
+            )
+          })}
+        </nav>
 
-            {/* Hamburger — mobile only */}
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              className="md:hidden flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 transition-colors"
-              onClick={() => setMobileOpen((o) => !o)}
-              aria-label="Menú"
+        {/* Right side: cart + hamburger */}
+        <div className="flex items-center gap-2 justify-self-end">
+          <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+            <Link
+              href="/cart"
+              className="relative flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/4 transition-colors hover:bg-white/8 md:h-11 md:w-11"
+              aria-label="Ver carrito"
             >
-              <AnimatePresence mode="wait" initial={false}>
-                {mobileOpen ? (
-                  <motion.span key="close" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.15 }}>
-                    <X className="w-5 h-5 text-gray-700" />
-                  </motion.span>
-                ) : (
-                  <motion.span key="open" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.15 }}>
-                    <Menu className="w-5 h-5 text-gray-700" />
+              <motion.span animate={bump ? { scale: [1, 1.3, 1] } : {}} transition={{ duration: 0.35 }}>
+                <ShoppingCart className="h-5 w-5 text-white" />
+              </motion.span>
+              <AnimatePresence>
+                {itemCount > 0 && (
+                  <motion.span
+                    key="badge"
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0, opacity: 0 }}
+                    className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#AA6F3B] text-[10px] font-bold text-white"
+                  >
+                    {itemCount}
                   </motion.span>
                 )}
               </AnimatePresence>
-            </motion.button>
-          </div>
+            </Link>
+          </motion.div>
+
+          {/* Hamburger — mobile only */}
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/4 transition-colors hover:bg-white/8 md:hidden"
+            onClick={() => setMobileOpen((o) => !o)}
+            aria-label="Menú"
+          >
+            <AnimatePresence mode="wait" initial={false}>
+              {mobileOpen ? (
+                <motion.span key="close" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.15 }}>
+                  <X className="h-5 w-5 text-white" />
+                </motion.span>
+              ) : (
+                <motion.span key="open" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.15 }}>
+                  <Menu className="h-5 w-5 text-white" />
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </motion.button>
         </div>
-      </header>
+      </div>
 
       {/* Mobile menu */}
       <AnimatePresence>
@@ -179,11 +184,11 @@ export function Navigation() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2, ease: "easeOut" as const }}
-              className="fixed top-[65px] left-0 right-0 z-50 bg-white border-b border-gray-100 shadow-lg md:hidden px-4 py-4"
+              className="absolute left-0 right-0 top-full z-50 border-b border-t border-white/10 bg-[#0b0a07]/98 px-4 py-4 shadow-2xl md:hidden"
             >
               <nav className="flex flex-col gap-1">
                 {navLinks.map(({ href, label }, i) => {
-                  const active = isActive(href)
+                  const active = href.startsWith("modal:") ? false : isActive(href)
                   return (
                     <motion.div
                       key={href}
@@ -191,17 +196,25 @@ export function Navigation() {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.06, duration: 0.2 }}
                     >
-                      <Link
-                        href={href}
-                        className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-150 ${
-                          active
-                            ? "bg-primary/8 text-primary"
-                            : "text-gray-600 hover:bg-gray-50 hover:text-primary"
-                        }`}
-                      >
-                        {active && <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />}
-                        {label}
-                      </Link>
+                      {href.startsWith("modal:") ? (
+                        <button
+                          type="button"
+                          onClick={() => handleNavClick(href)}
+                          className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium text-white/75 transition-all duration-150 hover:bg-white/5 hover:text-white"
+                        >
+                          {label}
+                        </button>
+                      ) : (
+                        <Link
+                          href={href}
+                          className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-150 ${
+                            active ? "bg-white/6 text-white" : "text-white/75 hover:bg-white/5 hover:text-white"
+                          }`}
+                        >
+                          {active && <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#6B5743]" />}
+                          {label}
+                        </Link>
+                      )}
                     </motion.div>
                   )
                 })}
@@ -210,7 +223,7 @@ export function Navigation() {
           </>
         )}
       </AnimatePresence>
-    </>
+    </header>
   )
 }
 

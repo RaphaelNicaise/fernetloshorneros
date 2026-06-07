@@ -125,10 +125,45 @@ services:
     networks:
       - app_network
 
+  umami_db:
+    image: postgres:15-alpine
+    container_name: umami_db_prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: umami
+      POSTGRES_USER: umami_user
+      POSTGRES_PASSWORD: ${UMAMI_DB_PASSWORD}
+    volumes:
+      - umami_data:/var/lib/postgresql/data
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U umami_user -d umami"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  umami:
+    image: ghcr.io/umami-software/umami:postgresql-latest
+    container_name: umami_prod
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://umami_user:${UMAMI_DB_PASSWORD}@umami_db:5432/umami
+      DATABASE_TYPE: postgresql
+      APP_SECRET: ${UMAMI_APP_SECRET}
+      PORT: 3002
+    depends_on:
+      umami_db:
+        condition: service_healthy
+    networks:
+      - app_network   
+
 volumes:
   mysql_data:
     driver: local
   portainer_data:
+    driver: local
+  umami_data:
     driver: local
 
 networks:

@@ -302,22 +302,25 @@ export function ShippingSelector({ items, productsTotal, onSelectionComplete, on
     }
   }, [isFormComplete, selectedOption, selectedType, selectedPickupPoint, provincia, ciudad, codigoPostal, direccion, numero, extra, nombre, email, dni, telefono, onSelectionComplete])
 
+  const fieldClassName = "w-full rounded-xl border border-black/10 bg-white px-4 py-2.5 text-[#0b0a07] transition-all placeholder:text-black/30 focus:border-[#aa825e]/45 focus:outline-none focus:ring-2 focus:ring-[#aa825e]/20 disabled:cursor-not-allowed disabled:opacity-50"
+  const labelClassName = "mb-1.5 block text-sm font-medium text-[#0b0a07]"
+
   return (
     <div className="space-y-6">
       {/* Paso 1: Provincia, Ciudad y Código Postal */}
-      <div className="bg-card border border-border rounded-xl p-6">
-        <h2 className="font-serif text-xl font-bold text-foreground mb-4">¿Dónde lo enviamos?</h2>
+      <div className="rounded-2xl border border-black/8 bg-white p-6 shadow-[0_18px_38px_rgba(11,10,7,0.05)]">
+        <h2 className="mb-4 font-serif text-xl font-bold text-[#0b0a07]">¿Dónde lo enviamos?</h2>
         
         <div className="grid md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">
+            <label className={labelClassName}>
               Provincia *
             </label>
             <select
               value={provincia}
               onChange={(e) => setProvincia(e.target.value)}
               disabled={loadingProvincias}
-              className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary disabled:opacity-50 transition-all"
+              className={fieldClassName}
             >
               <option value="">
                 {loadingProvincias ? "Cargando..." : "Seleccionar provincia"}
@@ -329,14 +332,14 @@ export function ShippingSelector({ items, productsTotal, onSelectionComplete, on
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">
+            <label className={labelClassName}>
               Ciudad *
             </label>
             <select
               value={ciudad}
               onChange={(e) => setCiudad(e.target.value)}
               disabled={!provincia || loadingLocalidades}
-              className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary disabled:opacity-50 transition-all"
+              className={fieldClassName}
             >
               <option value="">
                 {loadingLocalidades 
@@ -352,7 +355,7 @@ export function ShippingSelector({ items, productsTotal, onSelectionComplete, on
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">
+            <label className={labelClassName}>
               Código Postal *
             </label>
             <input
@@ -360,14 +363,14 @@ export function ShippingSelector({ items, productsTotal, onSelectionComplete, on
               value={codigoPostal}
               onChange={(e) => setCodigoPostal(e.target.value)}
               placeholder="Ej: 3500"
-              className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
+              className={fieldClassName}
             />
           </div>
         </div>
 
         {loadingOptions && (
-          <div className="mt-4 flex items-center gap-2 text-muted-foreground">
-            <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <div className="mt-4 flex items-center gap-2 text-black/55">
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#aa825e] border-t-transparent" />
             <span className="text-sm">Calculando opciones de envío...</span>
           </div>
         )}
@@ -375,50 +378,50 @@ export function ShippingSelector({ items, productsTotal, onSelectionComplete, on
 
       {/* Paso 2: Selección de método de envío */}
       {quoteFetched && !loadingOptions && (deliveryOption || pickupOption) && (
-        <div className="bg-card border border-border rounded-xl p-6">
-          <h2 className="font-serif text-xl font-bold text-foreground mb-4">Elegí cómo recibir tu pedido</h2>
+        <div className="rounded-2xl border border-black/8 bg-white p-6 shadow-[0_18px_38px_rgba(11,10,7,0.05)]">
+          <h2 className="mb-4 font-serif text-xl font-bold text-[#0b0a07]">Elegí cómo recibir tu pedido</h2>
           
           <div className="grid md:grid-cols-2 gap-4">
             {/* Opción Domicilio */}
             {deliveryOption && (
               <button
                 onClick={() => handleSelectType('standard_delivery')}
-                className={`relative p-5 rounded-xl border-2 text-left transition-all cursor-pointer ${
+                className={`relative rounded-2xl border p-5 text-left transition-all cursor-pointer ${
                   selectedType === 'standard_delivery'
-                    ? 'border-primary bg-primary/5 shadow-md'
-                    : 'border-border hover:border-primary/50 hover:bg-secondary/50'
+                    ? 'border-[#aa825e]/45 bg-[#aa825e]/8 shadow-[0_14px_28px_rgba(170,130,94,0.12)]'
+                    : 'border-black/10 bg-white hover:border-[#aa825e]/35 hover:bg-[#f8f5f1]'
                 }`}
               >
                 {cheapestType === 'standard_delivery' && (
-                  <span className="absolute -top-2.5 left-4 px-2 py-0.5 bg-green-500 text-white text-xs font-medium rounded-full">
+                  <span className="absolute -top-2.5 left-4 rounded-full bg-[#0b0a07] px-2.5 py-1 text-xs font-medium text-[#f5f0e6]">
                     Más económico
                   </span>
                 )}
                 
                 <div className="flex items-start gap-4">
-                  <div className={`p-2.5 rounded-lg ${
-                    selectedType === 'standard_delivery' ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'
+                  <div className={`rounded-xl p-2.5 ${
+                    selectedType === 'standard_delivery' ? 'bg-[#aa825e] text-white' : 'bg-[#f5f0e6] text-[#6B5743]'
                   }`}>
                     <HomeIcon />
                   </div>
                   
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-foreground">Envío a domicilio</h3>
+                      <h3 className="font-semibold text-[#0b0a07]">Envío a domicilio</h3>
                       {selectedType === 'standard_delivery' && (
-                        <span className="text-primary"><CheckIcon /></span>
+                        <span className="text-[#aa825e]"><CheckIcon /></span>
                       )}
                     </div>
-                    <p className="text-sm text-muted-foreground mt-0.5">
+                    <p className="mt-0.5 text-sm text-black/55">
                       {deliveryOption.carrier_name}
                     </p>
-                    <p className="text-sm text-muted-foreground mt-1">
+                    <p className="mt-1 text-sm text-black/55">
                       {formatDeliveryDate(
                         deliveryOption.estimated_delivery.min_days,
                         deliveryOption.estimated_delivery.max_days
                       )}
                     </p>
-                    <p className="text-lg font-bold text-foreground mt-2">
+                    <p className="mt-2 text-lg font-bold text-[#0b0a07]">
                       ${deliveryOption.amounts.price_incl_tax.toLocaleString('es-AR')}
                     </p>
                   </div>
@@ -430,42 +433,42 @@ export function ShippingSelector({ items, productsTotal, onSelectionComplete, on
             {pickupOption && (
               <button
                 onClick={() => handleSelectType('pickup_point')}
-                className={`relative p-5 rounded-xl border-2 text-left transition-all cursor-pointer ${
+                className={`relative rounded-2xl border p-5 text-left transition-all cursor-pointer ${
                   selectedType === 'pickup_point'
-                    ? 'border-primary bg-primary/5 shadow-md'
-                    : 'border-border hover:border-primary/50 hover:bg-secondary/50'
+                    ? 'border-[#aa825e]/45 bg-[#aa825e]/8 shadow-[0_14px_28px_rgba(170,130,94,0.12)]'
+                    : 'border-black/10 bg-white hover:border-[#aa825e]/35 hover:bg-[#f8f5f1]'
                 }`}
               >
                 {cheapestType === 'pickup_point' && (
-                  <span className="absolute -top-2.5 left-4 px-2 py-0.5 bg-green-500 text-white text-xs font-medium rounded-full">
+                  <span className="absolute -top-2.5 left-4 rounded-full bg-[#0b0a07] px-2.5 py-1 text-xs font-medium text-[#f5f0e6]">
                     Más económico
                   </span>
                 )}
                 
                 <div className="flex items-start gap-4">
-                  <div className={`p-2.5 rounded-lg ${
-                    selectedType === 'pickup_point' ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'
+                  <div className={`rounded-xl p-2.5 ${
+                    selectedType === 'pickup_point' ? 'bg-[#aa825e] text-white' : 'bg-[#f5f0e6] text-[#6B5743]'
                   }`}>
                     <LocationIcon />
                   </div>
                   
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-foreground">Retiro en punto de entrega</h3>
+                      <h3 className="font-semibold text-[#0b0a07]">Retiro en punto de entrega</h3>
                       {selectedType === 'pickup_point' && (
-                        <span className="text-primary"><CheckIcon /></span>
+                        <span className="text-[#aa825e]"><CheckIcon /></span>
                       )}
                     </div>
-                    <p className="text-sm text-muted-foreground mt-0.5">
+                    <p className="mt-0.5 text-sm text-black/55">
                       {pickupOption.carrier_name}
                     </p>
-                    <p className="text-sm text-muted-foreground mt-1">
+                    <p className="mt-1 text-sm text-black/55">
                       {formatDeliveryDate(
                         pickupOption.estimated_delivery.min_days,
                         pickupOption.estimated_delivery.max_days
                       )}
                     </p>
-                    <p className="text-lg font-bold text-foreground mt-2">
+                    <p className="mt-2 text-lg font-bold text-[#0b0a07]">
                       ${pickupOption.amounts.price_incl_tax.toLocaleString('es-AR')}
                     </p>
                   </div>
@@ -478,73 +481,73 @@ export function ShippingSelector({ items, productsTotal, onSelectionComplete, on
 
       {/* Formulario condicional según selección */}
       {selectedType && (
-        <div className="bg-card border border-border rounded-xl p-6 animate-in fade-in slide-in-from-top-2 duration-300">
+        <div className="animate-in slide-in-from-top-2 fade-in rounded-2xl border border-black/8 bg-white p-6 shadow-[0_18px_38px_rgba(11,10,7,0.05)] duration-300">
           {selectedType === 'standard_delivery' ? (
             <>
-              <h2 className="font-serif text-xl font-bold text-foreground mb-4">Dirección de entrega</h2>
+              <h2 className="mb-4 font-serif text-xl font-bold text-[#0b0a07]">Dirección de entrega</h2>
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1.5">Calle *</label>
+                  <label className={labelClassName}>Calle *</label>
                   <input
                     type="text"
                     value={direccion}
                     onChange={(e) => setDireccion(e.target.value)}
                     placeholder="Nombre de la calle"
-                    className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
+                    className={fieldClassName}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1.5">Número *</label>
+                  <label className={labelClassName}>Número *</label>
                   <input
                     type="text"
                     value={numero}
                     onChange={(e) => setNumero(e.target.value)}
                     placeholder="Número"
-                    className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
+                    className={fieldClassName}
                   />
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-foreground mb-1.5">Piso / Depto</label>
+                  <label className={labelClassName}>Piso / Depto</label>
                   <input
                     type="text"
                     value={extra}
                     onChange={(e) => setExtra(e.target.value)}
                     placeholder="Opcional"
-                    className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
+                    className={fieldClassName}
                   />
                 </div>
               </div>
             </>
           ) : (
             <>
-              <h2 className="font-serif text-xl font-bold text-foreground mb-4">Elegí un punto de retiro</h2>
+              <h2 className="mb-4 font-serif text-xl font-bold text-[#0b0a07]">Elegí un punto de retiro</h2>
               {selectedOption?.pickup_points && selectedOption.pickup_points.length > 0 ? (
                 <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
                   {selectedOption.pickup_points.map((point) => (
                     <button
                       key={point.point_id}
                       onClick={() => setSelectedPickupPoint(point)}
-                      className={`w-full p-4 rounded-lg border-2 text-left transition-all cursor-pointer ${
+                      className={`w-full rounded-xl border p-4 text-left transition-all cursor-pointer ${
                         selectedPickupPoint?.point_id === point.point_id
-                          ? 'border-primary bg-primary/5'
-                          : 'border-border hover:border-primary/50'
+                          ? 'border-[#aa825e]/45 bg-[#aa825e]/8'
+                          : 'border-black/10 bg-white hover:border-[#aa825e]/35 hover:bg-[#f8f5f1]'
                       }`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
-                            <h4 className="font-medium text-foreground">{point.name}</h4>
+                            <h4 className="font-medium text-[#0b0a07]">{point.name}</h4>
                             {selectedPickupPoint?.point_id === point.point_id && (
-                              <span className="text-primary"><CheckIcon /></span>
+                              <span className="text-[#aa825e]"><CheckIcon /></span>
                             )}
                           </div>
-                          <p className="text-sm text-muted-foreground mt-1">
+                          <p className="mt-1 text-sm text-black/55">
                             {point.address}, {point.city}
                           </p>
                           {point.hours && (
-                            <p className="text-xs text-muted-foreground mt-1">
+                            <p className="mt-1 text-xs text-black/45">
                               Horario: {point.hours}
                             </p>
                           )}
@@ -554,7 +557,7 @@ export function ShippingSelector({ items, productsTotal, onSelectionComplete, on
                   ))}
                 </div>
               ) : (
-                <p className="text-muted-foreground text-center py-8">
+                <p className="py-8 text-center text-black/55">
                   No hay puntos de retiro disponibles en tu zona.
                 </p>
               )}
@@ -562,50 +565,50 @@ export function ShippingSelector({ items, productsTotal, onSelectionComplete, on
           )}
 
           {/* Datos de contacto - común para ambos */}
-          <div className="mt-6 pt-6 border-t border-border">
-            <h3 className="font-semibold text-foreground mb-4">Datos de contacto</h3>
+          <div className="mt-6 border-t border-black/8 pt-6">
+            <h3 className="mb-4 font-semibold text-[#0b0a07]">Datos de contacto</h3>
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">Nombre completo *</label>
+                <label className={labelClassName}>Nombre completo *</label>
                 <input
                   type="text"
                   value={nombre}
                   onChange={(e) => setNombre(e.target.value)}
                   placeholder="Tu nombre"
-                  className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
+                  className={fieldClassName}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">Email *</label>
+                <label className={labelClassName}>Email *</label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="tu@email.com"
-                  className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
+                  className={fieldClassName}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">DNI *</label>
+                <label className={labelClassName}>DNI *</label>
                 <input
                   type="text"
                   value={dni}
                   onChange={(e) => setDni(e.target.value)}
                   placeholder="12345678"
-                  className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
+                  className={fieldClassName}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">Teléfono *</label>
+                <label className={labelClassName}>Teléfono *</label>
                 <input
                   type="tel"
                   value={telefono}
                   onChange={(e) => setTelefono(e.target.value)}
                   placeholder="+54 11 1234-5678"
-                  className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
+                  className={fieldClassName}
                 />
               </div>
             </div>
@@ -615,8 +618,8 @@ export function ShippingSelector({ items, productsTotal, onSelectionComplete, on
 
       {/* Mensaje cuando no hay opciones */}
       {quoteFetched && !loadingOptions && !deliveryOption && !pickupOption && (
-        <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-xl p-6 text-center">
-          <p className="text-amber-800 dark:text-amber-200">
+        <div className="rounded-2xl border border-[#aa825e]/30 bg-[#f5ede5] p-6 text-center">
+          <p className="text-[#6B5743]">
             No encontramos opciones de envío para tu zona. Verificá el código postal e intentá nuevamente.
           </p>
         </div>
