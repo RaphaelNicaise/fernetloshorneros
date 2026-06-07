@@ -32,8 +32,8 @@ import {
   Legend
 } from "recharts"
 
-// Mapas
-import { ComposableMap, Geographies, Geography, ZoomableGroup } from "react-simple-maps"
+// Mapa
+import ArgentinaMap from "@/components/ArgentinaMap"
 import { scaleLinear } from "d3-scale"
 
 type BIStats = {
@@ -59,15 +59,13 @@ type BIStats = {
   }
 }
 
-const geoUrl = "/argentina.geojson"
+
 
 export default function AnalyticsPage() {
   const [stats, setStats] = useState<BIStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
-  const [mapTooltip, setMapTooltip] = useState<string | null>(null)
-  const [waitlistMapTooltip, setWaitlistMapTooltip] = useState<string | null>(null)
   const [hoveredProvincia, setHoveredProvincia] = useState<string | null>(null)
 
   // Filtros Globales
@@ -177,14 +175,10 @@ export default function AnalyticsPage() {
   // Funnel
   const funnelColors: Record<string, string> = { paid: "#22c55e", pending: "#eab308", failed: "#ef4444", cancelled: "#64748b" }
   
-  // Mapas
+  // Mapas - datos para ArgentinaMap
   const mapData = stats.shipping.geoDistribution.map((p: any) => ({ name: (p.provincia || "").toLowerCase(), value: Number(p.count) }))
-  const maxGeo = Math.max(...mapData.map(p => p.value), 1)
-  const colorScaleFn = scaleLinear<string>().domain([0, maxGeo]).range(["#c8a97a", "#7a3e0f"])
 
-  const waitlistMapData = stats.clients?.waitlistGeoDistribution?.map((p: any) => ({ name: (p.provincia || "").toLowerCase(), value: Number(p.count) })) || []
-  const maxWaitlistGeo = Math.max(...waitlistMapData.map((p: any) => p.value), 1)
-  const waitlistColorScaleFn = scaleLinear<string>().domain([0, maxWaitlistGeo]).range(["#c8a97a", "#7a3e0f"])
+  const waitlistMapData = (stats.clients?.waitlistGeoDistribution || []).map((p: any) => ({ name: (p.provincia || "").toLowerCase(), value: Number(p.count) }))
 
   // Conversión
   const waitData = Array.isArray(stats.clients?.waitlistConversion) ? stats.clients.waitlistConversion[0] : (stats.clients?.waitlistConversion || { total_anotados: 0, total_compraron: 0 })
@@ -607,57 +601,21 @@ export default function AnalyticsPage() {
                 </div>
             </div>
 
-            {/* Mapa de Calor - Envíos */}
-            <div className="rounded-2xl border border-white/8 bg-[#0b0a07]/40 p-7 shadow-lg backdrop-blur-sm flex flex-col h-[500px] relative overflow-hidden lg:col-span-2">
-                <div className="z-10 mb-2">
+            {/* Mapa de Envíos */}
+            <div className="rounded-2xl border border-white/8 bg-[#0b0a07]/40 p-7 shadow-lg backdrop-blur-sm flex flex-col h-[520px] relative overflow-hidden lg:col-span-2">
+                <div className="z-10 mb-3">
                     <p className="font-serif text-lg font-bold text-white">Mapa de Envíos</p>
                     <p className="text-xs text-white/40">Concentración geográfica de envíos pagados</p>
                 </div>
-                
-                <div className="relative flex-1 -mx-7 overflow-hidden rounded-b-2xl bg-[#e8e4db]">
-                    {mapTooltip && (
-                    <div className="absolute top-4 right-4 z-20 rounded-xl border border-[#AA6F3B]/30 bg-[#0b0a07]/95 px-5 py-3 backdrop-blur-xl shadow-2xl pointer-events-none">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#AA6F3B] mb-1">Envíos</p>
-                        <p className="text-sm font-semibold text-white">{mapTooltip}</p>
-                    </div>
-                    )}
-                    <ComposableMap
-                      projection="geoMercator"
-                      projectionConfig={{ scale: 500, center: [-63, -38] }}
-                      style={{ width: "100%", height: "100%" }}
-                    >
-                        <Geographies geography={geoUrl}>
-                            {({ geographies }) =>
-                                geographies.map((geo) => {
-                                    const geoName = geo.properties.nombre ? geo.properties.nombre.toLowerCase() : ""
-                                    const d = geoName ? mapData.find((s) => s.name && (s.name.includes(geoName) || geoName.includes(s.name))) : undefined
-                                    const isHovered = hoveredProvincia && (geoName.includes(hoveredProvincia) || hoveredProvincia.includes(geoName));
-                                    return (
-                                        <Geography
-                                            key={geo.rsmKey}
-                                            geography={geo}
-                                            fill={isHovered ? "#c8894e" : (d ? colorScaleFn(d.value) : "#d1c9ba")}
-                                            stroke="#ffffff"
-                                            strokeWidth={0.8}
-                                            onMouseEnter={() => {
-                                                setMapTooltip(`${geo.properties.nombre}: ${d ? d.value : 0} envíos`)
-                                                setHoveredProvincia(geoName)
-                                            }}
-                                            onMouseLeave={() => {
-                                                setMapTooltip(null)
-                                                setHoveredProvincia(null)
-                                            }}
-                                            style={{
-                                                default: { outline: "none" },
-                                                hover: { outline: "none", cursor: "pointer" },
-                                                pressed: { outline: "none" },
-                                            }}
-                                        />
-                                    )
-                                })
-                            }
-                        </Geographies>
-                    </ComposableMap>
+                <div className="flex-1 overflow-hidden rounded-xl bg-[#e8e4db]">
+                    <ArgentinaMap
+                        data={mapData}
+                        colorRange={["#c8a97a", "#7a3e0f"]}
+                        emptyColor="#d1c9ba"
+                        tooltipLabel="envíos"
+                        hoveredFromOutside={hoveredProvincia}
+                        onHoverChange={(n) => setHoveredProvincia(n)}
+                    />
                 </div>
             </div>
 
@@ -848,43 +806,13 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Mapa waitlist */}
-            <div className="lg:col-span-2 h-[420px] relative overflow-hidden rounded-2xl bg-[#e8e4db]">
-              {waitlistMapTooltip && (
-                <div className="absolute top-4 right-4 z-20 rounded-xl border border-[#AA6F3B]/30 bg-[#0b0a07]/95 px-5 py-3 backdrop-blur-xl shadow-2xl pointer-events-none">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#AA6F3B] mb-1">Interesados</p>
-                  <p className="text-sm font-semibold text-white">{waitlistMapTooltip}</p>
-                </div>
-              )}
-              <ComposableMap
-                projection="geoMercator"
-                projectionConfig={{ scale: 500, center: [-63, -38] }}
-                style={{ width: "100%", height: "100%" }}
-              >
-                <Geographies geography={geoUrl}>
-                  {({ geographies }) =>
-                    geographies.map((geo) => {
-                      const geoName = geo.properties.nombre ? geo.properties.nombre.toLowerCase() : ""
-                      const d = geoName ? waitlistMapData.find((s: any) => s.name && (s.name.includes(geoName) || geoName.includes(s.name))) : undefined
-                      return (
-                        <Geography
-                          key={geo.rsmKey}
-                          geography={geo}
-                          fill={d ? waitlistColorScaleFn(d.value) : "#d1c9ba"}
-                          stroke="#ffffff"
-                          strokeWidth={0.8}
-                          onMouseEnter={() => setWaitlistMapTooltip(`${geo.properties.nombre}: ${d ? d.value : 0} anotados`)}
-                          onMouseLeave={() => setWaitlistMapTooltip(null)}
-                          style={{
-                            default: { outline: "none" },
-                            hover: { outline: "none", cursor: "pointer", opacity: 0.75 },
-                            pressed: { outline: "none" },
-                          }}
-                        />
-                      )
-                    })
-                  }
-                </Geographies>
-              </ComposableMap>
+            <div className="lg:col-span-2 h-[420px] overflow-hidden rounded-2xl bg-[#e8e4db]">
+              <ArgentinaMap
+                data={waitlistMapData}
+                colorRange={["#c8a97a", "#7a3e0f"]}
+                emptyColor="#d1c9ba"
+                tooltipLabel="anotados"
+              />
             </div>
           </div>
         </div>
