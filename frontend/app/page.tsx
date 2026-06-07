@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
 import { motion, useTransform, useScroll } from "framer-motion"
@@ -64,6 +65,17 @@ export default function HomePage() {
   const [items, setItems] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const heroRef = useRef<HTMLElement>(null)
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
+  // Si alguien llega desde /lista-espera (o con ?waitlist=1), abrir modal automáticamente
+  useEffect(() => {
+    if (searchParams.get("waitlist") === "1") {
+      openWaitlistModal()
+      // Limpiar el query param de la URL sin recargar
+      router.replace("/", { scroll: false })
+    }
+  }, [searchParams, openWaitlistModal, router])
 
   // useScroll tracks progress as the hero section exits the viewport:
   // 0 = top of section at top of viewport (fully visible)
