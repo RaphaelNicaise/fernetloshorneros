@@ -56,9 +56,9 @@ export function Footer() {
               <li> dev by <a href="https://www.linkedin.com/in/rapha%C3%ABl-nicaise-68025b27a/?locale=es_ES" target="_blank">Raphael Nicaise</a></li>
             </ul>
           </div>
-          <div>
+          <div className="text-center sm:text-left">
             <h4 className="mb-4 font-semibold text-white">Síguenos</h4>
-            <div className="flex items-start gap-4">
+            <div className="flex items-center justify-center sm:justify-start gap-4">
               <a
                 href="https://www.instagram.com/fernetloshorneros/"
                 target="_blank"
