@@ -55,6 +55,7 @@ type BIStats = {
   clients: {
     top: any[]
     waitlistConversion: any[]
+    waitlistGeoDistribution: any[]
   }
 }
 
@@ -66,6 +67,8 @@ export default function AnalyticsPage() {
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [mapTooltip, setMapTooltip] = useState<string | null>(null)
+  const [waitlistMapTooltip, setWaitlistMapTooltip] = useState<string | null>(null)
+  const [hoveredProvincia, setHoveredProvincia] = useState<string | null>(null)
 
   // Filtros Globales
   const [dateRange, setDateRange] = useState("all") // histórico completo por defecto
@@ -174,17 +177,36 @@ export default function AnalyticsPage() {
   // Funnel
   const funnelColors: Record<string, string> = { paid: "#22c55e", pending: "#eab308", failed: "#ef4444", cancelled: "#64748b" }
   
-  // Mapa
+  // Mapas
   const mapData = stats.shipping.geoDistribution.map((p: any) => ({ name: (p.provincia || "").toLowerCase(), value: Number(p.count) }))
   const maxGeo = Math.max(...mapData.map(p => p.value), 1)
   const colorScaleFn = scaleLinear<string>().domain([0, maxGeo]).range(["#3a2512", "#AA6F3B"])
+
+  const waitlistMapData = stats.clients?.waitlistGeoDistribution?.map((p: any) => ({ name: (p.provincia || "").toLowerCase(), value: Number(p.count) })) || []
+  const maxWaitlistGeo = Math.max(...waitlistMapData.map(p => p.value), 1)
+  const waitlistColorScaleFn = scaleLinear<string>().domain([0, maxWaitlistGeo]).range(["#3a2512", "#AA6F3B"])
 
   // Conversión
   const waitData = Array.isArray(stats.clients?.waitlistConversion) ? stats.clients.waitlistConversion[0] : (stats.clients?.waitlistConversion || { total_anotados: 0, total_compraron: 0 })
   const anotados = Number(waitData.total_anotados) || 0
   const compraron = Number(waitData.total_compraron) || 0
-  const conversionRate = anotados > 0 ? ((compraron / anotados) * 100).toFixed(1) : "0"
   const pendingToPrepare = stats.shipping.funnel.find(f => f.status === 'pending' || f.status === 'created')?.count || 0
+
+  // Custom YAxis Tick for Top Products
+  const CustomYAxisTick = (props: any) => {
+    const { x, y, payload } = props;
+    const product = stats.topProducts.find(p => p.title === payload.value);
+    return (
+      <g transform={`translate(${x},${y})`}>
+        {product?.image && (
+          <image href={product.image.startsWith('/') ? product.image : `/${product.image}`} x={-140} y={-16} height="32" width="32" className="rounded-md object-cover" />
+        )}
+        <text x={-100} y={4} dy={0} textAnchor="start" fill="#ffffff80" fontSize={11}>
+          {payload.value.length > 20 ? payload.value.substring(0, 18) + "..." : payload.value}
+        </text>
+      </g>
+    );
+  };
 
   return (
     <div className="space-y-10 pb-20">
@@ -299,7 +321,7 @@ export default function AnalyticsPage() {
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#ffffff0a" vertical={false} />
                   <XAxis dataKey="date" stroke="#ffffff30" fontSize={11} tickLine={false} axisLine={false} dy={10} />
-                  <YAxis yAxisId="left" stroke="#ffffff30" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v.toLocaleString()}`} width={80} />
+                  <YAxis yAxisId="left" domain={[0, (dataMax: number) => Math.floor(dataMax * 1.15)]} stroke="#ffffff30" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v.toLocaleString()}`} width={80} />
                   <YAxis yAxisId="right" orientation="right" stroke="#ffffff30" fontSize={11} tickLine={false} axisLine={false} />
                   <RechartsTooltip
                     contentStyle={{ backgroundColor: "#120e0b", borderColor: "#AA6F3B30", borderRadius: "12px", boxShadow: "0 10px 30px -10px rgba(0,0,0,0.5)" }}
@@ -393,12 +415,12 @@ export default function AnalyticsPage() {
             <p className="mb-6 font-serif text-lg font-bold text-white">Top Productos Vendidos</p>
             <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={stats.topProducts} layout="vertical" margin={{ top: 0, right: 20, left: 40, bottom: 0 }}>
+                <BarChart data={stats.topProducts} layout="vertical" margin={{ top: 0, right: 20, left: 140, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#ffffff0a" horizontal={true} vertical={false} />
                   <XAxis type="number" stroke="#ffffff40" fontSize={11} tickLine={false} axisLine={false} />
-                  <YAxis dataKey="title" type="category" stroke="#ffffff80" fontSize={11} width={120} tickLine={false} axisLine={false} />
+                  <YAxis dataKey="title" type="category" stroke="#ffffff80" fontSize={11} width={10} tick={<CustomYAxisTick />} tickLine={false} axisLine={false} />
                   <RechartsTooltip contentStyle={{ backgroundColor: "#120e0b", borderColor: "#AA6F3B30", borderRadius: "12px", boxShadow: "0 10px 30px -10px rgba(0,0,0,0.5)" }} itemStyle={{ color: "#AA6F3B", fontWeight: "bold" }} />
-                  <Bar dataKey="total_sold" name="Unidades Vendidas" fill="#AA6F3B" radius={[0, 8, 8, 0]} barSize={24} />
+                  <Bar dataKey="total_sold" name="Cantidad de productos vendidos" fill="#AA6F3B" radius={[0, 8, 8, 0]} barSize={24} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -548,53 +570,6 @@ export default function AnalyticsPage() {
 
         <div className="grid gap-6 lg:grid-cols-3">
             
-            {/* Mapa de Calor */}
-            <div className="rounded-2xl border border-white/8 bg-[#0b0a07]/40 p-7 shadow-lg backdrop-blur-sm flex flex-col h-[500px] relative overflow-hidden lg:col-span-2">
-                <div className="z-10 mb-2">
-                    <p className="font-serif text-lg font-bold text-white">Demanda Logística por Provincia</p>
-                    <p className="text-xs text-white/40">Zonas de mayor concentración de envíos (pagados)</p>
-                </div>
-                
-                <div className="relative flex-1 -mx-7 bg-[#080705]">
-                    {mapTooltip && (
-                    <div className="absolute top-4 right-4 z-20 rounded-xl border border-[#AA6F3B]/30 bg-[#0b0a07]/95 px-5 py-3 backdrop-blur-xl shadow-2xl pointer-events-none transition-opacity duration-300">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#AA6F3B] mb-1">Volumen</p>
-                        <p className="text-sm font-semibold text-white">{mapTooltip}</p>
-                    </div>
-                    )}
-                    <ComposableMap projection="geoMercator" projectionConfig={{ scale: 850, center: [-65, -38] }} className="w-full h-full outline-none">
-                        <ZoomableGroup center={[-65, -38]} zoom={1} minZoom={1} maxZoom={4}>
-                            <Geographies geography={geoUrl}>
-                                {({ geographies }) =>
-                                    geographies.map((geo) => {
-                                        const geoName = geo.properties.nombre ? geo.properties.nombre.toLowerCase() : ""
-                                        const d = geoName ? mapData.find((s) => s.name && (s.name.includes(geoName) || geoName.includes(s.name))) : undefined
-                                        return (
-                                            <Geography
-                                                key={geo.rsmKey}
-                                                geography={geo}
-                                                fill={d ? colorScaleFn(d.value) : "#ffffff08"}
-                                                stroke="#ffffff15"
-                                                strokeWidth={0.5}
-                                                onMouseEnter={() => {
-                                                    setMapTooltip(`${geo.properties.nombre}: ${d ? d.value : 0} envíos`)
-                                                }}
-                                                onMouseLeave={() => setMapTooltip(null)}
-                                                style={{
-                                                    default: { outline: "none", transition: "all 250ms" },
-                                                    hover: { fill: "#AA6F3B", stroke: "#AA6F3B", outline: "none", cursor: "pointer", transition: "all 250ms" },
-                                                    pressed: { outline: "none" },
-                                                }}
-                                            />
-                                        )
-                                    })
-                                }
-                            </Geographies>
-                        </ZoomableGroup>
-                    </ComposableMap>
-                </div>
-            </div>
-
             {/* Lista Scrolleable de Provincias */}
             <div className="rounded-2xl border border-white/8 bg-[#0b0a07]/40 p-7 shadow-lg backdrop-blur-sm flex flex-col h-[500px] lg:col-span-1">
                 <div className="mb-6">
@@ -611,7 +586,12 @@ export default function AnalyticsPage() {
                     ) : (
                         <ul className="space-y-3">
                             {stats.shipping.geoDistribution.map((prov, i) => (
-                                <li key={i} className="flex items-center justify-between rounded-xl bg-white/5 px-4 py-3 border border-white/5 hover:bg-white/10 transition-all">
+                                <li 
+                                  key={i} 
+                                  onMouseEnter={() => setHoveredProvincia(prov.provincia.toLowerCase())}
+                                  onMouseLeave={() => setHoveredProvincia(null)}
+                                  className="flex items-center justify-between rounded-xl bg-white/5 px-4 py-3 border border-white/5 hover:bg-white/10 hover:border-[#AA6F3B]/30 transition-all cursor-default"
+                                >
                                     <div className="flex items-center gap-3">
                                         <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#AA6F3B]/20 text-[10px] font-bold text-[#AA6F3B]">
                                             {i + 1}
@@ -623,6 +603,105 @@ export default function AnalyticsPage() {
                             ))}
                         </ul>
                     )}
+                </div>
+            </div>
+
+            {/* Mapa de Calor - Ventas Logísticas */}
+            <div className="rounded-2xl border border-white/8 bg-[#0b0a07]/40 p-7 shadow-lg backdrop-blur-sm flex flex-col h-[500px] relative overflow-hidden lg:col-span-1">
+                <div className="z-10 mb-2">
+                    <p className="font-serif text-lg font-bold text-white">Mapa de Envíos</p>
+                    <p className="text-xs text-white/40">Zonas de mayor concentración de ventas</p>
+                </div>
+                
+                <div className="relative flex-1 -mx-7 bg-[#080705]">
+                    {mapTooltip && (
+                    <div className="absolute top-4 right-4 z-20 rounded-xl border border-[#AA6F3B]/30 bg-[#0b0a07]/95 px-5 py-3 backdrop-blur-xl shadow-2xl pointer-events-none transition-opacity duration-300">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#AA6F3B] mb-1">Volumen</p>
+                        <p className="text-sm font-semibold text-white">{mapTooltip}</p>
+                    </div>
+                    )}
+                    <ComposableMap projection="geoMercator" projectionConfig={{ scale: 650, center: [-65, -38] }} className="w-full h-full outline-none">
+                        <ZoomableGroup center={[-65, -38]} zoom={1} minZoom={1} maxZoom={4}>
+                            <Geographies geography={geoUrl}>
+                                {({ geographies }) =>
+                                    geographies.map((geo) => {
+                                        const geoName = geo.properties.nombre ? geo.properties.nombre.toLowerCase() : ""
+                                        const d = geoName ? mapData.find((s) => s.name && (s.name.includes(geoName) || geoName.includes(s.name))) : undefined
+                                        const isHovered = hoveredProvincia && geoName.includes(hoveredProvincia);
+                                        return (
+                                            <Geography
+                                                key={geo.rsmKey}
+                                                geography={geo}
+                                                fill={d ? colorScaleFn(d.value) : "#ffffff08"}
+                                                stroke={isHovered ? "#AA6F3B" : "#ffffff15"}
+                                                strokeWidth={isHovered ? 1.5 : 0.5}
+                                                onMouseEnter={() => {
+                                                    setMapTooltip(`${geo.properties.nombre}: ${d ? d.value : 0} envíos`)
+                                                    setHoveredProvincia(geoName)
+                                                }}
+                                                onMouseLeave={() => {
+                                                    setMapTooltip(null)
+                                                    setHoveredProvincia(null)
+                                                }}
+                                                style={{
+                                                    default: { outline: "none", transition: "all 250ms" },
+                                                    hover: { outline: "none", cursor: "pointer", opacity: 0.8, transition: "all 250ms" },
+                                                    pressed: { outline: "none" },
+                                                }}
+                                            />
+                                        )
+                                    })
+                                }
+                            </Geographies>
+                        </ZoomableGroup>
+                    </ComposableMap>
+                </div>
+            </div>
+
+            {/* Mapa de Calor - Lista de Espera */}
+            <div className="rounded-2xl border border-white/8 bg-[#0b0a07]/40 p-7 shadow-lg backdrop-blur-sm flex flex-col h-[500px] relative overflow-hidden lg:col-span-1">
+                <div className="z-10 mb-2">
+                    <p className="font-serif text-lg font-bold text-white">Mapa de Hype</p>
+                    <p className="text-xs text-white/40">Zonas de interesados en Lista de Espera</p>
+                </div>
+                
+                <div className="relative flex-1 -mx-7 bg-[#080705]">
+                    {waitlistMapTooltip && (
+                    <div className="absolute top-4 right-4 z-20 rounded-xl border border-[#AA6F3B]/30 bg-[#0b0a07]/95 px-5 py-3 backdrop-blur-xl shadow-2xl pointer-events-none transition-opacity duration-300">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#AA6F3B] mb-1">Interesados</p>
+                        <p className="text-sm font-semibold text-white">{waitlistMapTooltip}</p>
+                    </div>
+                    )}
+                    <ComposableMap projection="geoMercator" projectionConfig={{ scale: 650, center: [-65, -38] }} className="w-full h-full outline-none">
+                        <ZoomableGroup center={[-65, -38]} zoom={1} minZoom={1} maxZoom={4}>
+                            <Geographies geography={geoUrl}>
+                                {({ geographies }) =>
+                                    geographies.map((geo) => {
+                                        const geoName = geo.properties.nombre ? geo.properties.nombre.toLowerCase() : ""
+                                        const d = geoName ? waitlistMapData.find((s: any) => s.name && (s.name.includes(geoName) || geoName.includes(s.name))) : undefined
+                                        return (
+                                            <Geography
+                                                key={geo.rsmKey}
+                                                geography={geo}
+                                                fill={d ? waitlistColorScaleFn(d.value) : "#ffffff08"}
+                                                stroke="#ffffff15"
+                                                strokeWidth={0.5}
+                                                onMouseEnter={() => {
+                                                    setWaitlistMapTooltip(`${geo.properties.nombre}: ${d ? d.value : 0} anotados`)
+                                                }}
+                                                onMouseLeave={() => setWaitlistMapTooltip(null)}
+                                                style={{
+                                                    default: { outline: "none", transition: "all 250ms" },
+                                                    hover: { outline: "none", cursor: "pointer", opacity: 0.8, transition: "all 250ms" },
+                                                    pressed: { outline: "none" },
+                                                }}
+                                            />
+                                        )
+                                    })
+                                }
+                            </Geographies>
+                        </ZoomableGroup>
+                    </ComposableMap>
                 </div>
             </div>
 

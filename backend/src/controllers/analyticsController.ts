@@ -52,9 +52,11 @@ export async function getBiAnalytics(req: Request, res: Response) {
         const topProducts = await sequelize.query(
             `SELECT 
                 pi.title, 
+                MAX(pr.image) as image,
                 SUM(pi.cantidad) as total_sold
              FROM pedido_items pi
              JOIN pedidos p ON p.id = pi.id_pedido
+             LEFT JOIN productos pr ON pr.id = pi.id_producto
              WHERE p.status = 'paid' AND p.fecha BETWEEN :start AND :end
              GROUP BY pi.title
              ORDER BY total_sold DESC
@@ -168,6 +170,17 @@ export async function getBiAnalytics(req: Request, res: Response) {
             { type: QueryTypes.SELECT }
         );
 
+        const waitlistGeoDistribution = await sequelize.query(
+            `SELECT 
+                provincia, 
+                COUNT(*) as count
+             FROM usuario_lista_espera
+             WHERE provincia IS NOT NULL AND provincia != ''
+             GROUP BY provincia
+             ORDER BY count DESC`,
+            { type: QueryTypes.SELECT }
+        );
+
         // Ensamblar respuesta
         return res.json({
             revenue: revenueEvolution,
@@ -187,7 +200,8 @@ export async function getBiAnalytics(req: Request, res: Response) {
             },
             clients: {
                 top: topClients,
-                waitlistConversion: waitlistConversionResult
+                waitlistConversion: waitlistConversionResult,
+                waitlistGeoDistribution
             }
         });
 
