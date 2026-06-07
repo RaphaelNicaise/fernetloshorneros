@@ -38,7 +38,30 @@ export default function ArgentinaMap({
   useEffect(() => {
     fetch("/argentina.geojson")
       .then((r) => r.json())
-      .then((d) => setGeoData(d))
+      .then((d) => {
+        const cleanedFeatures = (d.features || []).map((f: any) => {
+          const name = (f.properties?.nombre || "").toLowerCase()
+          if (name.includes("tierra del fuego")) {
+            if (f.geometry.type === "MultiPolygon") {
+              const filteredCoords = f.geometry.coordinates.filter((polygon: any) => {
+                const firstRing = polygon[0]
+                if (!firstRing) return false
+                const isInvalid = firstRing.some((coord: any) => coord[1] < -56 || coord[0] > -60)
+                return !isInvalid
+              })
+              return {
+                ...f,
+                geometry: {
+                  ...f.geometry,
+                  coordinates: filteredCoords
+                }
+              }
+            }
+          }
+          return f
+        })
+        setGeoData({ ...d, features: cleanedFeatures })
+      })
       .catch(console.error)
   }, [])
 
@@ -51,17 +74,11 @@ export default function ArgentinaMap({
   const { features, projection, pathGen } = useMemo(() => {
     if (!geoData) return { features: [], projection: null, pathGen: null }
 
-    // Filter out Antarctic territory which destroys the bounding box
-    const filtered = geoData.features.filter((f: any) => {
-      const name = (f.properties?.nombre || "").toLowerCase()
-      return !name.includes("antártida") && !name.includes("antartida") && !name.includes("sector antártico")
-    })
-
-    const fc = { type: "FeatureCollection" as const, features: filtered }
+    const fc = { type: "FeatureCollection" as const, features: geoData.features }
     const proj = geoMercator().fitSize([width, height], fc)
     const pg = geoPath().projection(proj)
 
-    return { features: filtered, projection: proj, pathGen: pg }
+    return { features: geoData.features, projection: proj, pathGen: pg }
   }, [geoData, width, height])
 
   const normalizeProvinceName = (name: string) => {
