@@ -190,6 +190,7 @@ export default function AnalyticsPage() {
   const waitData = Array.isArray(stats.clients?.waitlistConversion) ? stats.clients.waitlistConversion[0] : (stats.clients?.waitlistConversion || { total_anotados: 0, total_compraron: 0 })
   const anotados = Number(waitData.total_anotados) || 0
   const compraron = Number(waitData.total_compraron) || 0
+  const conversionRate = anotados > 0 ? ((compraron / anotados) * 100).toFixed(1) : "0"
   const pendingToPrepare = stats.shipping.funnel.find(f => f.status === 'pending' || f.status === 'created')?.count || 0
 
   // Custom YAxis Tick for Top Products
