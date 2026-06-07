@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
-import { signToken, verifyToken } from '@/middleware/adminAuth';
+import { signToken, verifyToken, adminAuth } from '@/middleware/adminAuth';
+import { getBiAnalytics } from '@/controllers/analyticsController';
 
 const adminRouter = Router();
 
@@ -54,5 +55,7 @@ adminRouter.get('/verify', (req: Request, res: Response) => {
   if (!valid) return res.status(401).json({ ok: false, error: 'Token inválido' });
   return res.json({ ok: true, user: { username: payload?.username } });
 });
+
+adminRouter.get('/analytics-bi', adminAuth, getBiAnalytics);
 
 export default adminRouter;
