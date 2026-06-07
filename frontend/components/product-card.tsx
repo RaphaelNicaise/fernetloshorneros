@@ -29,6 +29,13 @@ export function ProductCard({ product }: ProductCardProps) {
   const isAvailable = (product.status ?? "disponible") === "disponible"
   const hasStock = (product.stock ?? 0) > 0
   const priceNumber = Number(product.price)
+  const statusLabel = !isAvailable
+    ? product.status === "proximamente"
+      ? "Próximamente"
+      : "Agotado"
+    : !hasStock
+      ? "Sin stock"
+      : "Disponible"
 
   const handleAddToCart = () => {
     if (!isAvailable) return
@@ -55,25 +62,41 @@ export function ProductCard({ product }: ProductCardProps) {
   }
 
   return (
-    <div className="bg-card rounded-lg overflow-hidden border border-border hover:shadow-lg transition-shadow flex flex-col h-full">
-      <div className="relative h-64 bg-muted">
+    <div className="group flex h-full flex-col overflow-hidden rounded-[1.6rem] border border-black/10 bg-white shadow-[0_18px_50px_rgba(0,0,0,0.07)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_70px_rgba(0,0,0,0.12)]">
+      <div className="relative h-72 overflow-hidden bg-[#0b0a07]">
         <img
           src={getImageSrc(product.image) || "/placeholder.svg"}
           alt={product.name}
-          className="w-full h-full object-cover"
+          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
           loading="lazy"
         />
-        {product.roastLevel && (
-          <div className="absolute top-3 right-3 bg-background/90 backdrop-blur px-3 py-1 rounded-full text-sm font-medium text-foreground">
-            {product.roastLevel}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0b0a07]/80 via-transparent to-transparent" />
+        <div className="absolute left-4 right-4 top-4 flex items-center justify-between gap-3">
+          <div className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${
+            isAvailable && hasStock
+              ? "border border-[#6B5743]/35 bg-[#6B5743]/12 text-[#6B5743]"
+              : "border border-white/12 bg-white/8 text-white/72"
+          }`}>
+            {statusLabel}
           </div>
-        )}
+          {product.roastLevel && (
+            <div className="rounded-full border border-white/12 bg-white/8 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-white/75 backdrop-blur-md">
+              {product.roastLevel}
+            </div>
+          )}
+        </div>
+        <div className="absolute bottom-4 left-4 rounded-full border border-white/12 bg-white/8 px-3 py-1 text-sm font-medium text-white backdrop-blur-md">
+          Edición artesanal
+        </div>
       </div>
-      <div className="p-6 flex flex-col flex-1">
-        <h3 className="font-serif text-xl font-bold text-foreground mb-2">{product.name}</h3>
-        <p className="text-muted-foreground text-sm leading-relaxed mb-4">{product.description}</p>
-        <div className="mt-auto flex items-center justify-between pt-2 gap-3">
-          <span className="text-2xl font-bold text-foreground">
+      <div className="flex flex-1 flex-col p-6">
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <h3 className="font-serif text-[1.45rem] font-bold leading-tight text-[#0b0a07]">{product.name}</h3>
+          <div className="h-px w-14 bg-[#6B5743]/35" />
+        </div>
+        <p className="mb-6 text-sm leading-relaxed text-black/62">{product.description}</p>
+        <div className="mt-auto flex items-end justify-between gap-4">
+          <span className="text-2xl font-bold text-[#0b0a07]">
             {Number.isFinite(priceNumber)
               ? priceNumber.toLocaleString("es-AR", {
                   style: "currency",
@@ -84,21 +107,15 @@ export function ProductCard({ product }: ProductCardProps) {
               : "-"}
           </span>
           <div className="flex items-center gap-2">
-            {!isAvailable && (
-              <span className="text-sm rounded-full bg-muted px-2 py-1 text-muted-foreground">
-                {product.status === "proximamente" ? "Próximamente" : product.status === "agotado" ? "Agotado" : ""}
-              </span>
-            )}
-            {isAvailable && !hasStock && (
-              <span className="text-sm rounded-full bg-red-100 px-2 py-1 text-red-700">
-                Agotado
-              </span>
-            )}
             <button
               onClick={handleAddToCart}
               disabled={isAdding || !isAvailable || !hasStock}
               aria-label="Agregar al carrito"
-              className={`px-4 py-2 bg-primary text-primary-foreground font-semibold rounded-lg transition-colors duration-200 hover:bg-primary/90 hover:brightness-110 hover:shadow-lg disabled:opacity-50 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${isAdding ? "bg-green-600 hover:bg-green-600" : ""}`}
+              className={`inline-flex h-12 w-12 items-center justify-center rounded-full border font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B5743]/30 disabled:cursor-not-allowed disabled:opacity-50 ${
+                isAdding
+                  ? "border-[#6B5743] bg-[#6B5743] text-white"
+                  : "border-black bg-black text-white hover:border-[#6B5743] hover:bg-[#6B5743] disabled:border-black/12 disabled:bg-black/10 disabled:text-black/30"
+              }`}
             >
               <span className="relative inline-flex items-center justify-center w-5 h-5">
                 {/* Carrito */}
