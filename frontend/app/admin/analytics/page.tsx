@@ -66,6 +66,7 @@ export default function AnalyticsPage() {
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [hoveredProvincia, setHoveredProvincia] = useState<string | null>(null)
+  const [hoveredWaitlistProv, setHoveredWaitlistProv] = useState<string | null>(null)
 
   // Filtros Globales
   const [dateRange, setDateRange] = useState("all") // histórico completo por defecto
@@ -569,7 +570,7 @@ export default function AnalyticsPage() {
         <div className="grid gap-6 lg:grid-cols-3">
             
             {/* Lista Scrolleable de Provincias */}
-            <div className="rounded-2xl border border-white/8 bg-[#0b0a07]/40 p-7 shadow-lg backdrop-blur-sm flex flex-col h-[500px] lg:col-span-2">
+            <div className="rounded-2xl border border-white/8 bg-[#0b0a07]/40 p-7 shadow-lg backdrop-blur-sm flex flex-col h-[500px] lg:col-span-1">
                 <div className="mb-6">
                   <p className="font-serif text-lg font-bold text-white">Ranking por Provincia</p>
                   <p className="text-xs text-white/40 mt-1">Listado exacto de demanda</p>
@@ -586,7 +587,7 @@ export default function AnalyticsPage() {
                             {stats.shipping.geoDistribution.map((prov, i) => (
                                 <li 
                                   key={i} 
-                                  onMouseEnter={() => setHoveredProvincia(prov.provincia.toLowerCase())}
+                                  onMouseEnter={() => setHoveredProvincia(prov.provincia)}
                                   onMouseLeave={() => setHoveredProvincia(null)}
                                   className="flex items-center justify-between rounded-xl bg-white/5 px-4 py-3 border border-white/5 hover:bg-white/10 hover:border-[#AA6F3B]/30 transition-all cursor-default"
                                 >
@@ -610,11 +611,11 @@ export default function AnalyticsPage() {
                     <p className="font-serif text-lg font-bold text-white">Mapa de Envíos</p>
                     <p className="text-xs text-white/40">Concentración geográfica de envíos pagados</p>
                 </div>
-                <div className="flex-1 min-h-0 overflow-hidden rounded-xl bg-[#e8e4db]">
+                <div className="flex-1 min-h-0 overflow-hidden rounded-xl bg-[#1a1713]">
                     <ArgentinaMap
                         data={mapData}
-                        colorRange={["#c8a97a", "#7a3e0f"]}
-                        emptyColor="#d1c9ba"
+                        colorRange={["#5a4a35", "#d4a052"]}
+                        emptyColor="#2a2420"
                         tooltipLabel="envíos"
                         hoveredFromOutside={hoveredProvincia}
                         onHoverChange={(n) => setHoveredProvincia(n)}
@@ -786,7 +787,7 @@ export default function AnalyticsPage() {
           </div>
           <div className="grid gap-6 lg:grid-cols-3">
             {/* Ranking waitlist */}
-            <div className="flex flex-col gap-2 lg:col-span-2 max-h-[420px] overflow-y-auto pr-2 custom-scrollbar">
+            <div className="flex flex-col gap-2 lg:col-span-1 max-h-[420px] overflow-y-auto pr-2 custom-scrollbar">
               {waitlistMapData.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-white/30 py-10">
                   <Users size={28} className="mb-2 opacity-40" />
@@ -796,6 +797,8 @@ export default function AnalyticsPage() {
                 waitlistMapData.map((prov: any, i: number) => (
                   <div
                     key={i}
+                    onMouseEnter={() => setHoveredWaitlistProv(prov.name)}
+                    onMouseLeave={() => setHoveredWaitlistProv(null)}
                     className="flex items-center justify-between rounded-xl bg-white/5 px-4 py-3 border border-white/5 hover:bg-white/10 hover:border-[#AA6F3B]/30 transition-all cursor-default"
                   >
                     <div className="flex items-center gap-3">
@@ -809,12 +812,14 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Mapa waitlist */}
-            <div className="lg:col-span-1 h-[420px] overflow-hidden rounded-2xl bg-[#e8e4db]">
+            <div className="lg:col-span-1 h-[420px] overflow-hidden rounded-2xl bg-[#1a1713]">
               <ArgentinaMap
                 data={waitlistMapData}
-                colorRange={["#c8a97a", "#7a3e0f"]}
-                emptyColor="#d1c9ba"
+                colorRange={["#5a4a35", "#d4a052"]}
+                emptyColor="#2a2420"
                 tooltipLabel="anotados"
+                hoveredFromOutside={hoveredWaitlistProv}
+                onHoverChange={(n) => setHoveredWaitlistProv(n)}
               />
             </div>
           </div>

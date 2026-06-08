@@ -176,8 +176,8 @@ export default function ArgentinaMap({
                 key={i}
                 d={pathD}
                 fill={isHovered ? "#AA6F3B" : baseFill}
-                stroke={isHovered ? "#ffffff" : "#AA6F3B40"}
-                strokeWidth={isHovered ? 1.2 : 0.75}
+                stroke={isHovered ? "#ffffff" : "#AA6F3B55"}
+                strokeWidth={isHovered ? 1.5 : 0.6}
                 style={{ cursor: "pointer", transition: "fill 150ms ease" }}
                 onMouseEnter={(e) => {
                   const rect = containerRef.current?.getBoundingClientRect()
