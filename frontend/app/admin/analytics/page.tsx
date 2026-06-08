@@ -569,7 +569,7 @@ export default function AnalyticsPage() {
         <div className="grid gap-6 lg:grid-cols-3">
             
             {/* Lista Scrolleable de Provincias */}
-            <div className="rounded-2xl border border-white/8 bg-[#0b0a07]/40 p-7 shadow-lg backdrop-blur-sm flex flex-col h-[500px] lg:col-span-1">
+            <div className="rounded-2xl border border-white/8 bg-[#0b0a07]/40 p-7 shadow-lg backdrop-blur-sm flex flex-col h-[500px] lg:col-span-2">
                 <div className="mb-6">
                   <p className="font-serif text-lg font-bold text-white">Ranking por Provincia</p>
                   <p className="text-xs text-white/40 mt-1">Listado exacto de demanda</p>
@@ -605,7 +605,7 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Mapa de Envíos */}
-            <div className="rounded-2xl border border-white/8 bg-[#0b0a07]/40 p-7 shadow-lg backdrop-blur-sm flex flex-col h-[520px] relative overflow-hidden lg:col-span-2">
+            <div className="rounded-2xl border border-white/8 bg-[#0b0a07]/40 p-7 shadow-lg backdrop-blur-sm flex flex-col h-[520px] relative overflow-hidden lg:col-span-1">
                 <div className="z-10 mb-3">
                     <p className="font-serif text-lg font-bold text-white">Mapa de Envíos</p>
                     <p className="text-xs text-white/40">Concentración geográfica de envíos pagados</p>
@@ -786,7 +786,7 @@ export default function AnalyticsPage() {
           </div>
           <div className="grid gap-6 lg:grid-cols-3">
             {/* Ranking waitlist */}
-            <div className="flex flex-col gap-2 lg:col-span-1 max-h-[420px] overflow-y-auto pr-2 custom-scrollbar">
+            <div className="flex flex-col gap-2 lg:col-span-2 max-h-[420px] overflow-y-auto pr-2 custom-scrollbar">
               {waitlistMapData.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-white/30 py-10">
                   <Users size={28} className="mb-2 opacity-40" />
@@ -809,7 +809,7 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Mapa waitlist */}
-            <div className="lg:col-span-2 h-[420px] overflow-hidden rounded-2xl bg-[#e8e4db]">
+            <div className="lg:col-span-1 h-[420px] overflow-hidden rounded-2xl bg-[#e8e4db]">
               <ArgentinaMap
                 data={waitlistMapData}
                 colorRange={["#c8a97a", "#7a3e0f"]}

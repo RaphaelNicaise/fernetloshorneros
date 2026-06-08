@@ -31,34 +31,6 @@ function normalizeName(name: string): string {
   return n
 }
 
-/**
- * Clips a MultiPolygon by removing sub-polygons whose centroid latitude is below cutoffLat.
- * This removes the Antarctic territory from Tierra del Fuego without touching the rest.
- */
-function clipMultiPolygon(coordinates: number[][][][], cutoffLat: number, cutoffLon: number): number[][][][] {
-  return coordinates.filter((polygon) => {
-    const ring = polygon[0]
-    if (!ring || ring.length === 0) return false
-    // compute centroid latitude and longitude of the outer ring
-    const avgLat = ring.reduce((sum, [, lat]) => sum + lat, 0) / ring.length
-    const avgLon = ring.reduce((sum, [lon]) => sum + lon, 0) / ring.length
-    return avgLat > cutoffLat && avgLon < cutoffLon
-  })
-}
-
-/** Pre-process GeoJSON: clip TDF to remove Antarctic sub-polygons and eastern islands */
-function cleanFeatures(features: any[]): any[] {
-  return features.map((f) => {
-    const name = (f.properties?.nombre || "").toLowerCase()
-    if (name.includes("tierra del fuego") && f.geometry?.type === "MultiPolygon") {
-      // Filter out Antarctica (lat < -58) and South Georgia/Sandwich (lon > -50)
-      const clipped = clipMultiPolygon(f.geometry.coordinates, -58, -50)
-      return { ...f, geometry: { ...f.geometry, coordinates: clipped } }
-    }
-    return f
-  })
-}
-
 export default function ArgentinaMap({
   data,
   colorRange = ["#c8a97a", "#7a3e0f"],
@@ -87,11 +59,11 @@ export default function ArgentinaMap({
     return () => ro.disconnect()
   }, [])
 
-  // Load & clean GeoJSON once
+  // Load GeoJSON once (already pre-cleaned)
   useEffect(() => {
     fetch("/argentina.geojson")
       .then((r) => r.json())
-      .then((d) => setFeatures(cleanFeatures(d.features || [])))
+      .then((d) => setFeatures(d.features || []))
       .catch(console.error)
   }, [])
 
