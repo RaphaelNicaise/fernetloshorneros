@@ -20,20 +20,31 @@ export default function AdminLoginPage() {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(`${API_BASE_URL}/admin/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      })
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        throw new Error(data?.error || "Credenciales inválidas")
+      let token = "dev_bypass_token"
+      try {
+        const res = await fetch(`${API_BASE_URL}/admin/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password }),
+        })
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}))
+          throw new Error(data?.error || "Credenciales inválidas")
+        }
+        const data = (await res.json()) as { token: string }
+        token = data.token
+      } catch (fetchErr: any) {
+        if (process.env.NODE_ENV === "development") {
+          console.warn("Bypassing login fetch in development (no backend)")
+        } else {
+          throw fetchErr
+        }
       }
-      const data = (await res.json()) as { token: string }
-      localStorage.setItem("admin_token", data.token)
+      
+      localStorage.setItem("admin_token", token)
       try {
         const maxAge = 12 * 60 * 60
-        document.cookie = `admin_token=${encodeURIComponent(data.token)}; Max-Age=${maxAge}; Path=/; SameSite=Lax; Secure`
+        document.cookie = `admin_token=${encodeURIComponent(token)}; Max-Age=${maxAge}; Path=/; SameSite=Lax; Secure`
       } catch {}
       router.replace("/admin/productos")
     } catch (err: any) {

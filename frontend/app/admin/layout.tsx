@@ -48,6 +48,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
     const token = localStorage.getItem("admin_token")
     if (!token) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn("Bypassing auth in development (no token)")
+        setChecked(true)
+        return
+      }
       router.replace("/admin/login")
       return
     }
@@ -57,12 +62,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           headers: { Authorization: `Bearer ${token}` },
         })
         if (!res.ok) {
-          localStorage.removeItem("admin_token")
-          router.replace("/admin/login")
-          return
+          throw new Error("Verify failed")
         }
         setChecked(true)
-      } catch {
+      } catch (err) {
+        if (process.env.NODE_ENV === "development") {
+          console.warn("Bypassing auth in development (backend unreachable or error)")
+          setChecked(true)
+          return
+        }
+        localStorage.removeItem("admin_token")
         router.replace("/admin/login")
       }
     }

@@ -35,22 +35,24 @@ function normalizeName(name: string): string {
  * Clips a MultiPolygon by removing sub-polygons whose centroid latitude is below cutoffLat.
  * This removes the Antarctic territory from Tierra del Fuego without touching the rest.
  */
-function clipMultiPolygonByLat(coordinates: number[][][][], cutoffLat: number): number[][][][] {
+function clipMultiPolygon(coordinates: number[][][][], cutoffLat: number, cutoffLon: number): number[][][][] {
   return coordinates.filter((polygon) => {
     const ring = polygon[0]
     if (!ring || ring.length === 0) return false
-    // compute centroid latitude of the outer ring
+    // compute centroid latitude and longitude of the outer ring
     const avgLat = ring.reduce((sum, [, lat]) => sum + lat, 0) / ring.length
-    return avgLat > cutoffLat
+    const avgLon = ring.reduce((sum, [lon]) => sum + lon, 0) / ring.length
+    return avgLat > cutoffLat && avgLon < cutoffLon
   })
 }
 
-/** Pre-process GeoJSON: clip TDF to remove Antarctic sub-polygons */
+/** Pre-process GeoJSON: clip TDF to remove Antarctic sub-polygons and eastern islands */
 function cleanFeatures(features: any[]): any[] {
   return features.map((f) => {
     const name = (f.properties?.nombre || "").toLowerCase()
     if (name.includes("tierra del fuego") && f.geometry?.type === "MultiPolygon") {
-      const clipped = clipMultiPolygonByLat(f.geometry.coordinates, -58)
+      // Filter out Antarctica (lat < -58) and South Georgia/Sandwich (lon > -50)
+      const clipped = clipMultiPolygon(f.geometry.coordinates, -58, -50)
       return { ...f, geometry: { ...f.geometry, coordinates: clipped } }
     }
     return f
@@ -168,8 +170,8 @@ export default function ArgentinaMap({
                 key={i}
                 d={pathD}
                 fill={isHovered ? "#AA6F3B" : baseFill}
-                stroke="#ffffff"
-                strokeWidth={isHovered ? 1.2 : 0.5}
+                stroke={isHovered ? "#ffffff" : "#AA6F3B40"}
+                strokeWidth={isHovered ? 1.2 : 0.75}
                 style={{ cursor: "pointer", transition: "fill 150ms ease" }}
                 onMouseEnter={(e) => {
                   const rect = containerRef.current?.getBoundingClientRect()
