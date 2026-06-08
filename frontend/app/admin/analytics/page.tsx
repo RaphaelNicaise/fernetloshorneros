@@ -175,9 +175,13 @@ export default function AnalyticsPage() {
   const funnelColors: Record<string, string> = { paid: "#22c55e", pending: "#eab308", failed: "#ef4444", cancelled: "#64748b" }
   
   // Mapas - datos para ArgentinaMap
-  const mapData = stats.shipping.geoDistribution.map((p: any) => ({ name: (p.provincia || "").toLowerCase(), value: Number(p.count) }))
+  const mapData = stats.shipping.geoDistribution
+    .filter((p: any) => p.provincia && p.provincia.trim() !== "")
+    .map((p: any) => ({ name: p.provincia.trim(), value: Number(p.count) }))
 
-  const waitlistMapData = (stats.clients?.waitlistGeoDistribution || []).map((p: any) => ({ name: (p.provincia || "").toLowerCase(), value: Number(p.count) }))
+  const waitlistMapData = (stats.clients?.waitlistGeoDistribution || [])
+    .filter((p: any) => p.provincia && p.provincia.trim() !== "")
+    .map((p: any) => ({ name: p.provincia.trim(), value: Number(p.count) }))
 
   // Conversión
   const waitData = Array.isArray(stats.clients?.waitlistConversion) ? stats.clients.waitlistConversion[0] : (stats.clients?.waitlistConversion || { total_anotados: 0, total_compraron: 0 })
@@ -606,7 +610,7 @@ export default function AnalyticsPage() {
                     <p className="font-serif text-lg font-bold text-white">Mapa de Envíos</p>
                     <p className="text-xs text-white/40">Concentración geográfica de envíos pagados</p>
                 </div>
-                <div className="flex-1 overflow-hidden rounded-xl bg-[#e8e4db]">
+                <div className="flex-1 min-h-0 overflow-hidden rounded-xl bg-[#e8e4db]">
                     <ArgentinaMap
                         data={mapData}
                         colorRange={["#c8a97a", "#7a3e0f"]}
