@@ -105,13 +105,47 @@ export default function ArgentinaMap({
   const { projection, pathGen } = useMemo(() => {
     if (!features.length || size.w === 0 || size.h === 0) return { projection: null, pathGen: null }
     const padding = 12
-    const fc = { type: "FeatureCollection" as const, features }
+    
+    // Manually compute bounds to avoid D3 winding order bugs where reversed polygons cover the whole globe
+    let minLat = 90, maxLat = -90, minLon = 180, maxLon = -180
+    features.forEach(f => {
+      if (f.geometry?.type === 'Polygon') {
+        f.geometry.coordinates[0].forEach(([lon, lat]: number[]) => {
+          if (lat < minLat) minLat = lat
+          if (lat > maxLat) maxLat = lat
+          if (lon < minLon) minLon = lon
+          if (lon > maxLon) maxLon = lon
+        })
+      } else if (f.geometry?.type === 'MultiPolygon') {
+        f.geometry.coordinates.forEach((poly: number[][][]) => {
+          poly[0].forEach(([lon, lat]: number[]) => {
+            if (lat < minLat) minLat = lat
+            if (lat > maxLat) maxLat = lat
+            if (lon < minLon) minLon = lon
+            if (lon > maxLon) maxLon = lon
+          })
+        })
+      }
+    })
+
+    const bboxFeature = {
+      type: "Feature" as const,
+      properties: {},
+      geometry: {
+        type: "MultiPoint" as const,
+        coordinates: [
+          [minLon, minLat],
+          [maxLon, maxLat]
+        ]
+      }
+    }
+
     const proj = geoMercator().fitExtent(
       [
         [padding, padding],
         [size.w - padding, size.h - padding],
       ],
-      fc
+      bboxFeature
     )
     return { projection: proj, pathGen: geoPath().projection(proj) }
   }, [features, size.w, size.h])
