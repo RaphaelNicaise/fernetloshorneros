@@ -84,7 +84,7 @@ export default function MantenimientoPage() {
 
               {/* Headline */}
               <h1 className="font-serif text-3xl sm:text-4xl md:text-[2.75rem] font-bold text-neutral-900 leading-[1.15] mb-5 text-center md:text-left">
-                Preventa Junio 2026
+                Preventa Septiembre 2026
                 <span className="font-serif text-lg sm:text-xl md:text-2xl tracking-[0.15em] uppercase text-neutral-400 ml-3 align-baseline">
                   Lote 2
                 </span>

@@ -169,7 +169,7 @@ export default function HomePageContent() {
                 </div>
 
                 <h1 className="mb-5 text-center font-serif text-4xl font-bold leading-[1.02] text-white sm:text-5xl md:text-left md:text-6xl lg:text-7xl">
-                  Preventa Junio 2026
+                  Preventa Septiembre 2026
                   <span className="ml-0 mt-3 block font-serif text-2xl uppercase tracking-[0.24em] text-[#aa825e] sm:text-3xl md:ml-4 md:mt-0 md:inline-block md:text-4xl">
                     Lote 2
                   </span>
