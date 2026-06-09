@@ -17,8 +17,8 @@ const PROVINCIAS_ARGENTINA = [
 
 const backdropVariants = {
 	hidden: { opacity: 0 },
-	visible: { opacity: 1, transition: { duration: 0.3, ease: "easeOut" } },
-	exit: { opacity: 0, transition: { duration: 0.25, ease: "easeIn" } },
+	visible: { opacity: 1, transition: { duration: 0.3, ease: "easeOut" as const } },
+	exit: { opacity: 0, transition: { duration: 0.25, ease: "easeIn" as const } },
 }
 
 const panelVariants = {
@@ -27,13 +27,13 @@ const panelVariants = {
 		opacity: 1,
 		y: 0,
 		scale: 1,
-		transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] },
+		transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] as const },
 	},
 	exit: {
 		opacity: 0,
 		y: 40,
 		scale: 0.97,
-		transition: { duration: 0.25, ease: "easeIn" },
+		transition: { duration: 0.25, ease: "easeIn" as const },
 	},
 }
 
@@ -42,7 +42,7 @@ const fieldVariants = {
 	visible: (i: number) => ({
 		opacity: 1,
 		y: 0,
-		transition: { delay: i * 0.07 + 0.15, duration: 0.35, ease: "easeOut" },
+		transition: { delay: i * 0.07 + 0.15, duration: 0.35, ease: "easeOut" as const },
 	}),
 }
 
@@ -170,7 +170,7 @@ export function WaitlistModal() {
 	return (
 		<AnimatePresence>
 			{isOpen && (
-				<div className="fixed inset-0 z-[100] flex items-end justify-center p-0 sm:items-center sm:p-4">
+				<div className="fixed inset-0 z-[100] flex items-start justify-center p-4 pt-20 overflow-y-auto sm:items-center sm:p-4">
 					<motion.div
 						key="backdrop"
 						variants={backdropVariants}
@@ -187,7 +187,7 @@ export function WaitlistModal() {
 						initial="hidden"
 						animate="visible"
 						exit="exit"
-						className="relative w-full overflow-visible rounded-t-3xl border border-[#aa825e]/30 bg-[#1a1208] shadow-2xl sm:max-w-md sm:rounded-2xl"
+						className="relative w-full rounded-2xl border border-[#aa825e]/30 bg-[#1a1208] shadow-2xl sm:max-w-md sm:rounded-2xl my-0 sm:my-auto"
 						role="dialog"
 						aria-modal="true"
 						aria-label="Lista de espera"

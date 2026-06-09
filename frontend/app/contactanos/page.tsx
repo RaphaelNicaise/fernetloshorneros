@@ -13,10 +13,10 @@ export default function ContactanosPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col overflow-x-hidden">
       <Navigation />
       <main className="flex-1">
-        <section className="bg-secondary py-16">
+        <section className="bg-secondary pb-16 pt-28 sm:pb-20 sm:pt-32">
           <div className="container mx-auto px-4">
             <h1 className="font-serif text-5xl font-bold text-foreground mb-4">Contactanos</h1>
             <p className="text-xl text-muted-foreground max-w-2xl">

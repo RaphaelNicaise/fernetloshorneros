@@ -297,12 +297,12 @@ export default function CartPage() {
 
   if (items.length === 0) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="min-h-screen bg-background flex flex-col overflow-x-hidden">
         <Navigation />
 
         {/* Empty Cart */}
         <main className="flex-1">
-          <div className="container mx-auto px-4 py-20">
+          <div className="container mx-auto px-4 pt-28 pb-20 sm:pt-32">
             <div className="max-w-md mx-auto text-center">
             <div className="w-24 h-24 bg-secondary rounded-full flex items-center justify-center mx-auto mb-6">
               <svg className="w-12 h-12 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -335,12 +335,12 @@ export default function CartPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-white flex flex-col overflow-x-hidden">
       <Navigation />
 
       {/* Cart Content */}
       <main className="flex-1">
-        <div className="container mx-auto px-4 py-12">
+        <div className="container mx-auto px-4 pt-28 pb-12 sm:pt-32">
           <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between mb-8">
             <h1 className="font-serif text-4xl font-bold text-[#0b0a07]">Carrito</h1>
@@ -359,43 +359,45 @@ export default function CartPage() {
               <div className="space-y-4">
                 <h2 className="font-serif text-xl font-bold text-[#0b0a07]">Productos</h2>
                 {items.map((item) => (
-                  <div key={item.id} className="rounded-2xl border border-black/8 bg-white p-6 shadow-[0_18px_38px_rgba(11,10,7,0.05)]">
+                  <div key={item.id} className="rounded-2xl border border-black/8 bg-white p-4 sm:p-6 shadow-[0_18px_38px_rgba(11,10,7,0.05)]">
                     <div className="flex gap-4">
-                      <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-xl bg-[#f5f0e6]">
+                      <div className="relative h-20 w-20 sm:h-24 sm:w-24 flex-shrink-0 overflow-hidden rounded-xl bg-[#f5f0e6]">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={item.image || "/placeholder.svg"} alt={item.name} className="object-cover w-full h-full" />
                       </div>
-                      <div className="flex-1">
-                        <h3 className="mb-1 font-serif text-lg font-bold text-[#0b0a07]">{item.name}</h3>
-                        <p className="mb-3 text-sm text-black/55">${item.price.toLocaleString('es-AR')} por articulo</p>
-                        <div className="flex items-center gap-3">
-                          <div className="flex items-center gap-1 rounded-full border border-[#6B5743]/18 bg-[#f8f5f1] p-1">
+                      <div className="flex flex-1 flex-col sm:flex-row sm:justify-between gap-2">
+                        <div>
+                          <h3 className="mb-1 font-serif text-base sm:text-lg font-bold text-[#0b0a07]">{item.name}</h3>
+                          <p className="mb-3 text-xs sm:text-sm text-black/55">${item.price.toLocaleString('es-AR')} por articulo</p>
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <div className="flex items-center gap-1 rounded-full border border-[#6B5743]/18 bg-[#f8f5f1] p-1">
+                              <button
+                                onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                aria-label={`Reducir cantidad de ${item.name}`}
+                                className="flex h-9 w-9 items-center justify-center rounded-full text-lg font-medium leading-none text-[#6B5743] transition-colors hover:bg-[#aa825e]/14 hover:text-[#0b0a07] active:scale-95 cursor-pointer"
+                              >
+                                <span className="-mt-px">-</span>
+                              </button>
+                              <span className="flex min-w-11 items-center justify-center px-2 text-sm font-semibold tabular-nums text-[#0b0a07]">{item.quantity}</span>
+                              <button
+                                onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                aria-label={`Aumentar cantidad de ${item.name}`}
+                                className="flex h-9 w-9 items-center justify-center rounded-full text-lg font-medium leading-none text-[#6B5743] transition-colors hover:bg-[#aa825e]/14 hover:text-[#0b0a07] active:scale-95 cursor-pointer"
+                              >
+                                <span className="-mt-px">+</span>
+                              </button>
+                            </div>
                             <button
-                              onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                              aria-label={`Reducir cantidad de ${item.name}`}
-                              className="flex h-9 w-9 items-center justify-center rounded-full text-lg font-medium leading-none text-[#6B5743] transition-colors hover:bg-[#aa825e]/14 hover:text-[#0b0a07] active:scale-95 cursor-pointer"
+                              onClick={() => removeItem(item.id)}
+                              className="text-sm text-black/48 transition-colors hover:text-[#aa825e] cursor-pointer"
                             >
-                              <span className="-mt-px">-</span>
-                            </button>
-                            <span className="flex min-w-11 items-center justify-center px-2 text-sm font-semibold tabular-nums text-[#0b0a07]">{item.quantity}</span>
-                            <button
-                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                              aria-label={`Aumentar cantidad de ${item.name}`}
-                              className="flex h-9 w-9 items-center justify-center rounded-full text-lg font-medium leading-none text-[#6B5743] transition-colors hover:bg-[#aa825e]/14 hover:text-[#0b0a07] active:scale-95 cursor-pointer"
-                            >
-                              <span className="-mt-px">+</span>
+                              Quitar
                             </button>
                           </div>
-                          <button
-                            onClick={() => removeItem(item.id)}
-                            className="text-sm text-black/48 transition-colors hover:text-[#aa825e] cursor-pointer"
-                          >
-                            Quitar
-                          </button>
                         </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-lg font-bold text-[#0b0a07]">${(item.price * item.quantity).toLocaleString('es-AR')}</p>
+                        <div className="text-left sm:text-right mt-2 sm:mt-0">
+                          <p className="text-base sm:text-lg font-bold text-[#0b0a07]">${(item.price * item.quantity).toLocaleString('es-AR')}</p>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -406,7 +408,7 @@ export default function CartPage() {
               {recommended.length > 0 && (
                 <div className="pt-2 pb-1">
                   <p className="mb-3 text-sm font-medium text-black/52">¿Te falta algo para tu set?</p>
-                  <div className={`grid gap-3 ${recommended.length === 1 ? "grid-cols-1 max-w-sm" : "grid-cols-2"}`}>
+                  <div className={`grid gap-3 ${recommended.length === 1 ? "grid-cols-1 max-w-sm" : "grid-cols-1 sm:grid-cols-2"}`}>
                     {recommended.map((product) => (
                       <RecommendedCard
                         key={product.id}

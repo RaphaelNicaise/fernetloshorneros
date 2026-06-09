@@ -16,11 +16,11 @@ export default function PaymentSuccessPage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col overflow-x-hidden">
       <Navigation />
 
       <main className="flex-1">
-        <div className="container mx-auto px-4 py-20">
+        <div className="container mx-auto px-4 pt-28 pb-20 sm:pt-32">
           <div className="max-w-md mx-auto text-center">
             <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <svg

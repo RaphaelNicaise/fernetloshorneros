@@ -5,9 +5,9 @@ import { Footer } from "@/components/footer"
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col overflow-x-hidden">
       <Navigation />
-      <main className="flex-1 flex items-center justify-center px-6 py-16">
+      <main className="flex-1 flex items-center justify-center px-6 pt-28 pb-16">
         <div className="text-center max-w-xl">
           <p className="text-sm text-muted-foreground mb-2">Error 404</p>
           <h1 className="text-3xl font-serif font-bold tracking-tight text-foreground sm:text-4xl">
