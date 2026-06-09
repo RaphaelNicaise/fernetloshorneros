@@ -15,7 +15,7 @@ import {
     getExpiredReservations,
 } from "@/services/ordersService";
 import { getProductById, decreaseStock, increaseStock } from "@/services/productService";
-import { createShipment } from "@/services/enviosService";
+// import { createShipment } from "@/services/enviosService"; // Legacy
 
 /**
  * POST /payments/create-preference
@@ -239,46 +239,14 @@ export async function handleWebhook(req: Request, res: Response) {
                 await markOrderStockReleased(order.id);
                 console.log(`Orden ${order.id} marcada como pagada, stock confirmado`);
 
-                // Crear envío en Zipnova
+                // Marcar envío para ser despachado
                 const envio = await getEnvioByOrderId(order.id);
                 if (envio && envio.status === 'pending') {
                     try {
-                        const orderItems = await getOrderItems(order.id);
-                        // Bug fix: expandir items por cantidad
-                        const zipnovaItems = orderItems.flatMap(item =>
-                            Array.from({ length: item.cantidad }, () => ({ sku: item.id_producto }))
-                        );
-
-                        const shipmentResult = await createShipment({
-                            external_id: envio.id,
-                            declared_value: Number(order.total),
-                            service_type: envio.service_type as 'standard_delivery' | 'pickup_point',
-                            logistic_type: envio.logistic_type || undefined,
-                            carrier_id: envio.carrier_id ? Number(envio.carrier_id) : undefined,
-                            destination: {
-                                name: envio.nombre_cliente,
-                                email: envio.email_cliente,
-                                phone: envio.telefono_cliente,
-                                document: envio.dni_cliente,
-                                city: envio.ciudad || '',
-                                state: envio.provincia || '',
-                                zipcode: envio.codigo_postal || '',
-                                street: envio.direccion || undefined,
-                                street_number: envio.numero || undefined,
-                                street_extras: envio.extra || undefined,
-                            },
-                            items: zipnovaItems,
-                            point_id: envio.point_id || undefined,
-                        });
-
-                        if (shipmentResult.success) {
-                            await updateEnvioStatus(envio.id, 'created', shipmentResult.shipment_id);
-                            console.log(`Envío ${envio.id} creado en Zipnova: ${shipmentResult.shipment_id}`);
-                        } else {
-                            console.error(`Error creando envío en Zipnova: ${shipmentResult.error}`);
-                        }
+                        await updateEnvioStatus(envio.id, 'to_ship');
+                        console.log(`Envío ${envio.id} marcado para despachar (to_ship)`);
                     } catch (shipError: any) {
-                        console.error("Error creando envío:", shipError);
+                        console.error("Error actualizando estado del envío:", shipError);
                     }
                 }
             } else if (payment.status === "rejected" || payment.status === "cancelled") {

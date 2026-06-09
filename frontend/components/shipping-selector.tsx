@@ -50,9 +50,9 @@ interface CustomerContact {
 export interface ShippingSelection {
   rate_id: string
   service_type: 'standard_delivery' | 'pickup_point'
-  logistic_type?: string
-  carrier_id?: number
-  point_id?: string
+  logistic_type?: string | null
+  carrier_id?: number | null
+  point_id?: string | null
   shipping_cost: number
   carrier_name: string
   address?: CustomerAddress
@@ -154,10 +154,9 @@ export function ShippingSelector({ items, productsTotal, onSelectionComplete, on
     load()
   }, [provincia])
 
-  // Filtrar opciones: la más barata de cada tipo
-  const { deliveryOption, pickupOption, cheapestType } = useMemo(() => {
+  // Filtrar opciones: la más barata de cada tipo (solo standard_delivery ahora)
+  const { deliveryOption } = useMemo(() => {
     const deliveryOptions = allOptions.filter(o => o.service_type === 'standard_delivery')
-    const pickupOptions = allOptions.filter(o => o.service_type === 'pickup_point')
     
     const delivery = deliveryOptions.length > 0 
       ? deliveryOptions.reduce((min, curr) => 
@@ -165,24 +164,7 @@ export function ShippingSelector({ items, productsTotal, onSelectionComplete, on
         )
       : null
     
-    const pickup = pickupOptions.length > 0
-      ? pickupOptions.reduce((min, curr) => 
-          curr.amounts.price_incl_tax < min.amounts.price_incl_tax ? curr : min
-        )
-      : null
-    
-    let cheapest: 'standard_delivery' | 'pickup_point' | null = null
-    if (delivery && pickup) {
-      cheapest = delivery.amounts.price_incl_tax <= pickup.amounts.price_incl_tax 
-        ? 'standard_delivery' 
-        : 'pickup_point'
-    } else if (delivery) {
-      cheapest = 'standard_delivery'
-    } else if (pickup) {
-      cheapest = 'pickup_point'
-    }
-    
-    return { deliveryOption: delivery, pickupOption: pickup, cheapestType: cheapest }
+    return { deliveryOption: delivery }
   }, [allOptions])
 
 
@@ -219,14 +201,18 @@ export function ShippingSelector({ items, productsTotal, onSelectionComplete, on
         })
         if (result.success && result.all_results) {
           setAllOptions(result.all_results)
+          // Auto-seleccionar standard_delivery si hay opciones
+          setSelectedType('standard_delivery')
         } else {
           setAllOptions([])
+          setSelectedType(null)
         }
         setQuoteFetched(true)
         setLastQuotedValues(currentQuoteKey)
       } catch (e) {
         console.error("Error cotizando:", e)
         setAllOptions([])
+        setSelectedType(null)
         setQuoteFetched(true)
       } finally {
         setLoadingOptions(false)
@@ -249,8 +235,6 @@ export function ShippingSelector({ items, productsTotal, onSelectionComplete, on
     if (type === 'standard_delivery' && deliveryOption) {
       setSelectedOption(deliveryOption)
       setSelectedPickupPoint(null)
-    } else if (type === 'pickup_point' && pickupOption) {
-      setSelectedOption(pickupOption)
     }
   }
 
@@ -263,39 +247,28 @@ export function ShippingSelector({ items, productsTotal, onSelectionComplete, on
     dni.trim() !== "" &&
     telefono.trim() !== ""
 
-  const isPickupFormComplete =
-    selectedType === 'pickup_point' &&
-    selectedPickupPoint !== null &&
-    nombre.trim() !== "" &&
-    email.trim() !== "" &&
-    dni.trim() !== "" &&
-    telefono.trim() !== ""
-
-  const isFormComplete = isDeliveryFormComplete || isPickupFormComplete
+  const isFormComplete = isDeliveryFormComplete
 
   useEffect(() => {
     if (isFormComplete && selectedOption) {
       const selection: ShippingSelection = {
         rate_id: selectedOption.rate_id,
-        service_type: selectedType!,
-        logistic_type: selectedOption.logistic_type,
-        carrier_id: selectedOption.carrier_id,
+        service_type: 'standard_delivery',
+        logistic_type: null,
+        carrier_id: null,
+        point_id: null,
         shipping_cost: selectedOption.amounts.price_incl_tax,
         carrier_name: selectedOption.carrier_name,
         contact: { nombre, email, dni, telefono },
       }
 
-      if (selectedType === 'standard_delivery') {
-        selection.address = {
-          provincia,
-          ciudad,
-          codigoPostal,
-          direccion,
-          numero,
-          extra,
-        }
-      } else if (selectedType === 'pickup_point' && selectedPickupPoint) {
-        selection.point_id = selectedPickupPoint.point_id
+      selection.address = {
+        provincia,
+        ciudad,
+        codigoPostal,
+        direccion,
+        numero,
+        extra,
       }
 
       onSelectionComplete(selection)
@@ -377,104 +350,38 @@ export function ShippingSelector({ items, productsTotal, onSelectionComplete, on
       </div>
 
       {/* Paso 2: Selección de método de envío */}
-      {quoteFetched && !loadingOptions && (deliveryOption || pickupOption) && (
+      {quoteFetched && !loadingOptions && deliveryOption && (
         <div className="rounded-2xl border border-black/8 bg-white p-6 shadow-[0_18px_38px_rgba(11,10,7,0.05)]">
-          <h2 className="mb-4 font-serif text-xl font-bold text-[#0b0a07]">Elegí cómo recibir tu pedido</h2>
+          <h2 className="mb-4 font-serif text-xl font-bold text-[#0b0a07]">Tu envío</h2>
           
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid md:grid-cols-1 gap-4">
             {/* Opción Domicilio */}
-            {deliveryOption && (
-              <button
-                onClick={() => handleSelectType('standard_delivery')}
-                className={`relative rounded-2xl border p-5 text-left transition-all cursor-pointer ${
-                  selectedType === 'standard_delivery'
-                    ? 'border-[#aa825e]/45 bg-[#aa825e]/8 shadow-[0_14px_28px_rgba(170,130,94,0.12)]'
-                    : 'border-black/10 bg-white hover:border-[#aa825e]/35 hover:bg-[#f8f5f1]'
-                }`}
-              >
-                {cheapestType === 'standard_delivery' && (
-                  <span className="absolute -top-2.5 left-4 rounded-full bg-[#0b0a07] px-2.5 py-1 text-xs font-medium text-[#f5f0e6]">
-                    Más económico
-                  </span>
-                )}
-                
-                <div className="flex items-start gap-4">
-                  <div className={`rounded-xl p-2.5 ${
-                    selectedType === 'standard_delivery' ? 'bg-[#aa825e] text-white' : 'bg-[#f5f0e6] text-[#6B5743]'
-                  }`}>
-                    <HomeIcon />
-                  </div>
-                  
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-[#0b0a07]">Envío a domicilio</h3>
-                      {selectedType === 'standard_delivery' && (
-                        <span className="text-[#aa825e]"><CheckIcon /></span>
-                      )}
-                    </div>
-                    <p className="mt-0.5 text-sm text-black/55">
-                      {deliveryOption.carrier_name}
-                    </p>
-                    <p className="mt-1 text-sm text-black/55">
-                      {formatDeliveryDate(
-                        deliveryOption.estimated_delivery.min_days,
-                        deliveryOption.estimated_delivery.max_days
-                      )}
-                    </p>
-                    <p className="mt-2 text-lg font-bold text-[#0b0a07]">
-                      ${deliveryOption.amounts.price_incl_tax.toLocaleString('es-AR')}
-                    </p>
-                  </div>
+            <div className="relative rounded-2xl border border-[#aa825e]/45 bg-[#aa825e]/8 shadow-[0_14px_28px_rgba(170,130,94,0.12)] p-5 text-left transition-all">
+              <div className="flex items-start gap-4">
+                <div className="rounded-xl p-2.5 bg-[#aa825e] text-white">
+                  <HomeIcon />
                 </div>
-              </button>
-            )}
-
-            {/* Opción Punto de retiro */}
-            {pickupOption && (
-              <button
-                onClick={() => handleSelectType('pickup_point')}
-                className={`relative rounded-2xl border p-5 text-left transition-all cursor-pointer ${
-                  selectedType === 'pickup_point'
-                    ? 'border-[#aa825e]/45 bg-[#aa825e]/8 shadow-[0_14px_28px_rgba(170,130,94,0.12)]'
-                    : 'border-black/10 bg-white hover:border-[#aa825e]/35 hover:bg-[#f8f5f1]'
-                }`}
-              >
-                {cheapestType === 'pickup_point' && (
-                  <span className="absolute -top-2.5 left-4 rounded-full bg-[#0b0a07] px-2.5 py-1 text-xs font-medium text-[#f5f0e6]">
-                    Más económico
-                  </span>
-                )}
                 
-                <div className="flex items-start gap-4">
-                  <div className={`rounded-xl p-2.5 ${
-                    selectedType === 'pickup_point' ? 'bg-[#aa825e] text-white' : 'bg-[#f5f0e6] text-[#6B5743]'
-                  }`}>
-                    <LocationIcon />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-[#0b0a07]">Envío a domicilio</h3>
+                    <span className="text-[#aa825e]"><CheckIcon /></span>
                   </div>
-                  
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-[#0b0a07]">Retiro en punto de entrega</h3>
-                      {selectedType === 'pickup_point' && (
-                        <span className="text-[#aa825e]"><CheckIcon /></span>
-                      )}
-                    </div>
-                    <p className="mt-0.5 text-sm text-black/55">
-                      {pickupOption.carrier_name}
-                    </p>
-                    <p className="mt-1 text-sm text-black/55">
-                      {formatDeliveryDate(
-                        pickupOption.estimated_delivery.min_days,
-                        pickupOption.estimated_delivery.max_days
-                      )}
-                    </p>
-                    <p className="mt-2 text-lg font-bold text-[#0b0a07]">
-                      ${pickupOption.amounts.price_incl_tax.toLocaleString('es-AR')}
-                    </p>
-                  </div>
+                  <p className="mt-0.5 text-sm text-black/55">
+                    {deliveryOption.carrier_name}
+                  </p>
+                  <p className="mt-1 text-sm text-black/55">
+                    {formatDeliveryDate(
+                      deliveryOption.estimated_delivery.min_days,
+                      deliveryOption.estimated_delivery.max_days
+                    )}
+                  </p>
+                  <p className="mt-2 text-lg font-bold text-[#0b0a07]">
+                    ${deliveryOption.amounts.price_incl_tax.toLocaleString('es-AR')}
+                  </p>
                 </div>
-              </button>
-            )}
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -520,49 +427,7 @@ export function ShippingSelector({ items, productsTotal, onSelectionComplete, on
                 </div>
               </div>
             </>
-          ) : (
-            <>
-              <h2 className="mb-4 font-serif text-xl font-bold text-[#0b0a07]">Elegí un punto de retiro</h2>
-              {selectedOption?.pickup_points && selectedOption.pickup_points.length > 0 ? (
-                <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
-                  {selectedOption.pickup_points.map((point) => (
-                    <button
-                      key={point.point_id}
-                      onClick={() => setSelectedPickupPoint(point)}
-                      className={`w-full rounded-xl border p-4 text-left transition-all cursor-pointer ${
-                        selectedPickupPoint?.point_id === point.point_id
-                          ? 'border-[#aa825e]/45 bg-[#aa825e]/8'
-                          : 'border-black/10 bg-white hover:border-[#aa825e]/35 hover:bg-[#f8f5f1]'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-medium text-[#0b0a07]">{point.name}</h4>
-                            {selectedPickupPoint?.point_id === point.point_id && (
-                              <span className="text-[#aa825e]"><CheckIcon /></span>
-                            )}
-                          </div>
-                          <p className="mt-1 text-sm text-black/55">
-                            {point.address}, {point.city}
-                          </p>
-                          {point.hours && (
-                            <p className="mt-1 text-xs text-black/45">
-                              Horario: {point.hours}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <p className="py-8 text-center text-black/55">
-                  No hay puntos de retiro disponibles en tu zona.
-                </p>
-              )}
-            </>
-          )}
+          ) : null}
 
           {/* Datos de contacto - común para ambos */}
           <div className="mt-6 border-t border-black/8 pt-6">
@@ -617,7 +482,7 @@ export function ShippingSelector({ items, productsTotal, onSelectionComplete, on
       )}
 
       {/* Mensaje cuando no hay opciones */}
-      {quoteFetched && !loadingOptions && !deliveryOption && !pickupOption && (
+      {quoteFetched && !loadingOptions && !deliveryOption && (
         <div className="rounded-2xl border border-[#aa825e]/30 bg-[#f5ede5] p-6 text-center">
           <p className="text-[#6B5743]">
             No encontramos opciones de envío para tu zona. Verificá el código postal e intentá nuevamente.

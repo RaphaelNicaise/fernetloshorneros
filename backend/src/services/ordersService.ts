@@ -17,7 +17,18 @@ export type Order = {
     fecha: string;
     external_reference: string;
     zipnova_shipment_id?: string | null;
+    tracking_code?: string | null;
     envio_status?: string | null;
+    nombre_cliente?: string | null;
+    email_cliente?: string | null;
+    dni_cliente?: string | null;
+    telefono_cliente?: string | null;
+    provincia?: string | null;
+    ciudad?: string | null;
+    codigo_postal?: string | null;
+    direccion?: string | null;
+    numero?: string | null;
+    extra?: string | null;
 };
 
 export type OrderItem = {
@@ -296,21 +307,23 @@ export async function getAllOrders(): Promise<Order[]> {
             p.status, 
             p.fecha, 
             p.external_reference,
-            (
-              SELECT e.zipnova_shipment_id 
-              FROM envios e 
-              WHERE e.id_pedido = p.id 
-              ORDER BY e.fecha DESC 
-              LIMIT 1
-                        ) AS zipnova_shipment_id,
-                        (
-                            SELECT e.status
-                            FROM envios e
-                            WHERE e.id_pedido = p.id
-                            ORDER BY e.fecha DESC
-                            LIMIT 1
-                        ) AS envio_status
+            e.zipnova_shipment_id,
+            e.tracking_code,
+            e.status AS envio_status,
+            e.nombre_cliente,
+            e.email_cliente,
+            e.dni_cliente,
+            e.telefono_cliente,
+            e.provincia,
+            e.ciudad,
+            e.codigo_postal,
+            e.direccion,
+            e.numero,
+            e.extra
          FROM pedidos p 
+         LEFT JOIN envios e ON e.id = (
+             SELECT id FROM envios e2 WHERE e2.id_pedido = p.id ORDER BY e2.fecha DESC LIMIT 1
+         )
          ORDER BY p.fecha DESC`,
         {
             type: QueryTypes.SELECT,
@@ -341,6 +354,7 @@ export type Envio = {
     dni_cliente: string;
     telefono_cliente: string;
     status: string;
+    tracking_code: string | null;
     zipnova_shipment_id: string | null;
     fecha: string;
 };
@@ -377,6 +391,27 @@ export async function updateEnvioStatus(
                 id: envioId,
                 status,
                 zipnova_shipment_id: zipnovaShipmentId || null,
+            },
+            type: QueryTypes.UPDATE,
+        }
+    );
+}
+
+/**
+ * Actualiza el tracking code del envío y lo marca como shipped
+ */
+export async function updateEnvioTracking(
+    envioId: string,
+    trackingCode: string
+): Promise<void> {
+    await sequelize.query(
+        `UPDATE envios 
+         SET status = 'shipped', tracking_code = :tracking_code 
+         WHERE id = :id`,
+        {
+            replacements: {
+                id: envioId,
+                tracking_code: trackingCode,
             },
             type: QueryTypes.UPDATE,
         }

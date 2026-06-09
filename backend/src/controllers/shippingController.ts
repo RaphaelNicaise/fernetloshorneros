@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { quoteShipment, quoteShipmentFull } from "@/services/enviosService";
 import { getProductById } from "@/services/productService";
+import { getSetting } from "@/services/settingsService";
 
 /**
  * Construye los items de Zipnova a partir de los items del request,
@@ -46,27 +47,16 @@ export async function quote(req: Request, res: Response) {
 
         const { declaredValue, zipnovaItems } = await buildZipnovaItems(items);
 
-        const quoteResult = await quoteShipment({
-            destination: {
-                city: destination.city,
-                state: destination.state,
-                zipcode: destination.zipcode,
-            },
-            items: zipnovaItems,
-            declared_value: declaredValue,
-        });
-
-        if (!quoteResult.success) {
-            return res.status(400).json(quoteResult);
-        }
+        const fixedCostSetting = await getSetting('fixed_shipping_cost');
+        const shippingCost = fixedCostSetting ? Number(fixedCostSetting.value) : 5000;
 
         res.json({
             success: true,
-            shipping_cost: quoteResult.price,
-            carrier: quoteResult.carrier,
-            delivery_time: quoteResult.delivery_time,
+            shipping_cost: shippingCost,
+            carrier: "Correo Argentino",
+            delivery_time: "3-7 días",
             products_total: declaredValue,
-            total: declaredValue + (quoteResult.price || 0),
+            total: declaredValue + shippingCost,
         });
     } catch (error: any) {
         if (error.status) {
@@ -95,23 +85,27 @@ export async function quoteOptions(req: Request, res: Response) {
 
         const { declaredValue, zipnovaItems } = await buildZipnovaItems(items);
 
-        const quoteResult = await quoteShipmentFull({
-            destination: {
-                city: destination.city || destination.state,
-                state: destination.state,
-                zipcode: destination.zipcode,
-            },
-            items: zipnovaItems,
-            declared_value: declaredValue,
-        });
-
-        if (!quoteResult.success) {
-            return res.status(400).json(quoteResult);
-        }
+        const fixedCostSetting = await getSetting('fixed_shipping_cost');
+        const shippingCost = fixedCostSetting ? Number(fixedCostSetting.value) : 5000;
 
         res.json({
             success: true,
-            all_results: quoteResult.all_results,
+            all_results: [{
+                rate_id: "correo-argentino-fijo",
+                carrier_name: "Correo Argentino",
+                carrier_id: 1,
+                service_type: "standard_delivery",
+                logistic_type: "manual",
+                amounts: {
+                    price: shippingCost,
+                    price_incl_tax: shippingCost,
+                },
+                estimated_delivery: {
+                    min_days: 3,
+                    max_days: 7,
+                },
+                tags: []
+            }],
             products_total: declaredValue,
         });
     } catch (error: any) {

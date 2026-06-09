@@ -8,6 +8,7 @@ import { api } from '@/lib/api';
 
 export default function ConfigPage() {
   const [minPurchaseAmount, setMinPurchaseAmount] = useState('');
+  const [fixedShippingCost, setFixedShippingCost] = useState('');
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [maintenanceSaving, setMaintenanceSaving] = useState(false);
   const { toast } = useToast();
@@ -15,12 +16,24 @@ export default function ConfigPage() {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const [minRes, maintRes] = await Promise.all([
-          api.get('/settings/min_purchase_amount'),
-          api.get('/settings/maintenance_mode'),
+        const fetchSetting = async (key: string) => {
+          try {
+            const res = await api.get(`/settings/${key}`);
+            return res.data.value;
+          } catch {
+            return null;
+          }
+        };
+
+        const [min, shipping, maint] = await Promise.all([
+          fetchSetting('min_purchase_amount'),
+          fetchSetting('fixed_shipping_cost'),
+          fetchSetting('maintenance_mode'),
         ]);
-        setMinPurchaseAmount(minRes.data.value);
-        setMaintenanceMode(maintRes.data.value === 'true');
+        
+        setMinPurchaseAmount(min || '');
+        setFixedShippingCost(shipping || '5000');
+        setMaintenanceMode(maint === 'true');
       } catch {
         toast({
           title: 'Error',
@@ -33,12 +46,12 @@ export default function ConfigPage() {
     fetchSettings();
   }, [toast]);
 
-  const handleSave = async () => {
+  const handleSave = async (key: string, value: string, name: string) => {
     try {
-      await api.put('/settings/min_purchase_amount', { value: minPurchaseAmount });
-      toast({ title: 'Éxito', description: 'Monto mínimo de compra actualizado.' });
+      await api.put(`/settings/${key}`, { value });
+      toast({ title: 'Éxito', description: `${name} actualizado.` });
     } catch {
-      toast({ title: 'Error', description: 'No se pudo actualizar el monto mínimo de compra.', variant: 'destructive' });
+      toast({ title: 'Error', description: `No se pudo actualizar ${name}.`, variant: 'destructive' });
     }
   };
 
@@ -77,7 +90,22 @@ export default function ConfigPage() {
               onChange={(e) => setMinPurchaseAmount(e.target.value)}
               className="w-48"
             />
-            <Button onClick={handleSave}>Guardar</Button>
+            <Button onClick={() => handleSave('min_purchase_amount', minPurchaseAmount, 'Monto mínimo de compra')}>Guardar</Button>
+          </div>
+        </div>
+
+        {/* Costo de Envío Fijo */}
+        <div className="bg-white/10 rounded-xl p-5">
+          <h2 className="text-white font-semibold mb-3">Costo de envío fijo (Correo Argentino)</h2>
+          <div className="flex items-center gap-4">
+            <Input
+              id="fixed-shipping"
+              type="number"
+              value={fixedShippingCost}
+              onChange={(e) => setFixedShippingCost(e.target.value)}
+              className="w-48"
+            />
+            <Button onClick={() => handleSave('fixed_shipping_cost', fixedShippingCost, 'Costo de envío')}>Guardar</Button>
           </div>
         </div>
 

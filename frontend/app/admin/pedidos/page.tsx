@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { API_BASE_URL } from "@/lib/api"
-import { ChevronDown, ChevronRight } from "lucide-react"
+import { ChevronDown, ChevronRight, Info } from "lucide-react"
 
 type OrderStatus = "pending" | "paid" | "failed" | "cancelled"
 
@@ -15,7 +15,18 @@ type Order = {
   fecha: string
   external_reference: string
   zipnova_shipment_id?: string | null
+  tracking_code?: string | null
   envio_status?: string | null
+  nombre_cliente?: string | null
+  email_cliente?: string | null
+  dni_cliente?: string | null
+  telefono_cliente?: string | null
+  provincia?: string | null
+  ciudad?: string | null
+  codigo_postal?: string | null
+  direccion?: string | null
+  numero?: string | null
+  extra?: string | null
 }
 
 type OrderItem = {
@@ -30,34 +41,31 @@ type OrderItem = {
 type SortKey = keyof Pick<Order, "id" | "status" | "fecha" | "total">
 
 // ============================================
-// ESTADOS EFECTIVOS SIMPLIFICADOS (3 estados)
-// ============================================
-// Lógica:
-// - "Cancelado": si el envío fue anulado (envio_status === 'cancelled')
-// - "Pagado": si el pago fue aprobado (status === 'paid') y no está cancelado
-// - "Pendiente": cualquier otro caso (pending, failed, etc.)
+// ESTADOS EFECTIVOS SIMPLIFICADOS (4 estados)
 // ============================================
 
-type EffectiveStatus = "pendiente" | "pagado" | "cancelado"
+type EffectiveStatus = "pendiente" | "para_despachar" | "enviado" | "cancelado"
 
 function getEffectiveStatus(order: Order): EffectiveStatus {
-  // Prioridad 1: si el envío fue cancelado → Cancelado
-  if (order.envio_status === 'cancelled') return "cancelado"
-  // Prioridad 2: si el pago fue aprobado → Pagado
-  if (order.status === 'paid') return "pagado"
-  // Default: Pendiente (incluye pending, failed, etc.)
+  if (order.envio_status === 'cancelled' || order.status === 'cancelled' || order.status === 'failed') return "cancelado"
+  if (order.status === 'paid') {
+    if (order.envio_status === 'shipped') return "enviado"
+    return "para_despachar"
+  }
   return "pendiente"
 }
 
 const EFFECTIVE_STATUS_LABELS: Record<EffectiveStatus, string> = {
-  pendiente: "Pendiente",
-  pagado: "Pagado",
+  pendiente: "Pendiente de Pago",
+  para_despachar: "Para Despachar",
+  enviado: "Enviado",
   cancelado: "Cancelado",
 }
 
 const EFFECTIVE_STATUS_COLORS: Record<EffectiveStatus, string> = {
   pendiente: "bg-yellow-100 text-yellow-800",
-  pagado: "bg-green-100 text-green-800",
+  para_despachar: "bg-blue-100 text-blue-800",
+  enviado: "bg-green-100 text-green-800",
   cancelado: "bg-gray-100 text-gray-800",
 }
 
@@ -198,13 +206,24 @@ export default function AdminPedidosPage() {
             className="px-3 py-2 rounded-md border border-gray-300 bg-white text-black text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary"
           >
             <option value="all">Todos los estados</option>
-            <option value="pendiente">Pendientes</option>
-            <option value="pagado">Pagados</option>
+            <option value="pendiente">Pendientes de Pago</option>
+            <option value="para_despachar">Para Despachar</option>
+            <option value="enviado">Enviados</option>
             <option value="cancelado">Cancelados</option>
           </select>
           <Button variant="outline" onClick={fetchOrders}>
             Recargar
           </Button>
+        </div>
+      </div>
+
+      <div className="bg-white/10 rounded-xl p-4 flex gap-3 text-white/90 text-sm border border-white/20 shadow-sm">
+        <Info className="w-5 h-5 text-blue-300 shrink-0 mt-0.5" />
+        <div className="flex flex-col gap-1.5">
+          <p><strong className="text-yellow-300">Pendiente de Pago:</strong> El cliente generó la orden pero el pago en MercadoPago aún no fue procesado o fue rechazado.</p>
+          <p><strong className="text-blue-300">Para Despachar:</strong> El pago se acreditó exitosamente y el pedido está listo para ser preparado y enviado.</p>
+          <p><strong className="text-green-300">Enviado:</strong> Se cargó el código de seguimiento de Correo Argentino (el cliente ya recibió el email).</p>
+          <p><strong className="text-gray-300">Cancelado:</strong> El pago falló definitivamente, o un pedido "Para Despachar" fue anulado manualmente por un administrador.</p>
         </div>
       </div>
 
@@ -261,8 +280,41 @@ export default function AdminPedidosPage() {
                       <TableCell className="text-right font-semibold">${Number(order.total).toFixed(2)}</TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-2">
-                          {/* Ver Envío: solo si está Pagado */}
-                          {effectiveStatus === 'pagado' && order.zipnova_shipment_id ? (
+                          {/* Acciones principales */}
+                          {effectiveStatus === 'para_despachar' ? (
+                            <Button
+                              size="sm"
+                              className="bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-300"
+                              variant="outline"
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                const code = window.prompt('Ingresá el código de seguimiento de Correo Argentino:');
+                                if (!code) return;
+                                try {
+                                  const token = localStorage.getItem('admin_token');
+                                  const res = await fetch(`${API_BASE_URL}/orders/${order.id}/set-tracking`, {
+                                    method: 'POST',
+                                    headers: {
+                                      'Content-Type': 'application/json',
+                                      Authorization: `Bearer ${token}`,
+                                    },
+                                    body: JSON.stringify({ trackingCode: code }),
+                                  });
+                                  const data = await res.json().catch(() => ({}));
+                                  if (!res.ok || data.success !== true) {
+                                    alert(data.error || `Error HTTP ${res.status}`);
+                                    return;
+                                  }
+                                  alert('Código de seguimiento cargado y estado actualizado');
+                                  fetchOrders();
+                                } catch (err: any) {
+                                  alert(err?.message || 'Error al cargar código');
+                                }
+                              }}
+                            >
+                              Cargar Seguimiento
+                            </Button>
+                          ) : effectiveStatus === 'enviado' && order.tracking_code ? (
                             <Button
                               asChild
                               size="sm"
@@ -270,11 +322,11 @@ export default function AdminPedidosPage() {
                               variant="outline"
                             >
                               <a
-                                href={`https://app.zipnova.com.ar/shipments/${order.zipnova_shipment_id}`}
+                                href={`https://www.correoargentino.com.ar/formularios/e-commerce?tracking=${order.tracking_code}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                               >
-                                Ver Envío
+                                Ver Seguimiento
                               </a>
                             </Button>
                           ) : effectiveStatus === 'cancelado' ? (
@@ -283,14 +335,15 @@ export default function AdminPedidosPage() {
                             <span className="text-xs text-gray-400">—</span>
                           )}
 
-                          {/* Anular: solo si está Pagado */}
-                          {effectiveStatus === 'pagado' && order.zipnova_shipment_id && (
+                          {/* Anular: solo si está Para Despachar */}
+                          {effectiveStatus === 'para_despachar' && (
                             <Button
                               size="sm"
                               variant="outline"
                               className="bg-red-100 text-red-700 hover:bg-red-200 border border-red-300"
-                              onClick={async () => {
-                                const confirmed = window.confirm('¿Confirmás anular el envío?');
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                const confirmed = window.confirm('¿Confirmás anular la orden?');
                                 if (!confirmed) return;
                                 try {
                                   const token = localStorage.getItem('admin_token');
@@ -305,10 +358,10 @@ export default function AdminPedidosPage() {
                                     alert(data.error || `Error HTTP ${res.status}`);
                                     return;
                                   }
-                                  alert('Envío anulado correctamente');
+                                  alert('Orden anulada correctamente');
                                   fetchOrders();
                                 } catch (err: any) {
-                                  alert(err?.message || 'Error al anular envío');
+                                  alert(err?.message || 'Error al anular');
                                 }
                               }}
                             >
@@ -321,41 +374,64 @@ export default function AdminPedidosPage() {
                     {isExpanded && (
                       <TableRow>
                         <TableCell colSpan={6} className="bg-gray-50 p-0">
-                          <div className="p-4">
-                            <h4 className="font-semibold text-sm mb-3 text-gray-700">Items del pedido:</h4>
-                            <Table className="border border-gray-200">
-                              <TableHeader>
-                                <TableRow className="bg-gray-100">
-                                  <TableHead className="text-xs">ID Producto</TableHead>
-                                  <TableHead className="text-xs">Título</TableHead>
-                                  <TableHead className="text-xs text-center">Cantidad</TableHead>
-                                  <TableHead className="text-xs text-right">Precio Unit.</TableHead>
-                                  <TableHead className="text-xs text-right">Subtotal</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {items.length === 0 ? (
-                                  <TableRow>
-                                    <TableCell colSpan={5} className="text-center text-gray-500 text-sm py-4">
-                                      Cargando items...
-                                    </TableCell>
-                                  </TableRow>
-                                ) : (
-                                  items.map((item) => (
-                                    <TableRow key={item.id}>
-                                      <TableCell className="text-xs font-mono">{item.id_producto}</TableCell>
-                                      <TableCell className="text-sm">{item.title}</TableCell>
-                                      <TableCell className="text-sm text-center">{item.cantidad}</TableCell>
-                                      <TableCell className="text-sm text-right">${Number(item.precio_unitario).toFixed(2)}</TableCell>
-                                      <TableCell className="text-sm text-right font-medium">
-                                        ${(Number(item.precio_unitario) * item.cantidad).toFixed(2)}
-                                      </TableCell>
+                            <div className="grid md:grid-cols-2 gap-6 p-4">
+                              <div>
+                                <h4 className="font-semibold text-sm mb-3 text-gray-700">Items del pedido:</h4>
+                                <Table className="border border-gray-200">
+                                  <TableHeader>
+                                    <TableRow className="bg-gray-100">
+                                      <TableHead className="text-xs">ID Producto</TableHead>
+                                      <TableHead className="text-xs">Título</TableHead>
+                                      <TableHead className="text-xs text-center">Cantidad</TableHead>
+                                      <TableHead className="text-xs text-right">Precio Unit.</TableHead>
+                                      <TableHead className="text-xs text-right">Subtotal</TableHead>
                                     </TableRow>
-                                  ))
-                                )}
-                              </TableBody>
-                            </Table>
-                          </div>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {items.length === 0 ? (
+                                      <TableRow>
+                                        <TableCell colSpan={5} className="text-center text-gray-500 text-sm py-4">
+                                          Cargando items...
+                                        </TableCell>
+                                      </TableRow>
+                                    ) : (
+                                      items.map((item) => (
+                                        <TableRow key={item.id}>
+                                          <TableCell className="text-xs font-mono">{item.id_producto}</TableCell>
+                                          <TableCell className="text-sm">{item.title}</TableCell>
+                                          <TableCell className="text-sm text-center">{item.cantidad}</TableCell>
+                                          <TableCell className="text-sm text-right">${Number(item.precio_unitario).toFixed(2)}</TableCell>
+                                          <TableCell className="text-sm text-right font-medium">
+                                            ${(Number(item.precio_unitario) * item.cantidad).toFixed(2)}
+                                          </TableCell>
+                                        </TableRow>
+                                      ))
+                                    )}
+                                  </TableBody>
+                                </Table>
+                              </div>
+                              
+                              <div>
+                                <h4 className="font-semibold text-sm mb-3 text-gray-700">Información de Envío:</h4>
+                                <div className="bg-white p-4 border border-gray-200 rounded-lg text-sm text-gray-800 space-y-2">
+                                  <p><span className="font-medium text-gray-500 w-24 inline-block">Nombre:</span> {order.nombre_cliente || '-'}</p>
+                                  <p><span className="font-medium text-gray-500 w-24 inline-block">Email:</span> {order.email_cliente || '-'}</p>
+                                  <p><span className="font-medium text-gray-500 w-24 inline-block">DNI:</span> {order.dni_cliente || '-'}</p>
+                                  <p><span className="font-medium text-gray-500 w-24 inline-block">Teléfono:</span> {order.telefono_cliente || '-'}</p>
+                                  <hr className="my-2" />
+                                  <p><span className="font-medium text-gray-500 w-24 inline-block">Provincia:</span> {order.provincia || '-'}</p>
+                                  <p><span className="font-medium text-gray-500 w-24 inline-block">Ciudad:</span> {order.ciudad || '-'}</p>
+                                  <p><span className="font-medium text-gray-500 w-24 inline-block">Código Postal:</span> {order.codigo_postal || '-'}</p>
+                                  <p><span className="font-medium text-gray-500 w-24 inline-block">Dirección:</span> {order.direccion} {order.numero} {order.extra ? `(Depto: ${order.extra})` : ''}</p>
+                                  {order.tracking_code && (
+                                    <>
+                                      <hr className="my-2" />
+                                      <p><span className="font-medium text-gray-500 w-24 inline-block">Tracking:</span> <span className="font-mono bg-gray-100 px-1 py-0.5 rounded text-gray-700">{order.tracking_code}</span></p>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
                         </TableCell>
                       </TableRow>
                     )}

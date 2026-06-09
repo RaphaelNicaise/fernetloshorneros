@@ -52,11 +52,11 @@ CREATE TABLE IF NOT EXISTS pagos (
 CREATE TABLE IF NOT EXISTS envios (
     id VARCHAR(30) PRIMARY KEY, -- ID corto generado para external_id de Zipnova
     id_pedido INT NOT NULL,
-    rate_id VARCHAR(100) NOT NULL, -- ID de la tarifa de Zipnova
-    service_type VARCHAR(50) NOT NULL, -- standard_delivery o pickup_point
-    logistic_type VARCHAR(50) DEFAULT NULL, -- crossdock, carrier_dropoff, etc.
-    carrier_id INT DEFAULT NULL, -- ID del transportista en Zipnova
-    point_id VARCHAR(100) DEFAULT NULL, -- id del punto de retiro si aplica
+    rate_id VARCHAR(100) DEFAULT 'correo-argentino-fijo', -- ID de la tarifa (ahora manual)
+    service_type VARCHAR(50) DEFAULT 'standard_delivery', -- tipo de servicio (ahora siempre standard_delivery)
+    logistic_type VARCHAR(50) DEFAULT NULL, -- legacy Zipnova
+    carrier_id INT DEFAULT NULL, -- legacy Zipnova
+    point_id VARCHAR(100) DEFAULT NULL, -- legacy Zipnova
     costo DECIMAL(10, 2) NOT NULL,
     -- Datos de dirección
     provincia VARCHAR(100),
@@ -69,8 +69,9 @@ CREATE TABLE IF NOT EXISTS envios (
     email_cliente VARCHAR(100) NOT NULL,
     dni_cliente VARCHAR(20) NOT NULL,
     telefono_cliente VARCHAR(30) NOT NULL,
-    status VARCHAR(50) DEFAULT 'pending', -- 'pending', 'created', 'shipped', 'delivered' (WEBHOOK NO IMPLEMEANDO)
-    zipnova_shipment_id VARCHAR(100) DEFAULT NULL, -- id del envio creado en Zipnova
+    status VARCHAR(50) DEFAULT 'pending', -- 'pending', 'to_ship', 'shipped', 'cancelled'
+    tracking_code VARCHAR(100) DEFAULT NULL, -- código de seguimiento de Correo Argentino
+    zipnova_shipment_id VARCHAR(100) DEFAULT NULL, -- id del envio creado en Zipnova (legacy)
     fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (id_pedido) REFERENCES pedidos(id) ON DELETE CASCADE
 );
@@ -83,4 +84,5 @@ CREATE TABLE IF NOT EXISTS settings (
 );
 
 INSERT INTO settings (key_name, value) VALUES ('min_purchase_amount', '1000') ON DUPLICATE KEY UPDATE value=value;
+INSERT INTO settings (key_name, value) VALUES ('fixed_shipping_cost', '5000') ON DUPLICATE KEY UPDATE value=value;
 INSERT INTO settings (key_name, value) VALUES ('maintenance_mode', 'false') ON DUPLICATE KEY UPDATE value=value;
