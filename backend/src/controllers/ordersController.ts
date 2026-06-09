@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import { getAllOrders, getOrderItems, getEnvioByOrderId, updateEnvioStatus, getPaymentByOrderId, updateOrderStatus } from "@/services/ordersService";
-import { cancelShipment } from "@/services/enviosService";
+import { getAllOrders, getOrderItems, getEnvioByOrderId, updateEnvioStatus, getPaymentByOrderId, updateOrderStatus, updateEnvioTracking } from "@/services/ordersService";
+import { enviarMailComprador } from "@/services/mailService";
 
 /**
  * GET /orders
@@ -41,14 +41,8 @@ export async function cancelOrderShipment(req: Request, res: Response) {
 
         const envio = await getEnvioByOrderId(orderId);
         if (!envio) return res.status(404).json({ error: 'Envío no encontrado para la orden' });
-        if (!envio.zipnova_shipment_id) return res.status(400).json({ error: 'El envío aún no tiene shipment_id en Zipnova' });
 
-        const result = await cancelShipment(envio.zipnova_shipment_id);
-        if (!result.success) {
-            return res.status(502).json({ success: false, error: result.error || 'Error cancelando envío' });
-        }
-
-        await updateEnvioStatus(envio.id, 'cancelled', envio.zipnova_shipment_id);
+        await updateEnvioStatus(envio.id, 'cancelled');
 
         // Hacer refund en MercadoPago
         let refundResult = null;
@@ -80,9 +74,34 @@ export async function cancelOrderShipment(req: Request, res: Response) {
             console.error('Error haciendo refund en MercadoPago:', refundError);
         }
 
-        return res.json({ success: true, result: result.result || 'canceled', refund: refundResult });
+        return res.json({ success: true, refund: refundResult });
     } catch (error: any) {
         console.error('Error cancelando envío:', error);
+        return res.status(500).json({ error: error?.message || 'Error interno' });
+    }
+}
+
+/**
+ * POST /orders/:id/set-tracking
+ */
+export async function setOrderTracking(req: Request, res: Response) {
+    try {
+        const orderId = Number(req.params.id);
+        const { trackingCode } = req.body;
+        if (isNaN(orderId) || !trackingCode) return res.status(400).json({ error: 'ID o tracking code inválido' });
+
+        const envio = await getEnvioByOrderId(orderId);
+        if (!envio) return res.status(404).json({ error: 'Envío no encontrado' });
+
+        await updateEnvioTracking(envio.id, trackingCode);
+
+        // Enviar mail
+        const trackingUrl = `https://www.correoargentino.com.ar/formularios/e-commerce?tracking=${trackingCode}`;
+        await enviarMailComprador(envio.email_cliente, envio.nombre_cliente, trackingUrl, String(orderId));
+
+        return res.json({ success: true });
+    } catch (error: any) {
+        console.error('Error cargando tracking:', error);
         return res.status(500).json({ error: error?.message || 'Error interno' });
     }
 }
