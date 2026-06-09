@@ -12,7 +12,7 @@ const heroImages = [
 export default function MantenimientoPage() {
   return (
     <div className="relative min-h-screen bg-white overflow-hidden">
-      {/* Navbar bloqueado — solo logo, sin links */}
+      {/* Navbar bloqueado — solo logo, sin link */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-sm border-b border-neutral-200/60">
         <div className="container mx-auto max-w-6xl px-4 h-14 sm:h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 pointer-events-none select-none">
