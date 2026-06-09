@@ -5,6 +5,7 @@ import { useWaitlist, type WaitlistUser } from "@/hooks/use-waitlist"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Search, Download } from "lucide-react"
 import * as XLSX from "xlsx"
 
 type SortKey = keyof Pick<WaitlistUser, "id" | "nombre" | "email" | "provincia" | "fecha_registro">
@@ -88,20 +89,25 @@ export default function AdminListaEsperaPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <h2 className="font-serif text-3xl font-bold text-white">
           Lista de espera {(!loading && !error) ? <span className="text-white/70 text-2xl ml-2">({originalTotal})</span> : null}
         </h2>
-        <div className="flex items-center gap-2">
-          <Input
-            placeholder="Buscar..."
-            className="w-64 text-white placeholder:text-white/70 border-white"
-            value={query}
-            onChange={(e) => { setPage(1); setQuery(e.target.value) }}
-          />
-          <Button variant="outline" onClick={refetch}>Recargar</Button>
-          <Button variant="outline" onClick={exportXlsx} disabled={!data || data.length === 0}>Exportar a Excel</Button>
-          {/* Botón de importar CSV eliminado */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative w-full md:w-64">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+            <Input
+              placeholder="Buscar por ID, Nombre, Email..."
+              className="pl-9 bg-white text-black placeholder:text-gray-500 border-gray-300"
+              value={query}
+              onChange={(e) => { setPage(1); setQuery(e.target.value) }}
+            />
+          </div>
+          <Button variant="outline" className="h-10 bg-white text-black hover:bg-gray-100" onClick={exportXlsx} disabled={!data || data.length === 0}>
+            <Download className="w-4 h-4 mr-2" />
+            Exportar Excel
+          </Button>
+          <Button variant="secondary" className="h-10" onClick={refetch}>Recargar</Button>
         </div>
       </div>
       {/* Mensajes de importación eliminados */}

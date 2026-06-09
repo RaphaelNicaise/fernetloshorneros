@@ -1,4 +1,5 @@
 "use client"
+"use client"
 
 import { useEffect, useState } from "react"
 import { Input } from "@/components/ui/input"
@@ -8,6 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { API_BASE_URL } from "@/lib/api"
+import { Search, Download } from "lucide-react"
+import * as XLSX from "xlsx"
 
 type Product = {
   id: string
@@ -26,6 +29,7 @@ export default function AdminProductosPage() {
   const [items, setItems] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState("")
   const [createOpen, setCreateOpen] = useState(false)
   // La creación ahora exige subir archivo compatible (jpg/jpeg/png/webp)
   const [imageErrorCreate, setImageErrorCreate] = useState<string | null>(null)
@@ -191,14 +195,54 @@ export default function AdminProductosPage() {
     }
   }
 
+  const filteredItems = items.filter((p) => {
+    if (!searchQuery) return true
+    const q = searchQuery.toLowerCase()
+    return p.name.toLowerCase().includes(q) || p.id.toLowerCase().includes(q)
+  })
+
+  const exportXlsx = () => {
+    if (!filteredItems || filteredItems.length === 0) return
+    const rows = filteredItems.map((p) => ({
+      ID: p.id,
+      Nombre: p.name,
+      Descripción: p.description,
+      Precio: p.price,
+      Stock: p.stock,
+      Límite: p.limite === 0 ? "Sin límite" : p.limite,
+      Estado: p.status,
+    }))
+    const ws = XLSX.utils.json_to_sheet(rows)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, "Productos")
+    const ts = new Date()
+    const pad = (n: number) => String(n).padStart(2, "0")
+    const filename = `productos_${ts.getFullYear()}${pad(ts.getMonth() + 1)}${pad(ts.getDate())}_${pad(ts.getHours())}${pad(ts.getMinutes())}.xlsx`
+    XLSX.writeFile(wb, filename)
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <h1 className="font-serif text-4xl font-bold text-white">Productos</h1>
-        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-white text-black hover:bg-white/90">Nuevo producto</Button>
-          </DialogTrigger>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative w-full md:w-64">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+            <Input
+              placeholder="Buscar por ID o Nombre..."
+              className="pl-9 bg-white text-black placeholder:text-gray-500 border-gray-300"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <Button variant="outline" className="bg-white text-black hover:bg-gray-100 h-10" onClick={exportXlsx} disabled={filteredItems.length === 0}>
+            <Download className="w-4 h-4 mr-2" />
+            Exportar Excel
+          </Button>
+          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-white text-black hover:bg-white/90 h-10">Nuevo producto</Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Crear producto</DialogTitle>
@@ -316,6 +360,7 @@ export default function AdminProductosPage() {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Lista */}
@@ -348,14 +393,16 @@ export default function AdminProductosPage() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={9}>Cargando…</TableCell>
+                <TableCell colSpan={9} className="text-center py-6 text-gray-500">Cargando…</TableCell>
               </TableRow>
-            ) : items.length === 0 ? (
+            ) : filteredItems.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9}>Sin productos</TableCell>
+                <TableCell colSpan={9} className="text-center py-6 text-gray-500">
+                  {searchQuery ? "No se encontraron productos para tu búsqueda" : "Sin productos"}
+                </TableCell>
               </TableRow>
             ) : (
-              items.map((p) => (
+              filteredItems.map((p) => (
                 <TableRow key={p.id}>
                   <TableCell>
                     {p.image ? (

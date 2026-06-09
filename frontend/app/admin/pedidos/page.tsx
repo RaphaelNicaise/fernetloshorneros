@@ -4,7 +4,9 @@ import React, { useState, useEffect, useMemo } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { API_BASE_URL } from "@/lib/api"
-import { ChevronDown, ChevronRight, Info } from "lucide-react"
+import { ChevronDown, ChevronRight, Info, Search, Download } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import * as XLSX from "xlsx"
 
 type OrderStatus = "pending" | "paid" | "failed" | "cancelled"
 
@@ -78,6 +80,7 @@ export default function AdminPedidosPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [filterStatus, setFilterStatus] = useState<EffectiveStatus | "all">("all")
+  const [searchQuery, setSearchQuery] = useState("")
   const [page, setPage] = useState(1)
   const [sortKey, setSortKey] = useState<SortKey>("fecha")
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc")
@@ -165,9 +168,25 @@ export default function AdminPedidosPage() {
   }, [orders, sortKey, sortDir])
 
   const filteredOrders = useMemo(() => {
-    if (filterStatus === "all") return sorted
-    return sorted.filter(order => getEffectiveStatus(order) === filterStatus)
-  }, [sorted, filterStatus])
+    let result = sorted
+    
+    if (filterStatus !== "all") {
+      result = result.filter(order => getEffectiveStatus(order) === filterStatus)
+    }
+
+    const q = searchQuery.trim().toLowerCase()
+    if (q) {
+      result = result.filter((o) => {
+        const idMatch = String(o.id).includes(q)
+        const nameMatch = (o.nombre_cliente || "").toLowerCase().includes(q)
+        const emailMatch = (o.email_cliente || "").toLowerCase().includes(q)
+        const trackingMatch = (o.tracking_code || "").toLowerCase().includes(q)
+        return idMatch || nameMatch || emailMatch || trackingMatch
+      })
+    }
+
+    return result
+  }, [sorted, filterStatus, searchQuery])
 
   const total = filteredOrders.length
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE))
@@ -185,6 +204,33 @@ export default function AdminPedidosPage() {
     setPage(1)
   }
 
+  const exportXlsx = () => {
+    if (!filteredOrders || filteredOrders.length === 0) return
+    const rows = filteredOrders.map((o) => ({
+      ID: o.id,
+      Estado: EFFECTIVE_STATUS_LABELS[getEffectiveStatus(o)],
+      Total: o.total,
+      Fecha: new Date(o.fecha).toLocaleString(),
+      "Nombre Cliente": o.nombre_cliente || "-",
+      "Email Cliente": o.email_cliente || "-",
+      "DNI": o.dni_cliente || "-",
+      "Teléfono": o.telefono_cliente || "-",
+      "Provincia": o.provincia || "-",
+      "Ciudad": o.ciudad || "-",
+      "CP": o.codigo_postal || "-",
+      "Dirección": `${o.direccion || ""} ${o.numero || ""}`,
+      "Extra/Depto": o.extra || "-",
+      "Tracking": o.tracking_code || "-",
+    }))
+    const ws = XLSX.utils.json_to_sheet(rows)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, "Pedidos")
+    const ts = new Date()
+    const pad = (n: number) => String(n).padStart(2, "0")
+    const filename = `pedidos_${ts.getFullYear()}${pad(ts.getMonth() + 1)}${pad(ts.getDate())}_${pad(ts.getHours())}${pad(ts.getMinutes())}.xlsx`
+    XLSX.writeFile(wb, filename)
+  }
+
   if (loading) {
     return <div className="text-white">Cargando pedidos...</div>
   }
@@ -195,15 +241,24 @@ export default function AdminPedidosPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <h2 className="font-serif text-3xl font-bold text-white">
           Pedidos {total > 0 && <span className="text-white/70 text-2xl ml-2">({total})</span>}
         </h2>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative w-full md:w-64">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+            <Input
+              placeholder="Buscar por ID, Nombre, Email..."
+              className="pl-9 bg-white text-black placeholder:text-gray-500 border-gray-300"
+              value={searchQuery}
+              onChange={(e) => { setPage(1); setSearchQuery(e.target.value) }}
+            />
+          </div>
           <select
             value={filterStatus}
             onChange={(e) => { setFilterStatus(e.target.value as EffectiveStatus | "all"); setPage(1) }}
-            className="px-3 py-2 rounded-md border border-gray-300 bg-white text-black text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary"
+            className="px-3 py-2 rounded-md border border-gray-300 bg-white text-black text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary h-10"
           >
             <option value="all">Todos los estados</option>
             <option value="pendiente">Pendientes de Pago</option>
@@ -211,7 +266,11 @@ export default function AdminPedidosPage() {
             <option value="enviado">Enviados</option>
             <option value="cancelado">Cancelados</option>
           </select>
-          <Button variant="outline" onClick={fetchOrders}>
+          <Button variant="outline" className="h-10 bg-white text-black hover:bg-gray-100" onClick={exportXlsx} disabled={total === 0}>
+            <Download className="w-4 h-4 mr-2" />
+            Exportar Excel
+          </Button>
+          <Button variant="secondary" className="h-10" onClick={fetchOrders}>
             Recargar
           </Button>
         </div>
@@ -422,7 +481,15 @@ export default function AdminPedidosPage() {
                                   <p><span className="font-medium text-gray-500 w-24 inline-block">Provincia:</span> {order.provincia || '-'}</p>
                                   <p><span className="font-medium text-gray-500 w-24 inline-block">Ciudad:</span> {order.ciudad || '-'}</p>
                                   <p><span className="font-medium text-gray-500 w-24 inline-block">Código Postal:</span> {order.codigo_postal || '-'}</p>
-                                  <p><span className="font-medium text-gray-500 w-24 inline-block">Dirección:</span> {order.direccion} {order.numero} {order.extra ? `(Depto: ${order.extra})` : ''}</p>
+                                  <p><span className="font-medium text-gray-500 w-24 inline-block">Dirección:</span> {order.direccion} {order.numero}</p>
+                                  
+                                  {order.extra && (
+                                    <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-md">
+                                      <span className="font-semibold text-amber-800 text-xs uppercase tracking-wider block mb-1">Aclaración / Depto / Piso:</span>
+                                      <span className="text-amber-900 font-medium">{order.extra}</span>
+                                    </div>
+                                  )}
+
                                   {order.tracking_code && (
                                     <>
                                       <hr className="my-2" />
