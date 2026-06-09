@@ -2,6 +2,7 @@
 
 import { ImageCarousel } from "@/components/image-carousel"
 import Image from "next/image"
+import { useWaitlistModal } from "@/lib/waitlist-modal-context"
 
 const heroImages = [
   { src: "/fernet1.webp", alt: "Fernet 1" },
@@ -10,6 +11,8 @@ const heroImages = [
 ]
 
 export default function MantenimientoPage() {
+  const { open: openWaitlistModal } = useWaitlistModal()
+
   return (
     <div className="relative min-h-screen bg-white overflow-hidden">
       {/* Navbar bloqueado — solo logo, sin links */}
@@ -104,8 +107,21 @@ export default function MantenimientoPage() {
                     <p className="text-neutral-400 text-xs mt-0.5">Estamos mejorando la experiencia para vos.</p>
                   </div>
                 </div>
-                <span className="text-[11px] text-neutral-400">
-                  Te avisaremos cuando estemos de vuelta.
+                
+                <button
+                  onClick={openWaitlistModal}
+                  className="group mt-2 relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-full bg-[#0b0a07] px-8 py-3.5 text-sm font-semibold tracking-[0.1em] text-white transition-all duration-300 hover:bg-[#aa825e] hover:shadow-[0_0_20px_rgba(170,130,94,0.3)] hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-[#aa825e] focus:ring-offset-2 w-full sm:w-auto"
+                >
+                  <span className="relative z-10 flex items-center gap-2">
+                    Anotarme en lista de espera
+                    <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                  </span>
+                </button>
+
+                <span className="text-[11px] text-neutral-400 mt-2">
+                  Anotate ahora y te avisaremos cuando estemos de vuelta.
                 </span>
               </div>
             </div>
