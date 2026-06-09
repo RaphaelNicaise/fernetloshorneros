@@ -270,10 +270,10 @@ export default function AnalyticsPage() {
           </div>
           <div className="rounded-2xl border border-white/8 bg-[#0b0a07]/40 p-7 shadow-lg backdrop-blur-sm">
             <div className="flex items-center gap-2 mb-2 group relative">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">A Preparar</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">Para Despachar</p>
                 <Info size={12} className="text-white/30 cursor-help" />
                 <div className="absolute bottom-full mb-2 left-0 hidden w-48 rounded-md bg-[#1a1511] p-2 text-xs text-white/80 shadow-xl group-hover:block border border-[#AA6F3B]/20 z-50">
-                    Pedidos que ya fueron pagados y están a la espera de ser armados o despachados.
+                    Pedidos pagados que aún no tienen un código de seguimiento de Correo Argentino cargado.
                 </div>
             </div>
             <p className="font-mono text-3xl font-bold text-yellow-500">{pendingToPrepare}</p>
@@ -633,26 +633,25 @@ export default function AnalyticsPage() {
                     <p className="font-serif text-lg font-bold text-white">Estado del Embudo de Envíos</p>
                     <Info size={16} className="text-white/30 cursor-help" />
                     <div className="absolute bottom-full mb-2 left-0 hidden w-64 rounded-md bg-[#1a1511] p-3 text-xs text-white/80 shadow-xl group-hover:block border border-[#AA6F3B]/20 z-50">
-                        Progreso logístico mostrando cuántos pedidos siguen pendientes de armar, con etiqueta creada o en tránsito.
+                        Visualización del estado de los envíos para órdenes pagadas (Pendientes de despacho vs Ya enviados por Correo Argentino).
                     </div>
                 </div>
                 
-                <div className="relative flex w-full justify-between items-center px-4 mt-12 mb-4">
+                <div className="relative flex w-full justify-around items-center px-4 mt-12 mb-4">
                     {/* Línea de conexión base */}
-                    <div className="absolute top-5 left-10 right-10 h-1 bg-[#120e0b] -z-10" />
+                    <div className="absolute top-5 left-16 right-16 h-1 bg-[#120e0b] -z-10" />
                     {/* Renderizamos pasos lógicos del funnel */}
                     {[
-                        { id: 'pending', label: 'Pendiente', color: 'text-yellow-500', bg: 'bg-yellow-500/20', border: 'border-yellow-500/30' },
-                        { id: 'created', label: 'Etiquetado', color: 'text-blue-400', bg: 'bg-blue-400/20', border: 'border-blue-400/30' },
-                        { id: 'shipped', label: 'En Tránsito', color: 'text-indigo-400', bg: 'bg-indigo-400/20', border: 'border-indigo-400/30' },
-                        { id: 'delivered', label: 'Entregado', color: 'text-green-500', bg: 'bg-green-500/20', border: 'border-green-500/30' },
+                        { id: 'pending', label: 'Pendiente de Despacho', color: 'text-yellow-500', bg: 'bg-yellow-500/20', border: 'border-yellow-500/30' },
+                        { id: 'shipped', label: 'Enviado (Con Tracking)', color: 'text-green-500', bg: 'bg-green-500/20', border: 'border-green-500/30' },
+                        { id: 'cancelled', label: 'Anulado', color: 'text-gray-500', bg: 'bg-gray-500/20', border: 'border-gray-500/30' },
                     ].map((step, idx) => {
-                        const count = Number(stats.shipping.funnel.find(f => f.status === step.id)?.count || 0)
+                        const count = Number(stats.shipping.funnel.find(f => f.status === step.id || (step.id === 'pending' && f.status === null))?.count || 0)
                         const total = stats.shipping.funnel.reduce((a,c) => a + Number(c.count), 0)
                         const percent = total > 0 ? ((count / total)*100).toFixed(0) : "0"
 
                         return (
-                            <div key={step.id} className="flex flex-col items-center relative z-10 bg-[#0b0a07] px-2">
+                            <div key={step.id} className="flex flex-col items-center relative z-10 bg-[#0b0a07] px-4">
                                 <div className={`flex h-12 w-12 items-center justify-center rounded-full border-2 ${step.bg} ${step.border} ${step.color} shadow-lg`}>
                                     <span className="font-mono text-sm font-bold">{count}</span>
                                 </div>
@@ -664,36 +663,7 @@ export default function AnalyticsPage() {
                 </div>
             </div>
 
-            {/* Proporción de Entrega */}
-            <div className="rounded-2xl border border-white/8 bg-[#0b0a07]/40 p-7 shadow-lg backdrop-blur-sm">
-                <div className="flex items-center gap-2 mb-2 group relative">
-                    <p className="font-serif text-lg font-bold text-white">Proporción de Entrega</p>
-                    <Info size={16} className="text-white/30 cursor-help" />
-                    <div className="absolute bottom-full mb-2 left-0 hidden w-64 rounded-md bg-[#1a1511] p-3 text-xs text-white/80 shadow-xl group-hover:block border border-[#AA6F3B]/20 z-50">
-                        Compara la cantidad de gente que prefiere retirar en un punto logístico o sucursal vs los que prefieren el envío a domicilio.
-                    </div>
-                </div>
-                <div className="h-[250px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                            <Pie 
-                                data={stats.shipping.methods} 
-                                dataKey="count" 
-                                nameKey="service_type" 
-                                cx="50%" cy="50%" 
-                                innerRadius={70} outerRadius={100} 
-                                paddingAngle={5}
-                            >
-                                {stats.shipping.methods.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#6366f1' : '#8b5cf6'} />
-                                ))}
-                            </Pie>
-                            <RechartsTooltip contentStyle={{ backgroundColor: "#120e0b", borderColor: "#AA6F3B30", borderRadius: "12px", boxShadow: "0 10px 30px -10px rgba(0,0,0,0.5)" }} itemStyle={{ fontWeight: "bold" }} />
-                            <Legend verticalAlign="bottom" height={36} iconType="circle" />
-                        </PieChart>
-                    </ResponsiveContainer>
-                </div>
-            </div>
+
 
         </div>
       </section>

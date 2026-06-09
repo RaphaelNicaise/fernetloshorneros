@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { API_BASE_URL } from "@/lib/api"
 import { ChevronDown, ChevronRight, Info, Search, Download } from "lucide-react"
 import { Input } from "@/components/ui/input"
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import * as XLSX from "xlsx"
 
 type OrderStatus = "pending" | "paid" | "failed" | "cancelled"
@@ -255,6 +256,22 @@ export default function AdminPedidosPage() {
               onChange={(e) => { setPage(1); setSearchQuery(e.target.value) }}
             />
           </div>
+          <HoverCard>
+            <HoverCardTrigger asChild>
+              <Button variant="outline" className="h-10 bg-white text-black hover:bg-gray-100 flex items-center gap-2">
+                <Info className="w-4 h-4 text-blue-500" />
+                Guía de Estados
+              </Button>
+            </HoverCardTrigger>
+            <HoverCardContent className="w-80 bg-white p-4 shadow-xl border border-gray-200">
+              <div className="flex flex-col gap-2 text-sm text-gray-800">
+                <p><strong className="text-yellow-600">Pendiente de Pago:</strong> El cliente generó la orden pero el pago en MercadoPago aún no fue procesado o fue rechazado.</p>
+                <p><strong className="text-blue-600">Para Despachar:</strong> El pago se acreditó exitosamente y el pedido está listo para ser preparado y enviado.</p>
+                <p><strong className="text-green-600">Enviado:</strong> Se cargó el código de seguimiento de Correo Argentino (el cliente ya recibió el email).</p>
+                <p><strong className="text-gray-500">Cancelado:</strong> El pago falló definitivamente, o un pedido "Para Despachar" fue anulado manualmente por un administrador.</p>
+              </div>
+            </HoverCardContent>
+          </HoverCard>
           <select
             value={filterStatus}
             onChange={(e) => { setFilterStatus(e.target.value as EffectiveStatus | "all"); setPage(1) }}
@@ -276,15 +293,6 @@ export default function AdminPedidosPage() {
         </div>
       </div>
 
-      <div className="bg-white/10 rounded-xl p-4 flex gap-3 text-white/90 text-sm border border-white/20 shadow-sm">
-        <Info className="w-5 h-5 text-blue-300 shrink-0 mt-0.5" />
-        <div className="flex flex-col gap-1.5">
-          <p><strong className="text-yellow-300">Pendiente de Pago:</strong> El cliente generó la orden pero el pago en MercadoPago aún no fue procesado o fue rechazado.</p>
-          <p><strong className="text-blue-300">Para Despachar:</strong> El pago se acreditó exitosamente y el pedido está listo para ser preparado y enviado.</p>
-          <p><strong className="text-green-300">Enviado:</strong> Se cargó el código de seguimiento de Correo Argentino (el cliente ya recibió el email).</p>
-          <p><strong className="text-gray-300">Cancelado:</strong> El pago falló definitivamente, o un pedido "Para Despachar" fue anulado manualmente por un administrador.</p>
-        </div>
-      </div>
 
       <div className="rounded-lg border border-gray-200 bg-white text-black shadow-sm">
         <Table className="w-full">
