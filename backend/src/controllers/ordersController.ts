@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { getAllOrders, getOrderItems, getEnvioByOrderId, updateEnvioStatus, getPaymentByOrderId, updateOrderStatus, updateEnvioTracking } from "@/services/ordersService";
+import { getAllOrders, getOrderItems, getEnvioByOrderId, updateEnvioStatus, getPaymentByOrderId, updateOrderStatus, updateEnvioTracking, manualUpdateOrderStatus } from "@/services/ordersService";
 import { enviarMailComprador } from "@/services/mailService";
 
 /**
@@ -37,14 +37,16 @@ export async function listOrderItems(req: Request, res: Response) {
 export async function cancelOrderShipment(req: Request, res: Response) {
     try {
         const orderId = Number(req.params.id);
+        const { restoreStock } = req.body;
         if (isNaN(orderId)) return res.status(400).json({ error: 'ID inválido' });
 
         const envio = await getEnvioByOrderId(orderId);
         if (!envio) return res.status(404).json({ error: 'Envío no encontrado para la orden' });
 
-        await updateEnvioStatus(envio.id, 'cancelled');
+        // Actualizar estados en la base de datos de forma consistente y restaurar stock si se solicita
+        await manualUpdateOrderStatus(orderId, 'cancelado', null, restoreStock === true || restoreStock === undefined);
 
-        // Hacer refund en MercadoPago
+        // Hacer refund en MercadoPago si aplica
         let refundResult = null;
         try {
             const payment = await getPaymentByOrderId(orderId);
@@ -64,8 +66,6 @@ export async function cancelOrderShipment(req: Request, res: Response) {
                     );
                     refundResult = await refundRes.json().catch(() => null);
                     console.log('Refund MercadoPago result:', refundResult);
-
-                    await updateOrderStatus(orderId, 'cancelled');
                 } else {
                     console.warn('MP_ACCESS_TOKEN no configurado, no se pudo hacer refund');
                 }
@@ -102,6 +102,85 @@ export async function setOrderTracking(req: Request, res: Response) {
         return res.json({ success: true });
     } catch (error: any) {
         console.error('Error cargando tracking:', error);
+        return res.status(500).json({ error: error?.message || 'Error interno' });
+    }
+}
+
+/**
+ * POST /orders/:id/update-status
+ */
+export async function updateOrderStatusHandler(req: Request, res: Response) {
+    try {
+        const orderId = Number(req.params.id);
+        const { status, trackingCode, sendEmail, restoreStock } = req.body;
+
+        if (isNaN(orderId)) return res.status(400).json({ error: 'ID de pedido inválido' });
+
+        const validStatuses = ["pendiente", "para_despachar", "enviado", "cancelado"];
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({ error: 'Estado inválido' });
+        }
+
+        await manualUpdateOrderStatus(orderId, status, trackingCode, restoreStock);
+
+        // Enviar mail si se despacha, se provee trackingCode y sendEmail es true
+        if (status === "enviado" && sendEmail && trackingCode) {
+            try {
+                const envio = await getEnvioByOrderId(orderId);
+                if (envio) {
+                    const trackingUrl = `https://www.correoargentino.com.ar/formularios/e-commerce?tracking=${trackingCode}`;
+                    await enviarMailComprador(envio.email_cliente, envio.nombre_cliente, trackingUrl, String(orderId));
+                }
+            } catch (mailError) {
+                console.error("Error al enviar email de tracking:", mailError);
+            }
+        }
+
+        return res.json({ success: true });
+    } catch (error: any) {
+        console.error('Error actualizando estado de pedido:', error);
+        return res.status(500).json({ error: error?.message || 'Error interno' });
+    }
+}
+
+/**
+ * POST /orders/bulk-update-status
+ */
+export async function bulkUpdateOrderStatusHandler(req: Request, res: Response) {
+    try {
+        const { ids, status, trackingCode, sendEmail, restoreStock } = req.body;
+
+        if (!Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({ error: 'IDs inválidos' });
+        }
+
+        const validStatuses = ["pendiente", "para_despachar", "enviado", "cancelado"];
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({ error: 'Estado inválido' });
+        }
+
+        for (const id of ids) {
+            const orderId = Number(id);
+            if (isNaN(orderId)) continue;
+
+            await manualUpdateOrderStatus(orderId, status, trackingCode, restoreStock);
+
+            if (status === "enviado" && sendEmail && trackingCode) {
+                try {
+                    const envio = await getEnvioByOrderId(orderId);
+                    if (envio) {
+                        const trackingUrl = `https://www.correoargentino.com.ar/formularios/e-commerce?tracking=${trackingCode}`;
+                        await enviarMailComprador(envio.email_cliente, envio.nombre_cliente, trackingUrl, String(orderId));
+                    }
+                } catch (mailError) {
+                    console.error(`Error al enviar email de tracking para orden ${orderId}:`, mailError);
+                }
+            }
+        }
+
+        return res.json({ success: true, count: ids.length });
+    } catch (error: any) {
+        console.error('Error en actualización masiva de pedidos:', error);
         return res.status(500).json({ error: error?.message || 'Error interno' });
     }
 }

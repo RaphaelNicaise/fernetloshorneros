@@ -461,3 +461,163 @@ export async function getExpiredReservations(minutesThreshold: number = 5): Prom
     return orders;
 }
 
+/**
+ * Actualiza manualmente el estado de un pedido (soporta transición de estados efectiva)
+ */
+export async function manualUpdateOrderStatus(
+    orderId: number,
+    newEffectiveStatus: "pendiente" | "para_despachar" | "enviado" | "cancelado",
+    trackingCode?: string | null,
+    restoreStock: boolean = false
+): Promise<void> {
+    const transaction = await sequelize.transaction();
+    try {
+        // 1. Obtener estado actual del pedido y envío
+        const orders = await sequelize.query<any>(
+            `SELECT p.status as order_status, e.status as envio_status 
+             FROM pedidos p 
+             LEFT JOIN envios e ON e.id_pedido = p.id 
+             WHERE p.id = :id`,
+            {
+                replacements: { id: orderId },
+                type: QueryTypes.SELECT,
+                transaction,
+            }
+        );
+
+        if (orders.length === 0) {
+            throw new Error(`Pedido ${orderId} no encontrado`);
+        }
+
+        const currentOrder = orders[0];
+        const oldEffectiveStatus = (() => {
+            if (currentOrder.envio_status === 'cancelled' || currentOrder.order_status === 'cancelled' || currentOrder.order_status === 'failed') return "cancelado";
+            if (currentOrder.order_status === 'paid') {
+                if (currentOrder.envio_status === 'shipped') return "enviado";
+                return "para_despachar";
+            }
+            return "pendiente";
+        })();
+
+        // Mapear estado efectivo a estados en DB
+        let pedidoStatus: OrderStatus = "pending";
+        let envioStatus = "pending";
+
+        if (newEffectiveStatus === "pendiente") {
+            pedidoStatus = "pending";
+            envioStatus = "pending";
+        } else if (newEffectiveStatus === "para_despachar") {
+            pedidoStatus = "paid";
+            envioStatus = "pending";
+        } else if (newEffectiveStatus === "enviado") {
+            pedidoStatus = "paid";
+            envioStatus = "shipped";
+        } else if (newEffectiveStatus === "cancelado") {
+            pedidoStatus = "cancelled";
+            envioStatus = "cancelled";
+        }
+
+        // 2. Actualizar estado del pedido (pedidos)
+        await sequelize.query(
+            `UPDATE pedidos SET status = :status WHERE id = :id`,
+            {
+                replacements: { id: orderId, status: pedidoStatus },
+                type: QueryTypes.UPDATE,
+                transaction,
+            }
+        );
+
+        // 3. Actualizar estado del envío (envios)
+        const envios = await sequelize.query<any>(
+            `SELECT id FROM envios WHERE id_pedido = :orderId`,
+            {
+                replacements: { orderId },
+                type: QueryTypes.SELECT,
+                transaction,
+            }
+        );
+
+        if (envios.length > 0) {
+            const envioId = envios[0].id;
+            if (newEffectiveStatus === "enviado") {
+                await sequelize.query(
+                    `UPDATE envios SET status = :status, tracking_code = :tracking_code WHERE id = :id`,
+                    {
+                        replacements: {
+                            id: envioId,
+                            status: envioStatus,
+                            tracking_code: trackingCode || null
+                        },
+                        type: QueryTypes.UPDATE,
+                        transaction,
+                    }
+                );
+            } else {
+                // Si cambiamos de enviado a otro estado, limpiamos el código de seguimiento
+                await sequelize.query(
+                    `UPDATE envios SET status = :status, tracking_code = NULL WHERE id = :id`,
+                    {
+                        replacements: {
+                            id: envioId,
+                            status: envioStatus
+                        },
+                        type: QueryTypes.UPDATE,
+                        transaction,
+                    }
+                );
+            }
+        }
+
+        // 4. Restauración de stock si se cancela y se solicita restaurar stock
+        if (newEffectiveStatus === "cancelado" && oldEffectiveStatus !== "cancelado" && restoreStock) {
+            const items = await sequelize.query<any>(
+                `SELECT id_producto, cantidad FROM pedido_items WHERE id_pedido = :orderId`,
+                {
+                    replacements: { orderId },
+                    type: QueryTypes.SELECT,
+                    transaction,
+                }
+            );
+
+            for (const item of items) {
+                const products = await sequelize.query<any>(
+                    `SELECT stock, status FROM productos WHERE id = :id`,
+                    {
+                        replacements: { id: item.id_producto },
+                        type: QueryTypes.SELECT,
+                        transaction,
+                    }
+                );
+                if (products.length > 0) {
+                    const p = products[0];
+                    const newStock = Number(p.stock) + Number(item.cantidad);
+                    const newStatus = p.status === 'agotado' && newStock > 0 ? 'disponible' : p.status;
+                    await sequelize.query(
+                        `UPDATE productos SET stock = :newStock, status = :newStatus WHERE id = :id`,
+                        {
+                            replacements: { id: item.id_producto, newStock, newStatus },
+                            type: QueryTypes.UPDATE,
+                            transaction,
+                        }
+                    );
+                }
+            }
+
+            // También nos aseguramos de liberar la bandera de reserva si seguía activa
+            await sequelize.query(
+                `UPDATE pedidos SET stock_reserved = 0 WHERE id = :id`,
+                {
+                    replacements: { id: orderId },
+                    type: QueryTypes.UPDATE,
+                    transaction,
+                }
+            );
+        }
+
+        await transaction.commit();
+    } catch (error) {
+        await transaction.rollback();
+        throw error;
+    }
+}
+

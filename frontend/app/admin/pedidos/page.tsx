@@ -7,6 +7,7 @@ import { API_BASE_URL } from "@/lib/api"
 import { ChevronDown, ChevronRight, Info, Search, Download } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
+import { Checkbox } from "@/components/ui/checkbox"
 import * as XLSX from "xlsx"
 
 type OrderStatus = "pending" | "paid" | "failed" | "cancelled"
@@ -86,9 +87,66 @@ export default function AdminPedidosPage() {
   const [sortKey, setSortKey] = useState<SortKey>("fecha")
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc")
 
+  // Estados para modal de cambio de estado
+  const [statusModalOpen, setStatusModalOpen] = useState(false)
+  const [statusModalTarget, setStatusModalTarget] = useState<Order | null>(null)
+  const [statusModalNewStatus, setStatusModalNewStatus] = useState<EffectiveStatus | "">("")
+  const [statusModalTrackingCode, setStatusModalTrackingCode] = useState("")
+  const [statusModalSendEmail, setStatusModalSendEmail] = useState(true)
+  const [statusModalRestoreStock, setStatusModalRestoreStock] = useState(true)
+  const [submittingStatus, setSubmittingStatus] = useState(false)
+
   useEffect(() => {
     fetchOrders()
   }, [])
+
+  function openStatusModal(order: Order) {
+    setStatusModalTarget(order);
+    const eff = getEffectiveStatus(order);
+    setStatusModalNewStatus(eff);
+    setStatusModalTrackingCode(order.tracking_code || "");
+    setStatusModalSendEmail(false); // por defecto falso en manual
+    setStatusModalRestoreStock(true);
+    setStatusModalOpen(true);
+  }
+
+  async function handleUpdateStatus() {
+    if (!statusModalNewStatus || !statusModalTarget) return;
+    try {
+      setSubmittingStatus(true);
+      const token = localStorage.getItem("admin_token");
+      
+      const payload = {
+        status: statusModalNewStatus,
+        trackingCode: statusModalNewStatus === "enviado" ? statusModalTrackingCode : undefined,
+        sendEmail: statusModalNewStatus === "enviado" ? statusModalSendEmail : undefined,
+        restoreStock: statusModalNewStatus === "cancelado" ? statusModalRestoreStock : undefined,
+      };
+
+      const res = await fetch(`${API_BASE_URL}/orders/${statusModalTarget.id}/update-status`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.success !== true) {
+        alert(data.error || `Error HTTP ${res.status}`);
+        return;
+      }
+
+      alert("Estado actualizado correctamente");
+      setStatusModalOpen(false);
+      fetchOrders();
+    } catch (e: any) {
+      alert(e?.message || "Error al actualizar estado");
+    } finally {
+      setSubmittingStatus(false);
+    }
+  }
 
   async function fetchOrders() {
     try {
@@ -311,7 +369,7 @@ export default function AdminPedidosPage() {
               <TableHead className="w-32 text-right cursor-pointer whitespace-nowrap" onClick={() => changeSort("total")}>
                 Total {sortKey === "total" ? (sortDir === "asc" ? "▲" : "▼") : null}
               </TableHead>
-              <TableHead className="w-36">Acción</TableHead>
+              <TableHead className="w-44">Acción</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -346,7 +404,19 @@ export default function AdminPedidosPage() {
                       <TableCell>{new Date(order.fecha).toLocaleString()}</TableCell>
                       <TableCell className="text-right font-semibold">${Number(order.total).toFixed(2)}</TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="bg-purple-100 text-purple-700 hover:bg-purple-200 border border-purple-300"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openStatusModal(order);
+                            }}
+                          >
+                            Estado
+                          </Button>
+
                           {/* Acciones principales */}
                           {effectiveStatus === 'para_despachar' ? (
                             <Button
@@ -379,7 +449,7 @@ export default function AdminPedidosPage() {
                                 }
                               }}
                             >
-                              Cargar Seguimiento
+                              Seguimiento
                             </Button>
                           ) : effectiveStatus === 'enviado' && order.tracking_code ? (
                             <Button
@@ -393,7 +463,7 @@ export default function AdminPedidosPage() {
                                 target="_blank"
                                 rel="noopener noreferrer"
                               >
-                                Ver Seguimiento
+                                Ver
                               </a>
                             </Button>
                           ) : effectiveStatus === 'cancelado' ? (
@@ -402,7 +472,7 @@ export default function AdminPedidosPage() {
                             <span className="text-xs text-gray-400">—</span>
                           )}
 
-                          {/* Anular: solo si está Para Despachar */}
+                          {/* Anular con reembolso: solo si está Para Despachar */}
                           {effectiveStatus === 'para_despachar' && (
                             <Button
                               size="sm"
@@ -410,29 +480,34 @@ export default function AdminPedidosPage() {
                               className="bg-red-100 text-red-700 hover:bg-red-200 border border-red-300"
                               onClick={async (e) => {
                                 e.stopPropagation();
-                                const confirmed = window.confirm('¿Confirmás anular la orden?');
+                                const confirmed = window.confirm('¿Confirmás anular la orden con reembolso en MercadoPago?');
                                 if (!confirmed) return;
+                                
+                                const restore = window.confirm('¿Querés devolver el stock de los productos al inventario?');
+                                
                                 try {
                                   const token = localStorage.getItem('admin_token');
                                   const res = await fetch(`${API_BASE_URL}/orders/${order.id}/cancel-shipment`, {
                                     method: 'POST',
                                     headers: {
+                                      'Content-Type': 'application/json',
                                       Authorization: `Bearer ${token}`,
                                     },
+                                    body: JSON.stringify({ restoreStock: restore }),
                                   });
                                   const data = await res.json().catch(() => ({}));
                                   if (!res.ok || data.success !== true) {
                                     alert(data.error || `Error HTTP ${res.status}`);
                                     return;
                                   }
-                                  alert('Orden anulada correctamente');
+                                  alert('Orden anulada y reembolso procesado correctamente');
                                   fetchOrders();
                                 } catch (err: any) {
                                   alert(err?.message || 'Error al anular');
                                 }
                               }}
                             >
-                              Anular
+                              Anular (Reembolso MP)
                             </Button>
                           )}
                         </div>
@@ -533,6 +608,109 @@ export default function AdminPedidosPage() {
           </Button>
         </div>
       </div>
+
+      {/* Modal de Cambio de Estado (Glassmorphic Overlay) */}
+      {statusModalOpen && statusModalTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4">
+          <div className="w-full max-w-md bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden transform transition-all duration-300 scale-100 flex flex-col text-black">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
+              <h3 className="font-serif text-lg font-bold text-gray-950">
+                Cambiar Estado: Pedido #{statusModalTarget.id}
+              </h3>
+              <button 
+                onClick={() => setStatusModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-4 flex-1">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block">Nuevo Estado</label>
+                <select
+                  value={statusModalNewStatus}
+                  onChange={(e) => {
+                    const s = e.target.value as EffectiveStatus;
+                    setStatusModalNewStatus(s);
+                    // establecer valores por defecto
+                    if (s === "enviado") {
+                      setStatusModalSendEmail(true); // activar por defecto en individual
+                    } else if (s === "cancelado") {
+                      setStatusModalRestoreStock(true);
+                    }
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white text-black font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                >
+                  <option value="" disabled>Seleccioná un estado...</option>
+                  <option value="pendiente">Pendiente de Pago</option>
+                  <option value="para_despachar">Para Despachar</option>
+                  <option value="enviado">Enviado (Despachado)</option>
+                  <option value="cancelado">Cancelado (Anulado)</option>
+                </select>
+              </div>
+
+              {/* Campos condicionales */}
+              {statusModalNewStatus === "enviado" && (
+                <div className="space-y-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block">Código de Seguimiento (Opcional)</label>
+                    <Input
+                      placeholder="Ej: CP123456789AR"
+                      value={statusModalTrackingCode}
+                      onChange={(e) => setStatusModalTrackingCode(e.target.value)}
+                      className="bg-white border-gray-300 text-black text-sm"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Checkbox
+                      id="sendEmailCheckbox"
+                      checked={statusModalSendEmail}
+                      onCheckedChange={(checked) => setStatusModalSendEmail(!!checked)}
+                    />
+                    <label htmlFor="sendEmailCheckbox" className="text-xs font-medium text-gray-600 select-none cursor-pointer">
+                      Enviar email de notificación de envío al comprador
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {statusModalNewStatus === "cancelado" && (
+                <div className="p-3 bg-red-50 rounded-lg border border-red-100 flex items-center gap-2">
+                  <Checkbox
+                    id="restoreStockCheckbox"
+                    checked={statusModalRestoreStock}
+                    onCheckedChange={(checked) => setStatusModalRestoreStock(!!checked)}
+                  />
+                  <label htmlFor="restoreStockCheckbox" className="text-xs font-medium text-red-900 select-none cursor-pointer">
+                    Restaurar stock de productos (devolver al inventario)
+                  </label>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setStatusModalOpen(false)}
+                disabled={submittingStatus}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleUpdateStatus}
+                disabled={!statusModalNewStatus || submittingStatus}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                {submittingStatus ? "Guardando..." : "Confirmar"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
