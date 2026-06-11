@@ -268,7 +268,9 @@ export async function deleteOrderHandler(req: Request, res: Response) {
         return res.json({ success: true });
     } catch (error: any) {
         console.error('Error eliminando el pedido:', error);
-        return res.status(500).json({ error: error?.message || 'Error interno' }
+        return res.status(500).json({ error: error?.message || 'Error interno' });
+    }
+}
 
 /**
  * POST /orders/manual
@@ -351,8 +353,5 @@ export async function createManualOrderHandler(req: Request, res: Response) {
     } catch (error: any) {
         console.error('Error creando pedido manual:', error);
         return res.status(500).json({ error: error?.message || 'Error interno' });
-    }
-}
-);
     }
 }
