@@ -77,7 +77,6 @@ export default function AnalyticsPage() {
   const [hoveredWaitlistProv, setHoveredWaitlistProv] = useState<string | null>(null)
 
   // Filtros Globales
-  const [dateRange, setDateRange] = useState("all") // histórico completo por defecto
   
   // Filtros Locales
   const [revenueGroup, setRevenueGroup] = useState("day")
@@ -92,11 +91,7 @@ export default function AnalyticsPage() {
     // Calcular fechas
     const end = new Date()
     const start = new Date()
-    if (dateRange !== "all") {
-        start.setDate(end.getDate() - parseInt(dateRange))
-    } else {
-        start.setFullYear(2023) // histórico
-    }
+    start.setFullYear(2023) // histórico completo siempre
 
     try {
       const res = await fetch(`${API_BASE_URL}/admin/analytics-bi?startDate=${start.toISOString()}&endDate=${end.toISOString()}`, {
@@ -115,7 +110,7 @@ export default function AnalyticsPage() {
 
   useEffect(() => {
     load()
-  }, [dateRange])
+  }, [])
 
   const scrollTo = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" })
@@ -197,7 +192,7 @@ export default function AnalyticsPage() {
   const anotados = Number(waitData.total_anotados) || 0
   const compraron = Number(waitData.total_compraron) || 0
   const conversionRate = anotados > 0 ? ((compraron / anotados) * 100).toFixed(1) : "0"
-  const pendingToPrepare = stats.shipping.funnel.find(f => f.status === 'pending' || f.status === 'created')?.count || 0
+  const pendingToPrepare = stats.shipping.funnel.find(f => f.status === 'para_despachar')?.count || 0
 
   // Custom YAxis Tick for Top Products
   const CustomYAxisTick = (props: any) => {
@@ -238,19 +233,6 @@ export default function AnalyticsPage() {
 
           {/* Filtros Globales */}
           <div className="flex items-center gap-2">
-            <Select value={dateRange} onValueChange={(value) => setDateRange(value)}>
-              <SelectTrigger className="bg-[#0b0a07] border border-white/10 text-white/80 text-xs rounded-lg h-9 px-3 py-2 outline-none focus:border-[#AA6F3B]/50 cursor-pointer select-none">
-                <SelectValue placeholder="Rango de fecha" />
-              </SelectTrigger>
-              <SelectContent className="bg-[#0b0a07] border border-white/10 text-white">
-                <SelectItem value="7">Últimos 7 días</SelectItem>
-                <SelectItem value="30">Últimos 30 días</SelectItem>
-                <SelectItem value="90">Últimos 90 días</SelectItem>
-                <SelectItem value="365">Último Año</SelectItem>
-                <SelectItem value="all">Histórico Completo</SelectItem>
-              </SelectContent>
-            </Select>
-
             <button onClick={() => load(true)} disabled={refreshing} className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#AA6F3B]/20 text-[#AA6F3B] hover:bg-[#AA6F3B]/30 transition-colors">
               <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
             </button>
