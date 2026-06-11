@@ -227,21 +227,21 @@ export default function AdminProductosPage() {
         <h1 className="font-serif text-4xl font-bold text-white">Productos</h1>
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative w-full md:w-64">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-white/40" />
             <Input
               placeholder="Buscar por ID o Nombre..."
-              className="pl-9 bg-white text-black placeholder:text-gray-500 border-gray-300"
+              className="pl-9 bg-white/5 border-white/10 text-white placeholder:text-white/40 focus:border-[#AA6F3B]/50 h-10"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <Button variant="outline" className="bg-white text-black hover:bg-gray-100 h-10" onClick={exportXlsx} disabled={filteredItems.length === 0}>
-            <Download className="w-4 h-4 mr-2" />
+          <Button variant="outline" className="h-10 border-white/10 bg-white/5 text-white hover:bg-white/10 flex items-center gap-2" onClick={exportXlsx} disabled={filteredItems.length === 0}>
+            <Download className="w-4 h-4" />
             Exportar Excel
           </Button>
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-white text-black hover:bg-white/90 h-10">Nuevo producto</Button>
+              <Button className="bg-[#AA6F3B] hover:bg-[#AA6F3B]/90 text-white font-semibold h-10 border-0">Nuevo producto</Button>
             </DialogTrigger>
           <DialogContent>
             <DialogHeader>
@@ -364,7 +364,7 @@ export default function AdminProductosPage() {
       </div>
 
       {/* Lista */}
-      <div className="rounded-lg border bg-white p-2">
+      <div className="rounded-xl border border-white/8 bg-[#0b0a07]/40 shadow-2xl backdrop-blur-sm text-white overflow-hidden p-2">
         <Table className="table-fixed">
           <colgroup>
             <col className="w-[76px]" />
@@ -377,17 +377,17 @@ export default function AdminProductosPage() {
             <col className="w-[80px]" />
             <col className="w-[220px]" />
           </colgroup>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Imagen</TableHead>
-              <TableHead>ID</TableHead>
-              <TableHead>Nombre</TableHead>
-              <TableHead>Descripción</TableHead>
-              <TableHead>Precio</TableHead>
-              <TableHead>Estado</TableHead>
-              <TableHead>Stock</TableHead>
-              <TableHead>Límite</TableHead>
-              <TableHead>Acciones</TableHead>
+          <TableHeader className="border-b border-white/8">
+            <TableRow className="hover:bg-transparent border-b border-white/8">
+              <TableHead className="text-white/60">Imagen</TableHead>
+              <TableHead className="text-white/60">ID</TableHead>
+              <TableHead className="text-white/60">Nombre</TableHead>
+              <TableHead className="text-white/60">Descripción</TableHead>
+              <TableHead className="text-white/60">Precio</TableHead>
+              <TableHead className="text-white/60">Estado</TableHead>
+              <TableHead className="text-white/60">Stock</TableHead>
+              <TableHead className="text-white/60">Límite</TableHead>
+              <TableHead className="text-white/60">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -403,7 +403,7 @@ export default function AdminProductosPage() {
               </TableRow>
             ) : (
               filteredItems.map((p) => (
-                <TableRow key={p.id}>
+                <TableRow key={p.id} className="hover:bg-white/5 border-b border-white/5 text-white/90">
                   <TableCell>
                     {p.image ? (
                       // eslint-disable-next-line @next/next/no-img-element

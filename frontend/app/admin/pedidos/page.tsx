@@ -75,10 +75,10 @@ const EFFECTIVE_STATUS_LABELS: Record<EffectiveStatus, string> = {
 }
 
 const EFFECTIVE_STATUS_COLORS: Record<EffectiveStatus, string> = {
-  pendiente: "bg-yellow-100 text-yellow-800",
-  para_despachar: "bg-blue-100 text-blue-800",
-  enviado: "bg-green-100 text-green-800",
-  cancelado: "bg-gray-100 text-gray-800",
+  pendiente: "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20",
+  para_despachar: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
+  enviado: "bg-green-500/10 text-green-400 border border-green-500/20",
+  cancelado: "bg-white/5 text-white/50 border border-white/10",
 }
 
 const PAGE_SIZE = 15
@@ -540,68 +540,72 @@ export default function AdminPedidosPage() {
         </h2>
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative w-full md:w-64">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-white/40" />
             <Input
               placeholder="Buscar por ID, Nombre, Email..."
-              className="pl-9 bg-white text-black placeholder:text-gray-500 border-gray-300"
+              className="pl-9 bg-white/5 border-white/10 text-white placeholder:text-white/40 focus:border-[#AA6F3B]/50 h-10"
               value={searchQuery}
               onChange={(e) => { setPage(1); setSearchQuery(e.target.value) }}
             />
           </div>
           <HoverCard>
             <HoverCardTrigger asChild>
-              <Button variant="outline" className="h-10 bg-white text-black hover:bg-gray-100 flex items-center gap-2">
-                <Info className="w-4 h-4 text-blue-500" />
+              <Button variant="outline" className="h-10 border-white/10 bg-white/5 text-white hover:bg-white/10 flex items-center gap-2">
+                <Info className="w-4 h-4 text-[#AA6F3B]" />
                 Guía de Estados
               </Button>
             </HoverCardTrigger>
-            <HoverCardContent className="w-80 bg-white p-4 shadow-xl border border-gray-200">
-              <div className="flex flex-col gap-2 text-sm text-gray-800">
-                <p><strong className="text-yellow-600">Pendiente de Pago:</strong> El cliente generó la orden pero el pago en MercadoPago aún no fue procesado o fue rechazado.</p>
-                <p><strong className="text-blue-600">Para Despachar:</strong> El pago se acreditó exitosamente y el pedido está listo para ser preparado y enviado.</p>
-                <p><strong className="text-green-600">Enviado:</strong> Se cargó el código de seguimiento de Correo Argentino (el cliente ya recibió el email).</p>
-                <p><strong className="text-gray-500">Cancelado:</strong> El pago falló definitivamente, o un pedido "Para Despachar" fue anulado manualmente por un administrador.</p>
+            <HoverCardContent className="w-85 bg-[#0b0a07] p-4 shadow-2xl border border-white/10 text-white">
+              <div className="flex flex-col gap-2 text-sm text-white/80">
+                <p><strong className="text-yellow-500">Pendiente de Pago:</strong> El cliente generó la orden pero el pago en MercadoPago aún no fue procesado o fue rechazado.</p>
+                <p><strong className="text-blue-400">Para Despachar:</strong> El pago se acreditó exitosamente y el pedido está listo para ser preparado y enviado.</p>
+                <p><strong className="text-green-400">Enviado:</strong> Se cargó el código de seguimiento de Correo Argentino (el cliente ya recibió el email).</p>
+                <p><strong className="text-gray-400">Cancelado:</strong> El pago falló definitivamente, o un pedido "Para Despachar" fue anulado manualmente por un administrador.</p>
               </div>
             </HoverCardContent>
           </HoverCard>
-          <select
+          <Select
             value={filterStatus}
-            onChange={(e) => { setFilterStatus(e.target.value as EffectiveStatus | "all"); setPage(1) }}
-            className="px-3 py-2 rounded-md border border-gray-300 bg-white text-black text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary h-10"
+            onValueChange={(val) => { setFilterStatus(val as EffectiveStatus | "all"); setPage(1) }}
           >
-            <option value="all">Todos los estados</option>
-            <option value="pendiente">Pendientes de Pago</option>
-            <option value="para_despachar">Para Despachar</option>
-            <option value="enviado">Enviados</option>
-            <option value="cancelado">Cancelados</option>
-          </select>
-          <Button variant="outline" className="h-10 bg-white text-black hover:bg-gray-100" onClick={exportXlsx} disabled={total === 0}>
-            <Download className="w-4 h-4 mr-2" />
-            Exportar Excel
+            <SelectTrigger className="w-full md:w-48 bg-white/5 border-white/10 text-white placeholder:text-white/40 focus:border-[#AA6F3B]/50 h-10 cursor-pointer select-none">
+              <SelectValue placeholder="Todos los estados" />
+            </SelectTrigger>
+            <SelectContent className="bg-[#0b0a07] border border-white/10 text-white">
+              <SelectItem value="all">Todos los estados</SelectItem>
+              <SelectItem value="pendiente">Pendientes de Pago</SelectItem>
+              <SelectItem value="para_despachar">Para Despachar</SelectItem>
+              <SelectItem value="enviado">Enviados</SelectItem>
+              <SelectItem value="cancelado">Cancelados</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" className="h-10 border-white/10 bg-white/5 text-white hover:bg-white/10 flex items-center gap-2" onClick={exportXlsx} disabled={total === 0 || exporting}>
+            <Download className="w-4 h-4" />
+            {exporting ? "Exportando..." : "Exportar Excel"}
           </Button>
-          <Button variant="secondary" className="h-10" onClick={fetchOrders}>
+          <Button variant="secondary" className="h-10 bg-[#AA6F3B]/20 text-[#AA6F3B] hover:bg-[#AA6F3B]/30 border border-[#AA6F3B]/30" onClick={fetchOrders}>
             Recargar
           </Button>
         </div>
       </div>
-      <div className="rounded-lg border border-gray-200 bg-white text-black shadow-sm">
+      <div className="rounded-xl border border-white/8 bg-[#0b0a07]/40 shadow-2xl backdrop-blur-sm text-white overflow-hidden">
         <Table className="w-full">
-          <TableHeader>
-            <TableRow>
+          <TableHeader className="border-b border-white/8">
+            <TableRow className="hover:bg-transparent border-b border-white/8">
               <TableHead className="w-12"></TableHead>
-              <TableHead className="w-20 cursor-pointer whitespace-nowrap" onClick={() => changeSort("id")}>
+              <TableHead className="w-20 cursor-pointer whitespace-nowrap text-white/60 hover:text-white" onClick={() => changeSort("id")}>
                 ID {sortKey === "id" ? (sortDir === "asc" ? "▲" : "▼") : null}
               </TableHead>
-              <TableHead className="w-32 cursor-pointer whitespace-nowrap" onClick={() => changeSort("status")}>
+              <TableHead className="w-32 cursor-pointer whitespace-nowrap text-white/60 hover:text-white" onClick={() => changeSort("status")}>
                 Estado {sortKey === "status" ? (sortDir === "asc" ? "▲" : "▼") : null}
               </TableHead>
-              <TableHead className="w-48 cursor-pointer whitespace-nowrap" onClick={() => changeSort("fecha")}>
+              <TableHead className="w-48 cursor-pointer whitespace-nowrap text-white/60 hover:text-white" onClick={() => changeSort("fecha")}>
                 Fecha {sortKey === "fecha" ? (sortDir === "asc" ? "▲" : "▼") : null}
               </TableHead>
-              <TableHead className="w-32 text-right cursor-pointer whitespace-nowrap" onClick={() => changeSort("total")}>
+              <TableHead className="w-32 text-right cursor-pointer whitespace-nowrap text-white/60 hover:text-white" onClick={() => changeSort("total")}>
                 Total {sortKey === "total" ? (sortDir === "asc" ? "▲" : "▼") : null}
               </TableHead>
-              <TableHead className="w-72">Acción</TableHead>
+              <TableHead className="w-72 text-white/60">Acción</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -619,34 +623,34 @@ export default function AdminPedidosPage() {
 
                 return (
                   <React.Fragment key={order.id}>
-                    <TableRow className="hover:bg-gray-50 cursor-pointer" onClick={() => toggleOrder(order.id)}>
+                    <TableRow className="hover:bg-white/5 border-b border-white/5 cursor-pointer text-white/90" onClick={() => toggleOrder(order.id)}>
                       <TableCell>
                         {isExpanded ? (
-                          <ChevronDown className="w-4 h-4 text-gray-500" />
+                          <ChevronDown className="w-4 h-4 text-white/40" />
                         ) : (
-                          <ChevronRight className="w-4 h-4 text-gray-500" />
+                          <ChevronRight className="w-4 h-4 text-white/40" />
                         )}
                       </TableCell>
-                      <TableCell className="font-medium">{order.id}</TableCell>
+                      <TableCell className="font-medium text-white">{order.id}</TableCell>
                       <TableCell>
-                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${EFFECTIVE_STATUS_COLORS[effectiveStatus]}`}>
+                        <span className={`inline-flex px-2 py-0.5 text-[11px] font-semibold rounded-full ${EFFECTIVE_STATUS_COLORS[effectiveStatus]}`}>
                           {EFFECTIVE_STATUS_LABELS[effectiveStatus]}
                         </span>
                       </TableCell>
-                      <TableCell>{new Date(order.fecha).toLocaleString()}</TableCell>
-                      <TableCell className="text-right font-semibold">${Number(order.total).toFixed(2)}</TableCell>
+                      <TableCell className="text-white/80">{new Date(order.fecha).toLocaleString()}</TableCell>
+                      <TableCell className="text-right font-semibold text-white">${Number(order.total).toFixed(2)}</TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-2 flex-nowrap whitespace-nowrap">
                           <Button
                             size="sm"
                             variant="outline"
-                            className="border-2 border-purple-500 text-purple-700 hover:bg-purple-100 hover:text-purple-800 bg-purple-50/30 flex items-center gap-1.5 h-8 px-3 rounded-md transition-colors font-medium"
+                            className="border-2 border-purple-500/40 text-purple-300 hover:bg-purple-500/20 bg-purple-500/10 flex items-center gap-1.5 h-8 px-3 rounded-md transition-colors font-semibold"
                             onClick={(e) => {
                               e.stopPropagation();
                               openEditModal(order);
                             }}
                           >
-                            <Pencil className="w-3.5 h-3.5 text-purple-700" />
+                            <Pencil className="w-3.5 h-3.5 text-purple-300" />
                             Editar
                           </Button>
  
@@ -655,7 +659,7 @@ export default function AdminPedidosPage() {
                             <Button
                               size="sm"
                               variant="outline"
-                              className="border-2 border-red-500 text-red-700 hover:bg-red-100 hover:text-red-800 bg-red-50/30 h-8 px-3 rounded-md transition-colors font-medium"
+                              className="border-2 border-red-500/40 text-red-300 hover:bg-red-500/20 bg-red-500/10 h-8 px-3 rounded-md transition-colors font-semibold"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleCancelClick(order);
@@ -670,7 +674,7 @@ export default function AdminPedidosPage() {
                               asChild
                               size="sm"
                               variant="outline"
-                              className="border-2 border-blue-500 text-blue-700 hover:bg-blue-100 hover:text-blue-800 bg-blue-50/30 h-8 px-3 rounded-md transition-colors font-medium"
+                              className="border-2 border-blue-500/40 text-blue-300 hover:bg-blue-500/20 bg-blue-500/10 h-8 px-3 rounded-md transition-colors font-semibold"
                             >
                               <a
                                 href={`https://www.correoargentino.com.ar/formularios/e-commerce?tracking=${order.tracking_code}`}
@@ -685,36 +689,36 @@ export default function AdminPedidosPage() {
                       </TableCell>
                     </TableRow>
                     {isExpanded && (
-                      <TableRow>
-                        <TableCell colSpan={6} className="bg-gray-50 p-0">
+                      <TableRow className="border-b border-white/5">
+                        <TableCell colSpan={6} className="bg-white/2 p-0 border-b border-white/5">
                             <div className="grid md:grid-cols-2 gap-6 p-4">
                               <div>
-                                <h4 className="font-semibold text-sm mb-3 text-gray-700">Items del pedido:</h4>
-                                <Table className="border border-gray-200">
+                                <h4 className="font-semibold text-sm mb-3 text-white/60">Items del pedido:</h4>
+                                <Table className="border border-white/8">
                                   <TableHeader>
-                                    <TableRow className="bg-gray-100">
-                                      <TableHead className="text-xs">ID Producto</TableHead>
-                                      <TableHead className="text-xs">Título</TableHead>
-                                      <TableHead className="text-xs text-center">Cantidad</TableHead>
-                                      <TableHead className="text-xs text-right">Precio Unit.</TableHead>
-                                      <TableHead className="text-xs text-right">Subtotal</TableHead>
+                                    <TableRow className="bg-white/5 hover:bg-white/5 border-b border-white/8">
+                                      <TableHead className="text-xs text-white/50 h-8">ID Producto</TableHead>
+                                      <TableHead className="text-xs text-white/50 h-8">Título</TableHead>
+                                      <TableHead className="text-xs text-white/50 text-center h-8">Cantidad</TableHead>
+                                      <TableHead className="text-xs text-white/50 text-right h-8">Precio Unit.</TableHead>
+                                      <TableHead className="text-xs text-white/50 text-right h-8">Subtotal</TableHead>
                                     </TableRow>
                                   </TableHeader>
                                   <TableBody>
                                     {items.length === 0 ? (
                                       <TableRow>
-                                        <TableCell colSpan={5} className="text-center text-gray-500 text-sm py-4">
+                                        <TableCell colSpan={5} className="text-center text-white/40 text-sm py-4">
                                           Cargando items...
                                         </TableCell>
                                       </TableRow>
                                     ) : (
                                       items.map((item) => (
-                                        <TableRow key={item.id}>
-                                          <TableCell className="text-xs font-mono">{item.id_producto}</TableCell>
-                                          <TableCell className="text-sm">{item.title}</TableCell>
-                                          <TableCell className="text-sm text-center">{item.cantidad}</TableCell>
-                                          <TableCell className="text-sm text-right">${Number(item.precio_unitario).toFixed(2)}</TableCell>
-                                          <TableCell className="text-sm text-right font-medium">
+                                        <TableRow key={item.id} className="border-b border-white/5 hover:bg-white/2">
+                                          <TableCell className="text-xs font-mono text-white/70">{item.id_producto}</TableCell>
+                                          <TableCell className="text-sm text-white">{item.title}</TableCell>
+                                          <TableCell className="text-sm text-center text-white/80">{item.cantidad}</TableCell>
+                                          <TableCell className="text-sm text-right text-white/80">${Number(item.precio_unitario).toFixed(2)}</TableCell>
+                                          <TableCell className="text-sm text-right font-medium text-white">
                                             ${(Number(item.precio_unitario) * item.cantidad).toFixed(2)}
                                           </TableCell>
                                         </TableRow>
@@ -725,29 +729,29 @@ export default function AdminPedidosPage() {
                               </div>
                               
                               <div>
-                                <h4 className="font-semibold text-sm mb-3 text-gray-700">Información de Envío:</h4>
-                                <div className="bg-white p-4 border border-gray-200 rounded-lg text-sm text-gray-800 space-y-2">
-                                  <p><span className="font-medium text-gray-500 w-24 inline-block">Nombre:</span> {order.nombre_cliente || '-'}</p>
-                                  <p><span className="font-medium text-gray-500 w-24 inline-block">Email:</span> {order.email_cliente || '-'}</p>
-                                  <p><span className="font-medium text-gray-500 w-24 inline-block">DNI:</span> {order.dni_cliente || '-'}</p>
-                                  <p><span className="font-medium text-gray-500 w-24 inline-block">Teléfono:</span> {order.telefono_cliente || '-'}</p>
-                                  <hr className="my-2" />
-                                  <p><span className="font-medium text-gray-500 w-24 inline-block">Provincia:</span> {order.provincia || '-'}</p>
-                                  <p><span className="font-medium text-gray-500 w-24 inline-block">Ciudad:</span> {order.ciudad || '-'}</p>
-                                  <p><span className="font-medium text-gray-500 w-24 inline-block">Código Postal:</span> {order.codigo_postal || '-'}</p>
-                                  <p><span className="font-medium text-gray-500 w-24 inline-block">Dirección:</span> {order.direccion} {order.numero}</p>
+                                <h4 className="font-semibold text-sm mb-3 text-white/60">Información de Envío:</h4>
+                                <div className="bg-white/3 p-4 border border-white/8 rounded-lg text-sm text-white/85 space-y-2">
+                                  <p><span className="font-medium text-white/40 w-24 inline-block">Nombre:</span> {order.nombre_cliente || '-'}</p>
+                                  <p><span className="font-medium text-white/40 w-24 inline-block">Email:</span> {order.email_cliente || '-'}</p>
+                                  <p><span className="font-medium text-white/40 w-24 inline-block">DNI:</span> {order.dni_cliente || '-'}</p>
+                                  <p><span className="font-medium text-white/40 w-24 inline-block">Teléfono:</span> {order.telefono_cliente || '-'}</p>
+                                  <hr className="my-2 border-white/8" />
+                                  <p><span className="font-medium text-white/40 w-24 inline-block">Provincia:</span> {order.provincia || '-'}</p>
+                                  <p><span className="font-medium text-white/40 w-24 inline-block">Ciudad:</span> {order.ciudad || '-'}</p>
+                                  <p><span className="font-medium text-white/40 w-24 inline-block">Código Postal:</span> {order.codigo_postal || '-'}</p>
+                                  <p><span className="font-medium text-white/40 w-24 inline-block">Dirección:</span> {order.direccion} {order.numero}</p>
                                   
                                   {order.extra && (
-                                    <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-md">
-                                      <span className="font-semibold text-amber-800 text-xs uppercase tracking-wider block mb-1">Aclaración / Depto / Piso:</span>
-                                      <span className="text-amber-900 font-medium">{order.extra}</span>
+                                    <div className="mt-2 p-2 bg-[#AA6F3B]/10 border border-[#AA6F3B]/30 rounded-md">
+                                      <span className="font-semibold text-[#AA6F3B] text-xs uppercase tracking-wider block mb-1">Aclaración / Depto / Piso:</span>
+                                      <span className="text-white font-medium">{order.extra}</span>
                                     </div>
                                   )}
-
+ 
                                   {order.tracking_code && (
                                     <>
-                                      <hr className="my-2" />
-                                      <p><span className="font-medium text-gray-500 w-24 inline-block">Tracking:</span> <span className="font-mono bg-gray-100 px-1 py-0.5 rounded text-gray-700">{order.tracking_code}</span></p>
+                                      <hr className="my-2 border-white/8" />
+                                      <p><span className="font-medium text-white/40 w-24 inline-block">Tracking:</span> <span className="font-mono bg-white/5 border border-white/10 px-1 py-0.5 rounded text-[#AA6F3B]">{order.tracking_code}</span></p>
                                     </>
                                   )}
                                 </div>
@@ -787,36 +791,36 @@ export default function AdminPedidosPage() {
           onClick={() => setEditModalOpen(false)}
         >
           <div 
-            className="w-full max-w-3xl bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col text-black max-h-[95vh] transform transition-all duration-300"
+            className="w-full max-w-3xl bg-[#0b0a07] rounded-xl shadow-2xl border border-white/10 overflow-hidden flex flex-col text-white max-h-[95vh] transform transition-all duration-300"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
-              <h3 className="font-serif text-lg font-bold text-gray-950">
+            <div className="px-6 py-4 border-b border-white/8 bg-white/5 flex items-center justify-between">
+              <h3 className="font-serif text-lg font-bold text-white">
                 Editar Pedido #{editModalTarget.id}
               </h3>
               <button 
                 onClick={() => setEditModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="text-white/40 hover:text-white transition-colors font-bold"
               >
                 ✕
               </button>
             </div>
-
+ 
             {/* Content (Scrollable Grid) */}
             <div className="p-6 overflow-y-auto space-y-6 flex-1 max-h-[calc(95vh-130px)]">
               <div className="grid md:grid-cols-2 gap-6">
                 
                 {/* Columna Izquierda: Estado y Seguimiento */}
                 <div className="space-y-4">
-                  <h4 className="font-semibold text-sm text-gray-800 border-b pb-2">Estado y Logística</h4>
+                  <h4 className="font-semibold text-sm text-[#AA6F3B] border-b border-white/10 pb-2">Estado y Logística</h4>
                   
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block">Estado del Pedido</label>
-                    <select
+                    <label className="text-xs font-semibold text-white/40 uppercase tracking-wider block">Estado del Pedido</label>
+                    <Select
                       value={formStatus}
-                      onChange={(e) => {
-                        const s = e.target.value as EffectiveStatus;
+                      onValueChange={(val) => {
+                        const s = val as EffectiveStatus;
                         setFormStatus(s);
                         if (s === "enviado") {
                           setFormSendEmail(true);
@@ -824,24 +828,28 @@ export default function AdminPedidosPage() {
                           setFormRestoreStock(true);
                         }
                       }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white text-black font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none"
                     >
-                      <option value="pendiente">Pendiente de Pago</option>
-                      <option value="para_despachar">Para Despachar</option>
-                      <option value="enviado">Enviado (Despachado)</option>
-                      <option value="cancelado">Cancelado (Anulado)</option>
-                    </select>
+                      <SelectTrigger className="w-full bg-white/5 border border-white/10 text-white text-sm rounded-lg h-10 px-3 py-2 outline-none focus:border-[#AA6F3B]/50 cursor-pointer select-none">
+                        <SelectValue placeholder="Seleccionar estado" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[#0b0a07] border border-white/10 text-white">
+                        <SelectItem value="pendiente">Pendiente de Pago</SelectItem>
+                        <SelectItem value="para_despachar">Para Despachar</SelectItem>
+                        <SelectItem value="enviado">Enviado (Despachado)</SelectItem>
+                        <SelectItem value="cancelado">Cancelado (Anulado)</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-
+ 
                   {formStatus === "enviado" && (
-                    <div className="space-y-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
+                    <div className="space-y-3 p-3 bg-white/3 rounded-lg border border-white/8">
                       <div className="space-y-1">
-                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block">Código de Seguimiento (Correo Argentino)</label>
+                        <label className="text-xs font-semibold text-white/40 uppercase tracking-wider block">Código de Seguimiento (Correo Argentino)</label>
                         <Input
                           placeholder="Ej: CP123456789AR"
                           value={formTrackingCode}
                           onChange={(e) => setFormTrackingCode(e.target.value)}
-                          className="bg-white border-gray-300 text-black text-sm"
+                          className="bg-white/5 border-white/10 text-white text-sm placeholder:text-white/30 focus:border-[#AA6F3B]/50 h-10"
                         />
                       </div>
                       <div className="flex items-center gap-2 mt-2">
@@ -850,147 +858,148 @@ export default function AdminPedidosPage() {
                           checked={formSendEmail}
                           onCheckedChange={(checked) => setFormSendEmail(!!checked)}
                         />
-                        <label htmlFor="formSendEmailCheckbox" className="text-xs font-medium text-gray-600 select-none cursor-pointer">
+                        <label htmlFor="formSendEmailCheckbox" className="text-xs font-medium text-white/60 select-none cursor-pointer">
                           Enviar email de seguimiento al comprador
                         </label>
                       </div>
                     </div>
                   )}
-
+ 
                   {formStatus === "cancelado" && (
-                    <div className="p-3 bg-red-50 rounded-lg border border-red-100 flex items-center gap-2">
+                    <div className="p-3 bg-red-950/20 rounded-lg border border-red-500/20 flex items-center gap-2">
                       <Checkbox
                         id="formRestoreStockCheckbox"
                         checked={formRestoreStock}
                         onCheckedChange={(checked) => setFormRestoreStock(!!checked)}
                       />
-                      <label htmlFor="formRestoreStockCheckbox" className="text-xs font-medium text-red-900 select-none cursor-pointer">
+                      <label htmlFor="formRestoreStockCheckbox" className="text-xs font-medium text-red-300 select-none cursor-pointer">
                         Restaurar stock de productos (devolver al inventario)
                       </label>
                     </div>
                   )}
                 </div>
-
+ 
                 {/* Columna Derecha: Datos del Cliente */}
                 <div className="space-y-4">
-                  <h4 className="font-semibold text-sm text-gray-800 border-b pb-2">Información del Cliente</h4>
+                  <h4 className="font-semibold text-sm text-[#AA6F3B] border-b border-white/10 pb-2">Información del Cliente</h4>
                   
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <label className="text-xs font-semibold text-gray-500 uppercase block">Nombre</label>
+                      <label className="text-xs font-semibold text-white/40 uppercase block">Nombre</label>
                       <Input
                         value={formNombre}
                         onChange={(e) => setFormNombre(e.target.value)}
-                        className="bg-white border-gray-300 text-black text-sm"
+                        className="bg-white/5 border-white/10 text-white text-sm placeholder:text-white/30 focus:border-[#AA6F3B]/50 h-10"
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-xs font-semibold text-gray-500 uppercase block">Email</label>
+                      <label className="text-xs font-semibold text-white/40 uppercase block">Email</label>
                       <Input
                         type="email"
                         value={formEmail}
                         onChange={(e) => setFormEmail(e.target.value)}
-                        className="bg-white border-gray-300 text-black text-sm"
+                        className="bg-white/5 border-white/10 text-white text-sm placeholder:text-white/30 focus:border-[#AA6F3B]/50 h-10"
                       />
                     </div>
                   </div>
-
+ 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <label className="text-xs font-semibold text-gray-500 uppercase block">DNI</label>
+                      <label className="text-xs font-semibold text-white/40 uppercase block">DNI</label>
                       <Input
                         value={formDni}
                         onChange={(e) => setFormDni(e.target.value)}
-                        className="bg-white border-gray-300 text-black text-sm"
+                        className="bg-white/5 border-white/10 text-white text-sm placeholder:text-white/30 focus:border-[#AA6F3B]/50 h-10"
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-xs font-semibold text-gray-500 uppercase block">Teléfono</label>
+                      <label className="text-xs font-semibold text-white/40 uppercase block">Teléfono</label>
                       <Input
                         value={formTelefono}
                         onChange={(e) => setFormTelefono(e.target.value)}
-                        className="bg-white border-gray-300 text-black text-sm"
+                        className="bg-white/5 border-white/10 text-white text-sm placeholder:text-white/30 focus:border-[#AA6F3B]/50 h-10"
                       />
                     </div>
                   </div>
                 </div>
               </div>
-
+ 
               {/* Sección inferior: Dirección de Envío */}
-              <div className="space-y-4 border-t pt-4">
-                <h4 className="font-semibold text-sm text-gray-800 border-b pb-2">Dirección de Envío</h4>
+              <div className="space-y-4 border-t border-white/10 pt-4">
+                <h4 className="font-semibold text-sm text-[#AA6F3B] border-b border-white/10 pb-2">Dirección de Envío</h4>
                 
                 <div className="grid md:grid-cols-3 gap-4">
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-gray-500 uppercase block">Provincia</label>
+                    <label className="text-xs font-semibold text-white/40 uppercase block">Provincia</label>
                     <Input
                       value={formProvincia}
                       onChange={(e) => setFormProvincia(e.target.value)}
-                      className="bg-white border-gray-300 text-black text-sm"
+                      className="bg-white/5 border-white/10 text-white text-sm placeholder:text-white/30 focus:border-[#AA6F3B]/50 h-10"
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-gray-500 uppercase block">Ciudad</label>
+                    <label className="text-xs font-semibold text-white/40 uppercase block">Ciudad</label>
                     <Input
                       value={formCiudad}
                       onChange={(e) => setFormCiudad(e.target.value)}
-                      className="bg-white border-gray-300 text-black text-sm"
+                      className="bg-white/5 border-white/10 text-white text-sm placeholder:text-white/30 focus:border-[#AA6F3B]/50 h-10"
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-gray-500 uppercase block">Código Postal</label>
+                    <label className="text-xs font-semibold text-white/40 uppercase block">Código Postal</label>
                     <Input
                       value={formCodigoPostal}
                       onChange={(e) => setFormCodigoPostal(e.target.value)}
-                      className="bg-white border-gray-300 text-black text-sm"
+                      className="bg-white/5 border-white/10 text-white text-sm placeholder:text-white/30 focus:border-[#AA6F3B]/50 h-10"
                     />
                   </div>
                 </div>
-
+ 
                 <div className="grid md:grid-cols-3 gap-4">
                   <div className="md:col-span-2 space-y-1">
-                    <label className="text-xs font-semibold text-gray-500 uppercase block">Calle / Dirección</label>
+                    <label className="text-xs font-semibold text-white/40 uppercase block">Calle / Dirección</label>
                     <Input
                       value={formDireccion}
                       onChange={(e) => setFormDireccion(e.target.value)}
-                      className="bg-white border-gray-300 text-black text-sm"
+                      className="bg-white/5 border-white/10 text-white text-sm placeholder:text-white/30 focus:border-[#AA6F3B]/50 h-10"
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-gray-500 uppercase block">Número</label>
+                    <label className="text-xs font-semibold text-white/40 uppercase block">Número</label>
                     <Input
                       value={formNumero}
                       onChange={(e) => setFormNumero(e.target.value)}
-                      className="bg-white border-gray-300 text-black text-sm"
+                      className="bg-white/5 border-white/10 text-white text-sm placeholder:text-white/30 focus:border-[#AA6F3B]/50 h-10"
                     />
                   </div>
                 </div>
-
+ 
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-gray-500 uppercase block">Aclaraciones / Piso / Departamento</label>
+                  <label className="text-xs font-semibold text-white/40 uppercase block">Aclaraciones / Piso / Departamento</label>
                   <Input
                     placeholder="Ej: Piso 3 Depto B"
                     value={formExtra}
                     onChange={(e) => setFormExtra(e.target.value)}
-                    className="bg-white border-gray-300 text-black text-sm"
+                    className="bg-white/5 border-white/10 text-white text-sm placeholder:text-white/30 focus:border-[#AA6F3B]/50 h-10"
                   />
                 </div>
               </div>
             </div>
-
+ 
             {/* Footer */}
-            <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-2">
+            <div className="px-6 py-4 border-t border-white/8 bg-white/5 flex justify-end gap-2">
               <Button
                 variant="outline"
                 onClick={() => setEditModalOpen(false)}
                 disabled={submittingStatus}
+                className="border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white h-10 font-semibold"
               >
                 Cancelar
               </Button>
               <Button
                 onClick={handleSaveOrder}
                 disabled={!formStatus || submittingStatus}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                className="bg-[#AA6F3B] hover:bg-[#AA6F3B]/90 text-white font-semibold h-10 border-0"
               >
                 {submittingStatus ? "Guardando..." : "Guardar Cambios"}
               </Button>
@@ -1006,17 +1015,17 @@ export default function AdminPedidosPage() {
           onClick={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
         >
           <div 
-            className="w-full max-w-md bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden text-black transform transition-all duration-300"
+            className="w-full max-w-md bg-[#0b0a07] rounded-xl shadow-2xl border border-white/10 overflow-hidden text-white transform transition-all duration-300"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
-              <h3 className="font-serif text-lg font-bold text-gray-950">
+            <div className="px-6 py-4 border-b border-white/8 bg-white/5 flex items-center justify-between">
+              <h3 className="font-serif text-lg font-bold text-white">
                 {confirmDialog.title}
               </h3>
               <button 
                 onClick={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="text-white/40 hover:text-white transition-colors font-bold"
               >
                 ✕
               </button>
@@ -1024,12 +1033,12 @@ export default function AdminPedidosPage() {
 
             {/* Content */}
             <div className="p-6 space-y-3">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-white/80">
                 {confirmDialog.message}
               </p>
 
               {confirmDialog.showStockOption && (
-                <div className="flex items-center gap-2 p-3 bg-red-50 rounded-lg border border-red-100">
+                <div className="flex items-center gap-2 p-3 bg-red-950/20 rounded-lg border border-red-500/20">
                   <Checkbox
                     id="confirmRestoreStockCheckbox"
                     checked={confirmDialog.stockOptionChecked}
@@ -1037,7 +1046,7 @@ export default function AdminPedidosPage() {
                       setConfirmDialog(prev => ({ ...prev, stockOptionChecked: !!checked }));
                     }}
                   />
-                  <label htmlFor="confirmRestoreStockCheckbox" className="text-xs font-medium text-red-900 select-none cursor-pointer">
+                  <label htmlFor="confirmRestoreStockCheckbox" className="text-xs font-medium text-red-300 select-none cursor-pointer">
                     Restaurar stock de los productos en el inventario
                   </label>
                 </div>
@@ -1045,16 +1054,17 @@ export default function AdminPedidosPage() {
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-2">
+            <div className="px-6 py-4 border-t border-white/8 bg-white/5 flex justify-end gap-2">
               <Button
                 variant="outline"
                 onClick={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
+                className="border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white h-10 font-semibold"
               >
                 {confirmDialog.cancelText || "Cancelar"}
               </Button>
               <Button
                 onClick={confirmDialog.onConfirm}
-                className="bg-red-600 hover:bg-red-700 text-white font-medium"
+                className="bg-red-600 hover:bg-red-700 text-white font-semibold h-10 border-0"
               >
                 {confirmDialog.confirmText || "Confirmar"}
               </Button>
@@ -1070,33 +1080,33 @@ export default function AdminPedidosPage() {
           onClick={() => setAlertDialog(prev => ({ ...prev, isOpen: false }))}
         >
           <div 
-            className="w-full max-w-sm bg-white rounded-xl shadow-2xl border border-gray-200 p-6 text-black text-center space-y-4"
+            className="w-full max-w-sm bg-[#0b0a07] rounded-xl shadow-2xl border border-white/10 p-6 text-white text-center space-y-4"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-center">
               {alertDialog.type === "success" ? (
-                <div className="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-2xl font-bold">
+                <div className="w-12 h-12 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center text-2xl font-bold border border-green-500/30">
                   ✓
                 </div>
               ) : alertDialog.type === "error" ? (
-                <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-2xl font-bold">
+                <div className="w-12 h-12 bg-red-500/20 text-red-400 rounded-full flex items-center justify-center text-2xl font-bold border border-red-500/30">
                   ✕
                 </div>
               ) : (
-                <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-2xl font-bold">
+                <div className="w-12 h-12 bg-blue-500/20 text-blue-400 rounded-full flex items-center justify-center text-2xl font-bold border border-blue-500/30">
                   i
                 </div>
               )}
             </div>
             
             <div className="space-y-1">
-              <h4 className="font-bold text-gray-950 text-lg">{alertDialog.title}</h4>
-              <p className="text-sm text-gray-600">{alertDialog.message}</p>
+              <h4 className="font-bold text-white text-lg">{alertDialog.title}</h4>
+              <p className="text-sm text-white/80">{alertDialog.message}</p>
             </div>
 
             <Button
               onClick={() => setAlertDialog(prev => ({ ...prev, isOpen: false }))}
-              className="w-full bg-gray-900 hover:bg-gray-800 text-white"
+              className="w-full bg-[#AA6F3B] hover:bg-[#AA6F3B]/90 text-white font-semibold border-0"
             >
               Aceptar
             </Button>
