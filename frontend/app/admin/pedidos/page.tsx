@@ -6,6 +6,13 @@ import { Button } from "@/components/ui/button"
 import { API_BASE_URL } from "@/lib/api"
 import { ChevronDown, ChevronRight, Info, Search, Download, Pencil } from "lucide-react"
 import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Checkbox } from "@/components/ui/checkbox"
 import * as XLSX from "xlsx"
@@ -31,6 +38,7 @@ type Order = {
   direccion?: string | null
   numero?: string | null
   extra?: string | null
+  costo_envio?: number | null
 }
 
 type OrderItem = {
@@ -110,6 +118,7 @@ export default function AdminPedidosPage() {
   const [formExtra, setFormExtra] = useState("")
 
   const [submittingStatus, setSubmittingStatus] = useState(false)
+  const [exporting, setExporting] = useState(false)
 
   // Diálogo de confirmación personalizado
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -447,31 +456,72 @@ export default function AdminPedidosPage() {
     setPage(1)
   }
 
-  const exportXlsx = () => {
+  const exportXlsx = async () => {
     if (!filteredOrders || filteredOrders.length === 0) return
-    const rows = filteredOrders.map((o) => ({
-      ID: o.id,
-      Estado: EFFECTIVE_STATUS_LABELS[getEffectiveStatus(o)],
-      Total: o.total,
-      Fecha: new Date(o.fecha).toLocaleString(),
-      "Nombre Cliente": o.nombre_cliente || "-",
-      "Email Cliente": o.email_cliente || "-",
-      "DNI": o.dni_cliente || "-",
-      "Teléfono": o.telefono_cliente || "-",
-      "Provincia": o.provincia || "-",
-      "Ciudad": o.ciudad || "-",
-      "CP": o.codigo_postal || "-",
-      "Dirección": `${o.direccion || ""} ${o.numero || ""}`,
-      "Extra/Depto": o.extra || "-",
-      "Tracking": o.tracking_code || "-",
-    }))
-    const ws = XLSX.utils.json_to_sheet(rows)
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, "Pedidos")
-    const ts = new Date()
-    const pad = (n: number) => String(n).padStart(2, "0")
-    const filename = `pedidos_${ts.getFullYear()}${pad(ts.getMonth() + 1)}${pad(ts.getDate())}_${pad(ts.getHours())}${pad(ts.getMinutes())}.xlsx`
-    XLSX.writeFile(wb, filename)
+    try {
+      setExporting(true)
+      const token = localStorage.getItem("admin_token")
+      const res = await fetch(`${API_BASE_URL}/orders/all-items`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      if (!res.ok) {
+        throw new Error("No se pudieron obtener los detalles de los productos para la exportación.")
+      }
+      const allItems: { id_pedido: number; title: string; cantidad: number; precio_unitario: number }[] = await res.json()
+
+      // Agrupar items por id_pedido
+      const itemsMap = new Map<number, string[]>()
+      for (const item of allItems) {
+        if (!itemsMap.has(item.id_pedido)) {
+          itemsMap.set(item.id_pedido, [])
+        }
+        itemsMap.get(item.id_pedido)!.push(`${item.cantidad}x ${item.title}`)
+      }
+
+      const rows = filteredOrders.map((o) => {
+        const prodList = itemsMap.get(o.id) || []
+        const productosFormatted = prodList.length > 0 ? prodList.join(", ") : "-"
+
+        return {
+          ID: o.id,
+          Estado: EFFECTIVE_STATUS_LABELS[getEffectiveStatus(o)],
+          Total: Number(o.total),
+          "Costo Envío": o.costo_envio ? Number(o.costo_envio) : 0,
+          Fecha: new Date(o.fecha).toLocaleString(),
+          "Referencia Pago": o.external_reference || "-",
+          "Nombre Cliente": o.nombre_cliente || "-",
+          "Email Cliente": o.email_cliente || "-",
+          "DNI": o.dni_cliente || "-",
+          "Teléfono": o.telefono_cliente || "-",
+          "Provincia": o.provincia || "-",
+          "Ciudad": o.ciudad || "-",
+          "CP": o.codigo_postal || "-",
+          "Dirección": `${o.direccion || ""} ${o.numero || ""}`,
+          "Aclaraciones": o.extra || "-",
+          "Tracking": o.tracking_code || "-",
+          "Productos": productosFormatted,
+        }
+      })
+
+      const ws = XLSX.utils.json_to_sheet(rows)
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, "Pedidos")
+      const ts = new Date()
+      const pad = (n: number) => String(n).padStart(2, "0")
+      const filename = `pedidos_${ts.getFullYear()}${pad(ts.getMonth() + 1)}${pad(ts.getDate())}_${pad(ts.getHours())}${pad(ts.getMinutes())}.xlsx`
+      XLSX.writeFile(wb, filename)
+    } catch (e: any) {
+      setAlertDialog({
+        isOpen: true,
+        title: "Error al Exportar",
+        message: e?.message || "Ocurrió un error al obtener la información de los productos.",
+        type: "error",
+      })
+    } finally {
+      setExporting(false)
+    }
   }
 
   if (loading) {

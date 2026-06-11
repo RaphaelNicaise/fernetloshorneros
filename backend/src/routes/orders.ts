@@ -7,12 +7,14 @@ import {
   setOrderTracking, 
   updateOrderStatusHandler, 
   bulkUpdateOrderStatusHandler,
-  updateOrderDetailsHandler
+  updateOrderDetailsHandler,
+  listAllOrderItems
 } from '@/controllers/ordersController';
 
 const ordersRouter = Router();
 
 ordersRouter.get('/', adminAuth, listOrders);
+ordersRouter.get('/all-items', adminAuth, listAllOrderItems);
 ordersRouter.get('/:id/items', adminAuth, listOrderItems);
 ordersRouter.post('/bulk-update-status', adminAuth, bulkUpdateOrderStatusHandler);
 ordersRouter.post('/:id/update-status', adminAuth, updateOrderStatusHandler);

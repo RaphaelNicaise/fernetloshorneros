@@ -29,6 +29,7 @@ export type Order = {
     direccion?: string | null;
     numero?: string | null;
     extra?: string | null;
+    costo_envio?: number | null;
 };
 
 export type OrderItem = {
@@ -228,6 +229,22 @@ export async function getOrderItems(orderId: number): Promise<OrderItem[]> {
 }
 
 /**
+ * Obtiene todos los items de todos los pedidos
+ */
+export async function getAllOrderItems(): Promise<OrderItem[]> {
+    const items = await sequelize.query<OrderItem>(
+        `SELECT id, id_pedido, id_producto, title, cantidad, precio_unitario 
+         FROM pedido_items`,
+        {
+            type: QueryTypes.SELECT,
+        }
+    );
+
+    return items;
+}
+
+
+/**
  * Actualiza el estado de una orden
  */
 export async function updateOrderStatus(orderId: number, status: OrderStatus): Promise<void> {
@@ -319,7 +336,8 @@ export async function getAllOrders(): Promise<Order[]> {
             e.codigo_postal,
             e.direccion,
             e.numero,
-            e.extra
+            e.extra,
+            e.costo AS costo_envio
          FROM pedidos p 
          LEFT JOIN envios e ON e.id = (
              SELECT id FROM envios e2 WHERE e2.id_pedido = p.id ORDER BY e2.fecha DESC LIMIT 1

@@ -15,6 +15,7 @@ import {
     getExpiredReservations,
 } from "@/services/ordersService";
 import { getProductById, decreaseStock, increaseStock } from "@/services/productService";
+import { enviarMailConfirmacionCompra } from "@/services/mailService";
 // import { createShipment } from "@/services/enviosService"; // Legacy
 
 /**
@@ -241,12 +242,30 @@ export async function handleWebhook(req: Request, res: Response) {
 
                 // Marcar envío para ser despachado
                 const envio = await getEnvioByOrderId(order.id);
-                if (envio && envio.status === 'pending') {
+                if (envio) {
+                    if (envio.status === 'pending') {
+                        try {
+                            await updateEnvioStatus(envio.id, 'to_ship');
+                            console.log(`Envío ${envio.id} marcado para despachar (to_ship)`);
+                        } catch (shipError: any) {
+                            console.error("Error actualizando estado del envío:", shipError);
+                        }
+                    }
+
+                    // Enviar mail de confirmación de compra
                     try {
-                        await updateEnvioStatus(envio.id, 'to_ship');
-                        console.log(`Envío ${envio.id} marcado para despachar (to_ship)`);
-                    } catch (shipError: any) {
-                        console.error("Error actualizando estado del envío:", shipError);
+                        const items = await getOrderItems(order.id);
+                        await enviarMailConfirmacionCompra(
+                            envio.email_cliente,
+                            envio.nombre_cliente,
+                            String(order.id),
+                            items,
+                            Number(order.total),
+                            Number(envio.costo)
+                        );
+                        console.log(`Mail de confirmación de compra enviado para orden ${order.id}`);
+                    } catch (mailError) {
+                        console.error("Error al enviar mail de confirmación de compra:", mailError);
                     }
                 }
             } else if (payment.status === "rejected" || payment.status === "cancelled") {

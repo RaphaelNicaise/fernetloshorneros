@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { getAllOrders, getOrderItems, getEnvioByOrderId, updateEnvioStatus, getPaymentByOrderId, updateOrderStatus, updateEnvioTracking, manualUpdateOrderStatus, updateOrderDetails } from "@/services/ordersService";
+import { getAllOrders, getOrderItems, getEnvioByOrderId, updateEnvioStatus, getPaymentByOrderId, updateOrderStatus, updateEnvioTracking, manualUpdateOrderStatus, updateOrderDetails, getAllOrderItems } from "@/services/ordersService";
 import { enviarMailComprador } from "@/services/mailService";
 
 /**
@@ -97,7 +97,7 @@ export async function setOrderTracking(req: Request, res: Response) {
 
         // Enviar mail
         const trackingUrl = `https://www.correoargentino.com.ar/formularios/e-commerce?tracking=${trackingCode}`;
-        await enviarMailComprador(envio.email_cliente, envio.nombre_cliente, trackingUrl, String(orderId));
+        await enviarMailComprador(envio.email_cliente, envio.nombre_cliente, trackingUrl, String(orderId), trackingCode);
 
         return res.json({ success: true });
     } catch (error: any) {
@@ -129,7 +129,7 @@ export async function updateOrderStatusHandler(req: Request, res: Response) {
                 const envio = await getEnvioByOrderId(orderId);
                 if (envio) {
                     const trackingUrl = `https://www.correoargentino.com.ar/formularios/e-commerce?tracking=${trackingCode}`;
-                    await enviarMailComprador(envio.email_cliente, envio.nombre_cliente, trackingUrl, String(orderId));
+                    await enviarMailComprador(envio.email_cliente, envio.nombre_cliente, trackingUrl, String(orderId), trackingCode);
                 }
             } catch (mailError) {
                 console.error("Error al enviar email de tracking:", mailError);
@@ -170,7 +170,7 @@ export async function bulkUpdateOrderStatusHandler(req: Request, res: Response) 
                     const envio = await getEnvioByOrderId(orderId);
                     if (envio) {
                         const trackingUrl = `https://www.correoargentino.com.ar/formularios/e-commerce?tracking=${trackingCode}`;
-                        await enviarMailComprador(envio.email_cliente, envio.nombre_cliente, trackingUrl, String(orderId));
+                        await enviarMailComprador(envio.email_cliente, envio.nombre_cliente, trackingUrl, String(orderId), trackingCode);
                     }
                 } catch (mailError) {
                     console.error(`Error al enviar email de tracking para orden ${orderId}:`, mailError);
@@ -233,3 +233,17 @@ export async function updateOrderDetailsHandler(req: Request, res: Response) {
         return res.status(500).json({ error: error?.message || 'Error interno' });
     }
 }
+
+/**
+ * GET /orders/all-items
+ */
+export async function listAllOrderItems(req: Request, res: Response) {
+    try {
+        const items = await getAllOrderItems();
+        return res.json(items);
+    } catch (error: any) {
+        console.error('Error obteniendo todos los items:', error);
+        return res.status(500).json({ error: error?.message || 'Error interno' });
+    }
+}
+
