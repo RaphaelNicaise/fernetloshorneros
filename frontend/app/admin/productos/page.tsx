@@ -181,6 +181,7 @@ export default function AdminProductosPage() {
   }
 
   async function handleDelete(id: string) {
+    if (!window.confirm("¿Estás seguro de que querés eliminar este producto? Esta acción no se puede deshacer.")) return
     setError(null)
     try {
       const token = localStorage.getItem("admin_token")

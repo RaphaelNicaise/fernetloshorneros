@@ -1,5 +1,8 @@
 import { Request, Response } from "express";
-import { getAllOrders, getOrderItems, getEnvioByOrderId, updateEnvioStatus, getPaymentByOrderId, updateOrderStatus, updateEnvioTracking, manualUpdateOrderStatus, updateOrderDetails, getAllOrderItems } from "@/services/ordersService";
+import { getAllOrders, getOrderItems, getEnvioByOrderId, updateEnvioStatus, getPaymentByOrderId, updateOrderStatus, updateEnvioTracking, manualUpdateOrderStatus, updateOrderDetails, getAllOrderItems, createOrder, createPayment } from "@/services/ordersService";
+import { enviarMailComprador } from "@/services/mailService";
+import { getProductById, decreaseStock } from "@/services/productService";
+import { v4 as uuidv4 } from "uuid";
 import { enviarMailComprador } from "@/services/mailService";
 
 /**
@@ -203,7 +206,8 @@ export async function updateOrderDetailsHandler(req: Request, res: Response) {
             codigo_postal,
             direccion,
             numero,
-            extra
+            extra,
+            items
         } = req.body;
 
         // Validaciones básicas de campos obligatorios
@@ -224,7 +228,8 @@ export async function updateOrderDetailsHandler(req: Request, res: Response) {
             codigo_postal,
             direccion,
             numero,
-            extra: extra || null
+            extra: extra || null,
+            items: items && Array.isArray(items) ? items : undefined
         });
 
         return res.json({ success: true });
@@ -257,14 +262,97 @@ export async function deleteOrderHandler(req: Request, res: Response) {
 
         const restoreStock = req.query.restoreStock === 'true';
 
-        // Call the service function to delete
-        // Needs import of deleteOrder
         const { deleteOrder } = await import('@/services/ordersService');
         await deleteOrder(orderId, restoreStock);
 
         return res.json({ success: true });
     } catch (error: any) {
         console.error('Error eliminando el pedido:', error);
+        return res.status(500).json({ error: error?.message || 'Error interno' }
+
+/**
+ * POST /orders/manual
+ */
+export async function createManualOrderHandler(req: Request, res: Response) {
+    try {
+        const { items, cliente } = req.body;
+
+        if (!items || !Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ error: 'Debe incluir al menos un producto' });
+        }
+
+        if (!cliente || !cliente.nombre || !cliente.email) {
+            return res.status(400).json({ error: 'Debe proveer nombre y email del cliente' });
+        }
+
+        const validatedItems = [];
+        let total = 0;
+
+        for (const item of items) {
+            const product = await getProductById(item.id_producto);
+            if (!product) return res.status(400).json({ error: `Producto ${item.id_producto} no encontrado` });
+
+            const quantity = Number(item.cantidad) || 1;
+            if (product.limite > 0 && quantity > product.limite) {
+                return res.status(400).json({ error: `Cantidad excede el límite para ${product.name}` });
+            }
+            if (product.stock < quantity && product.stock > 0) {
+                return res.status(400).json({ error: `Stock insuficiente para ${product.name}` });
+            }
+            if (product.stock === 0) {
+                return res.status(400).json({ error: `${product.name} está agotado` });
+            }
+
+            const itemTotal = Number(product.price) * quantity;
+            total += itemTotal;
+
+            validatedItems.push({
+                id_producto: product.id,
+                title: product.name,
+                cantidad: quantity,
+                precio_unitario: Number(product.price)
+            });
+        }
+
+        const external_reference = `manual_${uuidv4()}`;
+
+        const order = await createOrder({
+            items: validatedItems,
+            total,
+            external_reference,
+            shipping_info: {
+                cost: 0,
+                rate_id: "manual",
+                service_type: "pickup_point",
+                contact: {
+                    nombre: cliente.nombre,
+                    email: cliente.email,
+                    dni: cliente.dni || "-",
+                    telefono: cliente.telefono || "-"
+                }
+            }
+        });
+
+        for (const item of validatedItems) {
+            await decreaseStock(item.id_producto, item.cantidad);
+        }
+
+        await createPayment({
+            id_pedido: order.id,
+            mp_payment_id: external_reference,
+            status: "approved",
+            payment_method: "manual_efectivo",
+            total: total
+        });
+
+        await manualUpdateOrderStatus(order.id, 'para_despachar', null, false);
+
+        return res.json({ success: true, order });
+    } catch (error: any) {
+        console.error('Error creando pedido manual:', error);
         return res.status(500).json({ error: error?.message || 'Error interno' });
+    }
+}
+);
     }
 }

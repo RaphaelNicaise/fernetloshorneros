@@ -110,6 +110,8 @@ export default function AnalyticsPage() {
 
   useEffect(() => {
     load()
+    const interval = setInterval(() => load(false), 5000)
+    return () => clearInterval(interval)
   }, [])
 
   const scrollTo = (id: string) => {

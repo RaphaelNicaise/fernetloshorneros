@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import * as XLSX from "xlsx"
 
 type OrderStatus = "pending" | "paid" | "failed" | "cancelled"
@@ -126,6 +127,15 @@ export default function AdminPedidosPage() {
   const [submittingStatus, setSubmittingStatus] = useState(false)
   const [exporting, setExporting] = useState(false)
 
+  // Estados para crear pedido manual
+  const [createManualModalOpen, setCreateManualModalOpen] = useState(false)
+  const [availableProducts, setAvailableProducts] = useState<any[]>([])
+  const [manualOrderItems, setManualOrderItems] = useState<{id_producto: string, cantidad: number, max: number, price: number}[]>([])
+  const [manualNombre, setManualNombre] = useState("")
+  const [manualEmail, setManualEmail] = useState("")
+  const [manualTelefono, setManualTelefono] = useState("")
+  const [manualDni, setManualDni] = useState("")
+
   // Diálogo de confirmación personalizado
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
@@ -181,6 +191,87 @@ export default function AdminPedidosPage() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [confirmDialog.isOpen, editModalOpen, dispatchModalOpen, alertDialog.isOpen]);
+
+  async function openCreateManualModal() {
+    setCreateManualModalOpen(true);
+    setManualOrderItems([]);
+    setManualNombre("");
+    setManualEmail("");
+    setManualTelefono("");
+    setManualDni("");
+    try {
+      const res = await fetch(`${API_BASE_URL}/products`, { cache: 'no-store' });
+      const prods = await res.json();
+      setAvailableProducts(prods.filter((p: any) => p.status !== 'agotado' && p.stock > 0));
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  async function handleCreateManualOrder() {
+    if (!manualNombre || !manualEmail || manualOrderItems.length === 0) {
+        setAlertDialog({ isOpen: true, title: "Error", message: "Completá nombre, email y seleccioná al menos un producto.", type: "error" });
+        return;
+    }
+    try {
+      setSubmittingStatus(true);
+      const token = localStorage.getItem("admin_token");
+      const payload = {
+        cliente: {
+            nombre: manualNombre,
+            email: manualEmail,
+            telefono: manualTelefono,
+            dni: manualDni
+        },
+        items: manualOrderItems
+      };
+      const res = await fetch(`${API_BASE_URL}/orders/manual`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.success !== true) {
+        throw new Error(data.error || "Error al crear el pedido manual");
+      }
+      setAlertDialog({
+        isOpen: true,
+        title: "Éxito",
+        message: "Pedido manual creado correctamente.",
+        type: "success"
+      });
+      setCreateManualModalOpen(false);
+      fetchOrders(true);
+    } catch (e: any) {
+      setAlertDialog({ isOpen: true, title: "Error", message: e?.message || "Error", type: "error" });
+    } finally {
+      setSubmittingStatus(false);
+    }
+  }
+
+  function addManualItem(id_producto: string) {
+    const prod = availableProducts.find(p => p.id === id_producto);
+    if (!prod) return;
+    const limit = prod.limite > 0 ? Math.min(prod.limite, prod.stock) : prod.stock;
+    if (manualOrderItems.some(i => i.id_producto === id_producto)) return;
+    setManualOrderItems([...manualOrderItems, { id_producto, cantidad: 1, max: limit, price: prod.price }]);
+  }
+
+  function removeManualItem(id_producto: string) {
+    setManualOrderItems(manualOrderItems.filter(i => i.id_producto !== id_producto));
+  }
+
+  function updateManualItemQuantity(id_producto: string, cantidad: number) {
+    setManualOrderItems(manualOrderItems.map(i => {
+        if (i.id_producto === id_producto) {
+            return { ...i, cantidad: Math.max(1, Math.min(cantidad, i.max)) };
+        }
+        return i;
+    }));
+  }
 
   function openEditModal(order: Order) {
     setEditModalTarget(order);
@@ -729,6 +820,9 @@ export default function AdminPedidosPage() {
           </Button>
           <Button variant="secondary" className="h-10 bg-[#AA6F3B]/20 text-[#AA6F3B] hover:bg-[#AA6F3B]/30 border border-[#AA6F3B]/30" onClick={() => fetchOrders()}>
             Recargar
+          </Button>
+          <Button className="h-10 bg-[#AA6F3B] hover:bg-[#AA6F3B]/90 text-white border-0 font-semibold" onClick={openCreateManualModal}>
+            Crear Pedido Manual
           </Button>
         </div>
       </div>
@@ -1377,6 +1471,92 @@ export default function AdminPedidosPage() {
           </div>
         </div>
       )}
+
+      {/* Modal para Crear Pedido Manual */}
+      <Dialog open={createManualModalOpen} onOpenChange={setCreateManualModalOpen}>
+        <DialogContent className="bg-[#0b0a07] border-white/10 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Crear Pedido Manual</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-white/60">Nombre completo *</label>
+                <Input value={manualNombre} onChange={e => setManualNombre(e.target.value)} className="bg-white/5 border-white/10" placeholder="Ej. Juan Pérez" />
+              </div>
+              <div>
+                <label className="text-xs text-white/60">Email *</label>
+                <Input type="email" value={manualEmail} onChange={e => setManualEmail(e.target.value)} className="bg-white/5 border-white/10" placeholder="juan@gmail.com" />
+              </div>
+              <div>
+                <label className="text-xs text-white/60">DNI (Opcional)</label>
+                <Input value={manualDni} onChange={e => setManualDni(e.target.value)} className="bg-white/5 border-white/10" />
+              </div>
+              <div>
+                <label className="text-xs text-white/60">Teléfono (Opcional)</label>
+                <Input value={manualTelefono} onChange={e => setManualTelefono(e.target.value)} className="bg-white/5 border-white/10" />
+              </div>
+            </div>
+
+            <div className="space-y-2 mt-4">
+              <label className="text-xs text-white/60 font-semibold">Agregar Producto</label>
+              <Select onValueChange={addManualItem}>
+                <SelectTrigger className="bg-white/5 border-white/10">
+                  <SelectValue placeholder="Seleccioná un producto..." />
+                </SelectTrigger>
+                <SelectContent className="bg-[#0b0a07] border-white/10 text-white max-h-[200px]">
+                  {availableProducts.map(p => (
+                    <SelectItem key={p.id} value={p.id} disabled={manualOrderItems.some(i => i.id_producto === p.id)}>
+                      {p.name} - ${Number(p.price).toLocaleString('es-AR')} (Stock: {p.stock})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {manualOrderItems.length > 0 && (
+              <div className="space-y-2">
+                <label className="text-xs text-white/60 font-semibold">Productos Seleccionados</label>
+                <div className="space-y-2">
+                  {manualOrderItems.map(item => {
+                    const p = availableProducts.find(prod => prod.id === item.id_producto);
+                    return (
+                      <div key={item.id_producto} className="flex items-center gap-3 bg-white/5 p-2 rounded-lg border border-white/10">
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold">{p?.name}</p>
+                          <p className="text-xs text-white/60">${item.price.toLocaleString('es-AR')} c/u (Max: {item.max})</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Input 
+                            type="number" 
+                            min={1} 
+                            max={item.max} 
+                            value={item.cantidad} 
+                            onChange={e => updateManualItemQuantity(item.id_producto, Number(e.target.value))}
+                            className="w-20 bg-white/5 border-white/10 text-center h-8"
+                          />
+                          <Button variant="ghost" size="icon" className="text-red-400 hover:text-red-300 hover:bg-red-500/20" onClick={() => removeManualItem(item.id_producto)}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+                <div className="flex justify-end pt-2 text-lg font-bold">
+                  Total: ${manualOrderItems.reduce((acc, item) => acc + (item.cantidad * item.price), 0).toLocaleString('es-AR')}
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" className="border-white/10 text-white hover:bg-white/10" onClick={() => setCreateManualModalOpen(false)}>Cancelar</Button>
+            <Button className="bg-[#AA6F3B] hover:bg-[#AA6F3B]/90 text-white" disabled={submittingStatus || manualOrderItems.length === 0 || !manualNombre || !manualEmail} onClick={handleCreateManualOrder}>
+              {submittingStatus ? "Creando..." : "Crear Pedido"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

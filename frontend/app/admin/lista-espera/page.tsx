@@ -10,7 +10,7 @@ import * as XLSX from "xlsx"
 
 type SortKey = keyof Pick<WaitlistUser, "id" | "nombre" | "email" | "provincia" | "fecha_registro">
 
-const PAGE_SIZE = 15
+const PAGE_SIZE = 50
 
 export default function AdminListaEsperaPage() {
   const { data, loading, error, refetch } = useWaitlist()
@@ -155,7 +155,7 @@ export default function AdminListaEsperaPage() {
           </Table>
           </div>
  
-          {/* Paginación 25 por página */}
+          {/* Paginación 50 por página */}
           <div className="flex items-center justify-between text-white mt-2">
             <div>
               Mostrando {visible.length > 0 ? start + 1 : 0}–{Math.min(start + PAGE_SIZE, total)} de {total}

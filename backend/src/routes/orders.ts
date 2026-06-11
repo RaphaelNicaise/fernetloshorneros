@@ -9,7 +9,8 @@ import {
   bulkUpdateOrderStatusHandler,
   updateOrderDetailsHandler,
   listAllOrderItems,
-  deleteOrderHandler
+  deleteOrderHandler,
+  createManualOrderHandler
 } from '@/controllers/ordersController';
 
 const ordersRouter = Router();
@@ -17,6 +18,7 @@ const ordersRouter = Router();
 ordersRouter.get('/', adminAuth, listOrders);
 ordersRouter.get('/all-items', adminAuth, listAllOrderItems);
 ordersRouter.get('/:id/items', adminAuth, listOrderItems);
+ordersRouter.post('/manual', adminAuth, createManualOrderHandler);
 ordersRouter.post('/bulk-update-status', adminAuth, bulkUpdateOrderStatusHandler);
 ordersRouter.post('/:id/update-status', adminAuth, updateOrderStatusHandler);
 ordersRouter.post('/:id/cancel-shipment', adminAuth, cancelOrderShipment);

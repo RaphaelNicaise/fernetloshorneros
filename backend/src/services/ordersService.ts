@@ -655,39 +655,176 @@ export async function updateOrderDetails(
         direccion: string;
         numero: string;
         extra: string | null;
+        items?: {
+            id_producto: string;
+            cantidad: number;
+        }[];
     }
 ): Promise<void> {
-    await sequelize.query(
-        `UPDATE envios 
-         SET 
-            nombre_cliente = :nombre_cliente,
-            email_cliente = :email_cliente,
-            dni_cliente = :dni_cliente,
-            telefono_cliente = :telefono_cliente,
-            provincia = :provincia,
-            ciudad = :ciudad,
-            codigo_postal = :codigo_postal,
-            direccion = :direccion,
-            numero = :numero,
-            extra = :extra
-         WHERE id_pedido = :orderId`,
-        {
-            replacements: {
-                orderId,
-                nombre_cliente: data.nombre_cliente,
-                email_cliente: data.email_cliente,
-                dni_cliente: data.dni_cliente,
-                telefono_cliente: data.telefono_cliente,
-                provincia: data.provincia,
-                ciudad: data.ciudad,
-                codigo_postal: data.codigo_postal,
-                direccion: data.direccion,
-                numero: data.numero,
-                extra: data.extra || null
-            },
-            type: QueryTypes.UPDATE,
+    const transaction = await sequelize.transaction();
+    try {
+        await sequelize.query(
+            `UPDATE envios 
+             SET 
+                nombre_cliente = :nombre_cliente,
+                email_cliente = :email_cliente,
+                dni_cliente = :dni_cliente,
+                telefono_cliente = :telefono_cliente,
+                provincia = :provincia,
+                ciudad = :ciudad,
+                codigo_postal = :codigo_postal,
+                direccion = :direccion,
+                numero = :numero,
+                extra = :extra
+             WHERE id_pedido = :orderId`,
+            {
+                replacements: {
+                    orderId,
+                    nombre_cliente: data.nombre_cliente,
+                    email_cliente: data.email_cliente,
+                    dni_cliente: data.dni_cliente,
+                    telefono_cliente: data.telefono_cliente,
+                    provincia: data.provincia,
+                    ciudad: data.ciudad,
+                    codigo_postal: data.codigo_postal,
+                    direccion: data.direccion,
+                    numero: data.numero,
+                    extra: data.extra || null
+                },
+                type: QueryTypes.UPDATE,
+                transaction
+            }
+        );
+
+        if (data.items) {
+            // Revisar si el pedido ya tiene stock reservado/descontado
+            const pedidoRows: any = await sequelize.query(
+                `SELECT stock_reserved FROM pedidos WHERE id = :id`,
+                { replacements: { id: orderId }, type: QueryTypes.SELECT, transaction }
+            );
+            const stockReserved = pedidoRows && pedidoRows.length > 0 && pedidoRows[0].stock_reserved === 1;
+
+            const currentItems: any[] = await sequelize.query(
+                `SELECT id_producto, cantidad, precio_unitario, title FROM pedido_items WHERE id_pedido = :orderId`,
+                { replacements: { orderId }, type: QueryTypes.SELECT, transaction }
+            );
+
+            const currentItemMap = new Map(currentItems.map(i => [i.id_producto, i]));
+            const newItemMap = new Map(data.items.map(i => [i.id_producto, i]));
+
+            let newTotalItemsCost = 0;
+
+            // Procesar items actuales
+            for (const current of currentItems) {
+                const updated = newItemMap.get(current.id_producto);
+                if (!updated) {
+                    // El item fue eliminado del pedido
+                    if (stockReserved) {
+                        const products = await sequelize.query<any>(
+                            `SELECT stock, status FROM productos WHERE id = :id`,
+                            { replacements: { id: current.id_producto }, type: QueryTypes.SELECT, transaction }
+                        );
+                        if (products.length > 0) {
+                            const newStock = Number(products[0].stock) + Number(current.cantidad);
+                            const newStatus = products[0].status === 'agotado' && newStock > 0 ? 'disponible' : products[0].status;
+                            await sequelize.query(
+                                `UPDATE productos SET stock = :newStock, status = :newStatus WHERE id = :id`,
+                                { replacements: { id: current.id_producto, newStock, newStatus }, type: QueryTypes.UPDATE, transaction }
+                            );
+                        }
+                    }
+                    await sequelize.query(
+                        `DELETE FROM pedido_items WHERE id_pedido = :orderId AND id_producto = :id_producto`,
+                        { replacements: { orderId, id_producto: current.id_producto }, type: QueryTypes.DELETE, transaction }
+                    );
+                } else {
+                    // El item se mantiene, pero la cantidad puede haber cambiado
+                    if (updated.cantidad !== current.cantidad) {
+                        const diff = updated.cantidad - current.cantidad;
+                        if (stockReserved) {
+                            const products = await sequelize.query<any>(
+                                `SELECT stock, status FROM productos WHERE id = :id`,
+                                { replacements: { id: current.id_producto }, type: QueryTypes.SELECT, transaction }
+                            );
+                            if (products.length > 0) {
+                                // diff > 0 significa que se agregaron unidades, hay que restar del stock.
+                                // diff < 0 significa que se quitaron unidades, hay que sumar al stock.
+                                const newStock = Math.max(0, Number(products[0].stock) - diff);
+                                let newStatus = products[0].status;
+                                if (newStock === 0) newStatus = 'agotado';
+                                else if (newStock > 0 && products[0].status === 'agotado') newStatus = 'disponible';
+                                
+                                await sequelize.query(
+                                    `UPDATE productos SET stock = :newStock, status = :newStatus WHERE id = :id`,
+                                    { replacements: { id: current.id_producto, newStock, newStatus }, type: QueryTypes.UPDATE, transaction }
+                                );
+                            }
+                        }
+                        await sequelize.query(
+                            `UPDATE pedido_items SET cantidad = :cantidad WHERE id_pedido = :orderId AND id_producto = :id_producto`,
+                            { replacements: { orderId, id_producto: current.id_producto, cantidad: updated.cantidad }, type: QueryTypes.UPDATE, transaction }
+                        );
+                    }
+                    newTotalItemsCost += Number(current.precio_unitario) * updated.cantidad;
+                }
+            }
+
+            // Procesar items nuevos
+            for (const updated of data.items) {
+                if (!currentItemMap.has(updated.id_producto)) {
+                    // Obtener datos actuales del producto para asignar precio e insertarlo
+                    const prodInfo = await sequelize.query<any>(
+                        `SELECT name, price, stock, status FROM productos WHERE id = :id`,
+                        { replacements: { id: updated.id_producto }, type: QueryTypes.SELECT, transaction }
+                    );
+                    if (prodInfo.length === 0) throw new Error(`Producto ${updated.id_producto} no encontrado`);
+                    
+                    const p = prodInfo[0];
+                    
+                    if (stockReserved) {
+                        const newStock = Math.max(0, Number(p.stock) - updated.cantidad);
+                        const newStatus = newStock === 0 ? 'agotado' : p.status;
+                        await sequelize.query(
+                            `UPDATE productos SET stock = :newStock, status = :newStatus WHERE id = :id`,
+                            { replacements: { id: updated.id_producto, newStock, newStatus }, type: QueryTypes.UPDATE, transaction }
+                        );
+                    }
+
+                    await sequelize.query(
+                        `INSERT INTO pedido_items (id_pedido, id_producto, title, cantidad, precio_unitario) VALUES (:orderId, :id_producto, :title, :cantidad, :precio_unitario)`,
+                        {
+                            replacements: {
+                                orderId,
+                                id_producto: updated.id_producto,
+                                title: p.name,
+                                cantidad: updated.cantidad,
+                                precio_unitario: p.price
+                            },
+                            type: QueryTypes.INSERT,
+                            transaction
+                        }
+                    );
+
+                    newTotalItemsCost += Number(p.price) * updated.cantidad;
+                }
+            }
+
+            // Recalcular el total del pedido incluyendo el envío original
+            const envios = await sequelize.query<any>(`SELECT costo FROM envios WHERE id_pedido = :id`, { replacements: { id: orderId }, type: QueryTypes.SELECT, transaction });
+            const shippingCost = envios.length > 0 ? Number(envios[0].costo || 0) : 0;
+            const finalTotal = newTotalItemsCost + shippingCost;
+
+            await sequelize.query(
+                `UPDATE pedidos SET total = :finalTotal WHERE id = :orderId`,
+                { replacements: { orderId, finalTotal }, type: QueryTypes.UPDATE, transaction }
+            );
         }
-    );
+
+        await transaction.commit();
+    } catch (e) {
+        await transaction.rollback();
+        throw e;
+    }
 }
 
 /**
