@@ -3,7 +3,6 @@ import { getAllOrders, getOrderItems, getEnvioByOrderId, updateEnvioStatus, getP
 import { enviarMailComprador } from "@/services/mailService";
 import { getProductById, decreaseStock } from "@/services/productService";
 import { v4 as uuidv4 } from "uuid";
-import { enviarMailComprador } from "@/services/mailService";
 
 /**
  * GET /orders
