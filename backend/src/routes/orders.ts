@@ -8,7 +8,8 @@ import {
   updateOrderStatusHandler, 
   bulkUpdateOrderStatusHandler,
   updateOrderDetailsHandler,
-  listAllOrderItems
+  listAllOrderItems,
+  deleteOrderHandler
 } from '@/controllers/ordersController';
 
 const ordersRouter = Router();
@@ -21,5 +22,6 @@ ordersRouter.post('/:id/update-status', adminAuth, updateOrderStatusHandler);
 ordersRouter.post('/:id/cancel-shipment', adminAuth, cancelOrderShipment);
 ordersRouter.post('/:id/set-tracking', adminAuth, setOrderTracking);
 ordersRouter.put('/:id/details', adminAuth, updateOrderDetailsHandler);
+ordersRouter.delete('/:id', adminAuth, deleteOrderHandler);
 
 export default ordersRouter;

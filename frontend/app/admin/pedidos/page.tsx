@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { API_BASE_URL } from "@/lib/api"
-import { ChevronDown, ChevronRight, Info, Search, Download, Pencil } from "lucide-react"
+import { ChevronDown, ChevronRight, Info, Search, Download, Pencil, Trash2, AlertTriangle } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import {
   Select,
@@ -130,8 +130,8 @@ export default function AdminPedidosPage() {
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
     title: string;
-    message: string;
-    onConfirm: () => void;
+    message: React.ReactNode;
+    onConfirm: (stockChecked?: boolean) => void;
     confirmText?: string;
     cancelText?: string;
     showStockOption?: boolean;
@@ -364,7 +364,7 @@ export default function AdminPedidosPage() {
       cancelText: "Cancelar",
       showStockOption: true,
       stockOptionChecked: true,
-      onConfirm: async () => {
+      onConfirm: async (stockChecked?: boolean) => {
         try {
           const token = localStorage.getItem('admin_token');
           const res = await fetch(`${API_BASE_URL}/orders/${order.id}/cancel-shipment`, {
@@ -373,7 +373,7 @@ export default function AdminPedidosPage() {
               'Content-Type': 'application/json',
               Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify({ restoreStock: confirmDialog.stockOptionChecked }),
+            body: JSON.stringify({ restoreStock: stockChecked }),
           });
           const data = await res.json().catch(() => ({}));
           if (!res.ok || data.success !== true) {
@@ -398,6 +398,86 @@ export default function AdminPedidosPage() {
             isOpen: true,
             title: "Error",
             message: err?.message || 'Error al anular',
+            type: "error"
+          });
+        }
+      }
+    });
+  }
+
+  function handleDeleteOrderClick(order: Order) {
+    const effectiveStatus = getEffectiveStatus(order);
+    let warningMessage: React.ReactNode = "¿Estás seguro de que deseas eliminar este pedido por completo? Esta acción no se puede deshacer y borrará todos los registros (ítems, envíos, pagos).";
+
+    if (effectiveStatus === 'para_despachar') {
+      warningMessage = (
+        <div className="flex flex-col gap-3">
+          <p>¿Estás seguro de que deseas eliminar este pedido por completo?</p>
+          <div className="bg-red-500/10 border border-red-500/30 p-3 rounded-lg flex gap-3 text-left">
+            <AlertTriangle className="text-red-400 w-5 h-5 shrink-0 mt-0.5" />
+            <div className="text-sm text-red-200">
+              <span className="font-bold block mb-1">¡PELIGRO EXTREMO!</span>
+              Este pedido <strong className="text-white">ya está pagado</strong> y listo para despachar. Si lo eliminas, perderás los datos de envío del cliente y no podrás mandarle el producto, a pesar de que ya te pagó.
+            </div>
+          </div>
+        </div>
+      );
+    } else if (effectiveStatus === 'pendiente') {
+      warningMessage = (
+        <div className="flex flex-col gap-3">
+          <p>¿Estás seguro de que deseas eliminar este pedido por completo?</p>
+          <div className="bg-orange-500/10 border border-orange-500/30 p-3 rounded-lg flex gap-3 text-left">
+            <AlertTriangle className="text-orange-400 w-5 h-5 shrink-0 mt-0.5" />
+            <div className="text-sm text-orange-200">
+              <span className="font-bold block mb-1">Cuidado: Pendiente de Pago</span>
+              Si el cliente llega a pagar el pedido más tarde a través de MercadoPago, el pago ingresará pero <strong className="text-white">no tendrás el registro de qué compró ni a dónde enviarlo</strong> porque el pedido fue borrado.
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    setConfirmDialog({
+      isOpen: true,
+      title: "Eliminar Pedido Definitivamente",
+      message: warningMessage,
+      showStockOption: true,
+      stockOptionChecked: true,
+      confirmText: "Sí, Eliminar Definitivamente",
+      cancelText: "Cancelar",
+      onConfirm: async (stockChecked?: boolean) => {
+        try {
+          const token = localStorage.getItem('admin_token');
+          const res = await fetch(`${API_BASE_URL}/orders/${order.id}?restoreStock=${!!stockChecked}`, {
+            method: "DELETE",
+            headers: {
+              "Authorization": `Bearer ${token}`
+            }
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok || data.success !== true) {
+            setAlertDialog({
+              isOpen: true,
+              title: "Error",
+              message: data.error || `Error HTTP ${res.status}`,
+              type: "error"
+            });
+            return;
+          }
+          setAlertDialog({
+            isOpen: true,
+            title: "Eliminado",
+            message: "El pedido fue borrado por completo del sistema.",
+            type: "success"
+          });
+          setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+          fetchOrders();
+        } catch (error) {
+          console.error(error);
+          setAlertDialog({
+            isOpen: true,
+            title: "Error",
+            message: "Error de red eliminando el pedido.",
             type: "error"
           });
         }
@@ -708,13 +788,13 @@ export default function AdminPedidosPage() {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="border-2 border-purple-500/40 text-purple-300 hover:bg-purple-500/20 bg-purple-500/10 flex items-center gap-1.5 h-8 px-3 rounded-md transition-colors font-semibold"
+                            className="border-2 border-blue-500/40 text-blue-300 hover:bg-blue-500/20 bg-blue-500/10 flex items-center gap-1.5 h-8 px-3 rounded-md transition-colors font-semibold"
                             onClick={(e) => {
                               e.stopPropagation();
                               openEditModal(order);
                             }}
                           >
-                            <Pencil className="w-3.5 h-3.5 text-purple-300" />
+                            <Pencil className="w-3.5 h-3.5 text-blue-300" />
                             Editar
                           </Button>
  
@@ -762,6 +842,20 @@ export default function AdminPedidosPage() {
                               </a>
                             </Button>
                           )}
+
+                          {/* Botón Eliminar (siempre disponible pero requiere doble check) */}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-2 border-red-500/40 text-red-300 hover:bg-red-500/20 bg-red-500/10 flex items-center justify-center w-8 h-8 p-0 rounded-md transition-colors ml-auto"
+                            title="Eliminar Pedido"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteOrderClick(order);
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4 text-red-300" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -1122,12 +1216,12 @@ export default function AdminPedidosPage() {
 
             {/* Content */}
             <div className="p-6 space-y-3">
-              <p className="text-sm text-white/80">
+              <div className="text-sm text-white/80">
                 {confirmDialog.message}
-              </p>
+              </div>
 
               {confirmDialog.showStockOption && (
-                <div className="flex items-center gap-2 p-3 bg-red-950/20 rounded-lg border border-red-500/20">
+                <div className="flex items-center gap-2 p-3 bg-red-950/20 rounded-lg border border-red-500/20 mt-4">
                   <Checkbox
                     id="confirmRestoreStockCheckbox"
                     checked={confirmDialog.stockOptionChecked}
@@ -1144,19 +1238,21 @@ export default function AdminPedidosPage() {
 
             {/* Footer */}
             <div className="px-6 py-4 border-t border-white/8 bg-white/5 flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
-                className="border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white h-10 font-semibold"
-              >
-                {confirmDialog.cancelText || "Cancelar"}
-              </Button>
-              <Button
-                onClick={confirmDialog.onConfirm}
-                className="bg-red-600 hover:bg-red-700 text-white font-semibold h-10 border-0"
-              >
-                {confirmDialog.confirmText || "Confirmar"}
-              </Button>
+              <div className="flex gap-3 mt-8">
+                <Button 
+                  variant="outline" 
+                  className="flex-1 bg-transparent border-white/20 text-white hover:bg-white/10"
+                  onClick={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
+                >
+                  {confirmDialog.cancelText || "Cancelar"}
+                </Button>
+                <Button 
+                  className="flex-1 bg-[#AA6F3B] hover:bg-[#8a572a] text-white"
+                  onClick={() => confirmDialog.onConfirm(confirmDialog.stockOptionChecked)}
+                >
+                  {confirmDialog.confirmText || "Confirmar"}
+                </Button>
+              </div>
             </div>
           </div>
         </div>

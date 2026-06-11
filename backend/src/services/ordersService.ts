@@ -690,3 +690,46 @@ export async function updateOrderDetails(
     );
 }
 
+/**
+ * Elimina físicamente un pedido y todos sus registros relacionados (pagos, envíos, items)
+ * Opcionalmente restaura el stock reservado antes de borrar los items.
+ */
+export async function deleteOrder(orderId: number, restoreStock: boolean): Promise<void> {
+    const transaction = await sequelize.transaction();
+    try {
+        if (restoreStock) {
+            const pedidoRows: any = await sequelize.query(
+                `SELECT stock_reserved FROM pedidos WHERE id = :id`,
+                { replacements: { id: orderId }, type: QueryTypes.SELECT, transaction }
+            );
+
+            if (pedidoRows && pedidoRows.length > 0 && pedidoRows[0].stock_reserved === 1) {
+                const items: any[] = await sequelize.query(
+                    `SELECT id_producto, cantidad FROM pedido_items WHERE id_pedido = :orderId`,
+                    { replacements: { orderId }, type: QueryTypes.SELECT, transaction }
+                );
+
+                for (const item of items) {
+                    await sequelize.query(
+                        `UPDATE inventario SET stock = stock + :cantidad WHERE id = :id_producto`,
+                        {
+                            replacements: { cantidad: item.cantidad, id_producto: item.id_producto },
+                            type: QueryTypes.UPDATE,
+                            transaction,
+                        }
+                    );
+                }
+            }
+        }
+
+        await sequelize.query(`DELETE FROM pagos WHERE id_pedido = :id`, { replacements: { id: orderId }, type: QueryTypes.DELETE, transaction });
+        await sequelize.query(`DELETE FROM envios WHERE id_pedido = :id`, { replacements: { id: orderId }, type: QueryTypes.DELETE, transaction });
+        await sequelize.query(`DELETE FROM pedido_items WHERE id_pedido = :id`, { replacements: { id: orderId }, type: QueryTypes.DELETE, transaction });
+        await sequelize.query(`DELETE FROM pedidos WHERE id = :id`, { replacements: { id: orderId }, type: QueryTypes.DELETE, transaction });
+
+        await transaction.commit();
+    } catch (error) {
+        await transaction.rollback();
+        throw error;
+    }
+}

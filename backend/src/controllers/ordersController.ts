@@ -247,3 +247,24 @@ export async function listAllOrderItems(req: Request, res: Response) {
     }
 }
 
+/**
+ * DELETE /orders/:id
+ */
+export async function deleteOrderHandler(req: Request, res: Response) {
+    try {
+        const orderId = Number(req.params.id);
+        if (isNaN(orderId)) return res.status(400).json({ error: 'ID de pedido inválido' });
+
+        const restoreStock = req.query.restoreStock === 'true';
+
+        // Call the service function to delete
+        // Needs import of deleteOrder
+        const { deleteOrder } = await import('@/services/ordersService');
+        await deleteOrder(orderId, restoreStock);
+
+        return res.json({ success: true });
+    } catch (error: any) {
+        console.error('Error eliminando el pedido:', error);
+        return res.status(500).json({ error: error?.message || 'Error interno' });
+    }
+}
