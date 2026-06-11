@@ -6,7 +6,8 @@ import {
   cancelOrderShipment, 
   setOrderTracking, 
   updateOrderStatusHandler, 
-  bulkUpdateOrderStatusHandler 
+  bulkUpdateOrderStatusHandler,
+  updateOrderDetailsHandler
 } from '@/controllers/ordersController';
 
 const ordersRouter = Router();
@@ -17,5 +18,6 @@ ordersRouter.post('/bulk-update-status', adminAuth, bulkUpdateOrderStatusHandler
 ordersRouter.post('/:id/update-status', adminAuth, updateOrderStatusHandler);
 ordersRouter.post('/:id/cancel-shipment', adminAuth, cancelOrderShipment);
 ordersRouter.post('/:id/set-tracking', adminAuth, setOrderTracking);
+ordersRouter.put('/:id/details', adminAuth, updateOrderDetailsHandler);
 
 export default ordersRouter;

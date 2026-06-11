@@ -621,3 +621,54 @@ export async function manualUpdateOrderStatus(
     }
 }
 
+/**
+ * Actualiza los datos de envío/cliente de un pedido en la tabla envios
+ */
+export async function updateOrderDetails(
+    orderId: number,
+    data: {
+        nombre_cliente: string;
+        email_cliente: string;
+        dni_cliente: string;
+        telefono_cliente: string;
+        provincia: string;
+        ciudad: string;
+        codigo_postal: string;
+        direccion: string;
+        numero: string;
+        extra: string | null;
+    }
+): Promise<void> {
+    await sequelize.query(
+        `UPDATE envios 
+         SET 
+            nombre_cliente = :nombre_cliente,
+            email_cliente = :email_cliente,
+            dni_cliente = :dni_cliente,
+            telefono_cliente = :telefono_cliente,
+            provincia = :provincia,
+            ciudad = :ciudad,
+            codigo_postal = :codigo_postal,
+            direccion = :direccion,
+            numero = :numero,
+            extra = :extra
+         WHERE id_pedido = :orderId`,
+        {
+            replacements: {
+                orderId,
+                nombre_cliente: data.nombre_cliente,
+                email_cliente: data.email_cliente,
+                dni_cliente: data.dni_cliente,
+                telefono_cliente: data.telefono_cliente,
+                provincia: data.provincia,
+                ciudad: data.ciudad,
+                codigo_postal: data.codigo_postal,
+                direccion: data.direccion,
+                numero: data.numero,
+                extra: data.extra || null
+            },
+            type: QueryTypes.UPDATE,
+        }
+    );
+}
+

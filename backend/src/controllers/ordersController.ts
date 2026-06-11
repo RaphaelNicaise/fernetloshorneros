@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { getAllOrders, getOrderItems, getEnvioByOrderId, updateEnvioStatus, getPaymentByOrderId, updateOrderStatus, updateEnvioTracking, manualUpdateOrderStatus } from "@/services/ordersService";
+import { getAllOrders, getOrderItems, getEnvioByOrderId, updateEnvioStatus, getPaymentByOrderId, updateOrderStatus, updateEnvioTracking, manualUpdateOrderStatus, updateOrderDetails } from "@/services/ordersService";
 import { enviarMailComprador } from "@/services/mailService";
 
 /**
@@ -181,6 +181,55 @@ export async function bulkUpdateOrderStatusHandler(req: Request, res: Response) 
         return res.json({ success: true, count: ids.length });
     } catch (error: any) {
         console.error('Error en actualización masiva de pedidos:', error);
+        return res.status(500).json({ error: error?.message || 'Error interno' });
+    }
+}
+
+/**
+ * PUT /orders/:id/details
+ */
+export async function updateOrderDetailsHandler(req: Request, res: Response) {
+    try {
+        const orderId = Number(req.params.id);
+        if (isNaN(orderId)) return res.status(400).json({ error: 'ID de pedido inválido' });
+
+        const {
+            nombre_cliente,
+            email_cliente,
+            dni_cliente,
+            telefono_cliente,
+            provincia,
+            ciudad,
+            codigo_postal,
+            direccion,
+            numero,
+            extra
+        } = req.body;
+
+        // Validaciones básicas de campos obligatorios
+        if (!nombre_cliente || !email_cliente || !dni_cliente || !telefono_cliente || !provincia || !ciudad || !codigo_postal || !direccion || !numero) {
+            return res.status(400).json({ error: 'Todos los campos obligatorios deben estar completos' });
+        }
+
+        const envio = await getEnvioByOrderId(orderId);
+        if (!envio) return res.status(404).json({ error: 'Envío no encontrado para esta orden' });
+
+        await updateOrderDetails(orderId, {
+            nombre_cliente,
+            email_cliente,
+            dni_cliente,
+            telefono_cliente,
+            provincia,
+            ciudad,
+            codigo_postal,
+            direccion,
+            numero,
+            extra: extra || null
+        });
+
+        return res.json({ success: true });
+    } catch (error: any) {
+        console.error('Error actualizando detalles del pedido:', error);
         return res.status(500).json({ error: error?.message || 'Error interno' });
     }
 }
