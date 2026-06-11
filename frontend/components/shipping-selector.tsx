@@ -416,12 +416,12 @@ export function ShippingSelector({ items, productsTotal, onSelectionComplete, on
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className={labelClassName}>Piso / Depto</label>
+                  <label className={labelClassName}>Piso / Depto / Aclaraciones</label>
                   <input
                     type="text"
                     value={extra}
                     onChange={(e) => setExtra(e.target.value)}
-                    placeholder="Opcional"
+                    placeholder="Ej: Piso 3 Depto B, casa con portón negro, timbre no funciona... (Opcional)"
                     className={fieldClassName}
                   />
                 </div>

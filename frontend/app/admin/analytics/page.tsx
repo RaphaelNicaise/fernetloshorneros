@@ -646,26 +646,27 @@ export default function AnalyticsPage() {
                     </div>
                 </div>
                 
-                <div className="relative flex w-full justify-around items-center px-4 mt-12 mb-4">
+                <div className="relative flex w-full justify-between items-start px-2 mt-12 mb-4">
                     {/* Línea de conexión base */}
-                    <div className="absolute top-5 left-16 right-16 h-1 bg-[#120e0b] -z-10" />
+                    <div className="absolute top-5 left-12 right-12 h-1 bg-[#120e0b] -z-10" />
                     {/* Renderizamos pasos lógicos del funnel */}
                     {[
-                        { id: 'pending', label: 'Pendiente de Despacho', color: 'text-yellow-500', bg: 'bg-yellow-500/20', border: 'border-yellow-500/30' },
-                        { id: 'shipped', label: 'Enviado (Con Tracking)', color: 'text-green-500', bg: 'bg-green-500/20', border: 'border-green-500/30' },
-                        { id: 'cancelled', label: 'Anulado', color: 'text-gray-500', bg: 'bg-gray-500/20', border: 'border-gray-500/30' },
-                    ].map((step, idx) => {
-                        const count = Number(stats.shipping.funnel.find(f => f.status === step.id || (step.id === 'pending' && f.status === null))?.count || 0)
+                        { id: 'pendiente', label: 'Pendiente de Pago', color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/30' },
+                        { id: 'para_despachar', label: 'Pendiente de Despacho', color: 'text-yellow-500', bg: 'bg-yellow-500/10', border: 'border-yellow-500/30' },
+                        { id: 'enviado', label: 'Enviado (Tracking)', color: 'text-green-500', bg: 'bg-green-500/10', border: 'border-green-500/30' },
+                        { id: 'cancelado', label: 'Anulado', color: 'text-gray-500', bg: 'bg-gray-500/10', border: 'border-gray-500/30' },
+                    ].map((step) => {
+                        const count = Number(stats.shipping.funnel.find(f => f.status === step.id)?.count || 0)
                         const total = stats.shipping.funnel.reduce((a,c) => a + Number(c.count), 0)
                         const percent = total > 0 ? ((count / total)*100).toFixed(0) : "0"
 
                         return (
-                            <div key={step.id} className="flex flex-col items-center relative z-10 bg-[#0b0a07] px-4">
-                                <div className={`flex h-12 w-12 items-center justify-center rounded-full border-2 ${step.bg} ${step.border} ${step.color} shadow-lg`}>
+                            <div key={step.id} className="flex flex-col items-center relative z-10 px-2 text-center w-1/4">
+                                <div className={`flex h-12 w-12 items-center justify-center rounded-full border-2 ${step.bg} ${step.border} ${step.color} shadow-lg backdrop-blur-md`}>
                                     <span className="font-mono text-sm font-bold">{count}</span>
                                 </div>
-                                <p className="mt-3 text-[10px] font-bold uppercase tracking-widest text-white/70">{step.label}</p>
-                                <p className="text-[10px] font-mono text-white/30">{percent}% del total</p>
+                                <p className="mt-3 text-[10px] font-bold uppercase tracking-widest text-white/70 leading-tight">{step.label}</p>
+                                <p className="text-[10px] font-mono text-white/30 mt-1">{percent}% del total</p>
                             </div>
                         )
                     })}

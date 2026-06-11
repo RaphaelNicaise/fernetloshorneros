@@ -81,7 +81,7 @@ const EFFECTIVE_STATUS_COLORS: Record<EffectiveStatus, string> = {
   cancelado: "bg-white/5 text-white/50 border border-white/10",
 }
 
-const PAGE_SIZE = 15
+const PAGE_SIZE = 75
 
 export default function AdminPedidosPage() {
   const [orders, setOrders] = useState<Order[]>([])
@@ -99,6 +99,12 @@ export default function AdminPedidosPage() {
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [editModalTarget, setEditModalTarget] = useState<Order | null>(null)
   
+  // Estados para despacho rápido
+  const [dispatchModalOpen, setDispatchModalOpen] = useState(false)
+  const [dispatchModalTarget, setDispatchModalTarget] = useState<Order | null>(null)
+  const [quickTrackingCode, setQuickTrackingCode] = useState("")
+  const [quickSendEmail, setQuickSendEmail] = useState(true)
+
   // Campos del formulario de edición
   const [formStatus, setFormStatus] = useState<EffectiveStatus | "">("")
   const [formTrackingCode, setFormTrackingCode] = useState("")
@@ -164,6 +170,9 @@ export default function AdminPedidosPage() {
         if (editModalOpen) {
           setEditModalOpen(false);
         }
+        if (dispatchModalOpen) {
+          setDispatchModalOpen(false);
+        }
         if (alertDialog.isOpen) {
           setAlertDialog(prev => ({ ...prev, isOpen: false }));
         }
@@ -171,7 +180,7 @@ export default function AdminPedidosPage() {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [confirmDialog.isOpen, editModalOpen, alertDialog.isOpen]);
+  }, [confirmDialog.isOpen, editModalOpen, dispatchModalOpen, alertDialog.isOpen]);
 
   function openEditModal(order: Order) {
     setEditModalTarget(order);
@@ -285,6 +294,61 @@ export default function AdminPedidosPage() {
         title: "Error",
         message: e?.message || "Ocurrió un error al guardar los cambios.",
         type: "error"
+      });
+    } finally {
+      setSubmittingStatus(false);
+    }
+  }
+
+  function openDispatchModal(order: Order) {
+    setDispatchModalTarget(order);
+    setQuickTrackingCode(order.tracking_code || "");
+    setQuickSendEmail(true);
+    setDispatchModalOpen(true);
+  }
+
+  async function handleQuickDispatch() {
+    if (!dispatchModalTarget) return;
+    try {
+      setSubmittingStatus(true);
+      const token = localStorage.getItem("admin_token");
+      const payload = {
+        status: "enviado",
+        trackingCode: quickTrackingCode,
+        sendEmail: quickSendEmail,
+      };
+
+      const res = await fetch(`${API_BASE_URL}/orders/${dispatchModalTarget.id}/update-status`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.success !== true) {
+        throw new Error(data.error || "Error al actualizar el estado");
+      }
+
+      setAlertDialog({
+        isOpen: true,
+        title: "Pedido Despachado",
+        message: `El pedido #${dispatchModalTarget.id} fue marcado como enviado exitosamente.`,
+        type: "success",
+      });
+
+      setDispatchModalOpen(false);
+      setDispatchModalTarget(null);
+      setQuickTrackingCode("");
+      fetchOrders();
+    } catch (e: any) {
+      setAlertDialog({
+        isOpen: true,
+        title: "Error al Despachar",
+        message: e?.message || "Ocurrió un error al despachar el pedido.",
+        type: "error",
       });
     } finally {
       setSubmittingStatus(false);
@@ -656,17 +720,30 @@ export default function AdminPedidosPage() {
  
                           {/* Acciones principales rápidas */}
                           {effectiveStatus === 'para_despachar' && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="border-2 border-red-500/40 text-red-300 hover:bg-red-500/20 bg-red-500/10 h-8 px-3 rounded-md transition-colors font-semibold"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleCancelClick(order);
-                              }}
-                            >
-                              Anular (Reembolso MP)
-                            </Button>
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-2 border-green-500/40 text-green-300 hover:bg-green-500/20 bg-green-500/10 h-8 px-3 rounded-md transition-colors font-semibold"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openDispatchModal(order);
+                                }}
+                              >
+                                Despachar
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-2 border-red-500/40 text-red-300 hover:bg-red-500/20 bg-red-500/10 h-8 px-3 rounded-md transition-colors font-semibold"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleCancelClick(order);
+                                }}
+                              >
+                                Anular (Reembolso MP)
+                              </Button>
+                            </>
                           )}
  
                           {effectiveStatus === 'enviado' && order.tracking_code && (
@@ -768,17 +845,29 @@ export default function AdminPedidosPage() {
         </Table>
       </div>
 
-      {/* Paginación */}
-      <div className="flex items-center justify-between text-white mt-2">
-        <div>
-          Mostrando {visible.length > 0 ? start + 1 : 0}–{Math.min(start + PAGE_SIZE, total)} de {total}
+      {/* Paginación Sticky */}
+      <div className="sticky bottom-4 z-10 bg-[#0b0a07]/90 backdrop-blur-md border border-white/10 px-6 py-4 shadow-[0_12px_40px_rgba(0,0,0,0.7)] flex flex-col sm:flex-row items-center justify-between gap-4 text-white rounded-xl mt-4">
+        <div className="text-sm font-medium text-white/80">
+          Mostrando <span className="text-white font-semibold">{visible.length > 0 ? start + 1 : 0}</span>–<span className="text-white font-semibold">{Math.min(start + PAGE_SIZE, total)}</span> de <span className="text-[#AA6F3B] font-semibold">{total}</span>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" disabled={current === 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+        <div className="flex items-center gap-4">
+          <Button 
+            variant="outline" 
+            disabled={current === 1} 
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            className="border-white/10 bg-white/5 text-white hover:bg-white/10 disabled:opacity-40 disabled:hover:bg-white/5"
+          >
             Anterior
           </Button>
-          <span>Página {current} / {pages}</span>
-          <Button variant="outline" disabled={current === pages} onClick={() => setPage((p) => Math.min(pages, p + 1))}>
+          <span className="text-sm text-white/80">
+            Página <span className="text-[#AA6F3B] font-semibold">{current}</span> / {pages}
+          </span>
+          <Button 
+            variant="outline" 
+            disabled={current === pages} 
+            onClick={() => setPage((p) => Math.min(pages, p + 1))}
+            className="border-white/10 bg-white/5 text-white hover:bg-white/10 disabled:opacity-40 disabled:hover:bg-white/5"
+          >
             Siguiente
           </Button>
         </div>
@@ -977,7 +1066,7 @@ export default function AdminPedidosPage() {
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-white/40 uppercase block">Aclaraciones / Piso / Departamento</label>
                   <Input
-                    placeholder="Ej: Piso 3 Depto B"
+                    placeholder="Ej: Piso 3 Depto B, casa con portón negro... (Opcional)"
                     value={formExtra}
                     onChange={(e) => setFormExtra(e.target.value)}
                     className="bg-white/5 border-white/10 text-white text-sm placeholder:text-white/30 focus:border-[#AA6F3B]/50 h-10"
@@ -1106,10 +1195,89 @@ export default function AdminPedidosPage() {
 
             <Button
               onClick={() => setAlertDialog(prev => ({ ...prev, isOpen: false }))}
-              className="w-full bg-[#AA6F3B] hover:bg-[#AA6F3B]/90 text-white font-semibold border-0"
+              className="w-full bg-[#AA6F3B] hover:bg-[#AA6F3B]/90 text-[#0b0a07] font-bold border-0"
             >
               Aceptar
             </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Rápido de Despacho */}
+      {dispatchModalOpen && dispatchModalTarget && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4"
+          onClick={() => {
+            setDispatchModalOpen(false);
+            setDispatchModalTarget(null);
+          }}
+        >
+          <div 
+            className="w-full max-w-md bg-[#0b0a07] rounded-xl shadow-2xl border border-white/10 overflow-hidden text-white transform transition-all duration-300"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-white/8 bg-white/5 flex items-center justify-between">
+              <h3 className="font-serif text-lg font-bold text-white">
+                Despachar Pedido #{dispatchModalTarget.id}
+              </h3>
+              <button 
+                onClick={() => {
+                  setDispatchModalOpen(false);
+                  setDispatchModalTarget(null);
+                }}
+                className="text-white/40 hover:text-white transition-colors font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-4">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-white/40 uppercase tracking-wider block">
+                  Link o Código de Seguimiento (Correo Argentino)
+                </label>
+                <Input
+                  value={quickTrackingCode}
+                  onChange={(e) => setQuickTrackingCode(e.target.value)}
+                  placeholder="Ej: CP123456789AR o link completo"
+                  className="bg-[#14120f] border-white/10 focus:border-[#AA6F3B] focus:ring-1 focus:ring-[#AA6F3B] text-white placeholder-white/30 h-10 w-full"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 p-3 bg-white/5 rounded-lg border border-white/10">
+                <Checkbox
+                  id="quickSendEmailCheckbox"
+                  checked={quickSendEmail}
+                  onCheckedChange={(checked) => setQuickSendEmail(!!checked)}
+                />
+                <label htmlFor="quickSendEmailCheckbox" className="text-xs font-medium text-white/70 select-none cursor-pointer">
+                  Enviar mail de despacho automático al comprador
+                </label>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-white/8 bg-white/5 flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setDispatchModalOpen(false);
+                  setDispatchModalTarget(null);
+                }}
+                className="border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white h-10 font-semibold"
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleQuickDispatch}
+                disabled={submittingStatus || !quickTrackingCode.trim()}
+                className="bg-[#AA6F3B] hover:bg-[#AA6F3B]/90 text-white font-semibold h-10 border-0"
+              >
+                {submittingStatus ? "Despachando..." : "Confirmar Envío"}
+              </Button>
+            </div>
           </div>
         </div>
       )}

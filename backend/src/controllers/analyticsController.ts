@@ -132,12 +132,18 @@ export async function getBiAnalytics(req: Request, res: Response) {
 
         const shippingFunnel = await sequelize.query(
             `SELECT 
-                e.status, 
+                CASE 
+                    WHEN p.status IN ('approved', 'paid') AND e.status = 'enviado' THEN 'enviado'
+                    WHEN p.status IN ('approved', 'paid') AND e.status = 'cancelado' THEN 'cancelado'
+                    WHEN p.status IN ('approved', 'paid') THEN 'para_despachar'
+                    WHEN p.status IN ('cancelled', 'rejected') THEN 'cancelado'
+                    ELSE 'pendiente'
+                END as status,
                 COUNT(*) as count
-             FROM envios e
-             JOIN pedidos p ON p.id = e.id_pedido
-             WHERE p.status = 'paid' AND e.fecha BETWEEN :start AND :end
-             GROUP BY e.status`,
+             FROM pedidos p
+             LEFT JOIN envios e ON p.id = e.id_pedido
+             WHERE p.fecha BETWEEN :start AND :end
+             GROUP BY 1`,
             { replacements: { start, end }, type: QueryTypes.SELECT }
         );
 
