@@ -230,6 +230,14 @@ export function ShippingSelector({ items, productsTotal, onSelectionComplete, on
     }
   }, [selectedOption, productsTotal, onTotalChange])
 
+  // Sincronizar automáticamente selectedOption cuando se auto-selecciona standard_delivery
+  useEffect(() => {
+    if (selectedType === 'standard_delivery' && deliveryOption) {
+      setSelectedOption(deliveryOption)
+      setSelectedPickupPoint(null)
+    }
+  }, [selectedType, deliveryOption])
+
   const handleSelectType = (type: 'standard_delivery' | 'pickup_point') => {
     setSelectedType(type)
     if (type === 'standard_delivery' && deliveryOption) {

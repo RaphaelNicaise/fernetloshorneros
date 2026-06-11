@@ -143,9 +143,7 @@ export default function HomePageContent() {
               {/* Scroll-driven fade/lift — controlled by useScroll, not animate */}
               <motion.div style={{ opacity: heroContentOpacity, y: heroContentY }}>
                 <div className="mb-8 flex flex-col items-center text-center md:items-start md:text-left">
-                  <div className="mb-6 inline-flex rounded-full border border-white/12 bg-white/6 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-[#aa825e] backdrop-blur-md">
-                    Preventa exclusiva 2026
-                  </div>
+                  
                   <div className="flex flex-col gap-2">
                     <div className="flex items-center gap-3 sm:gap-4">
                       <Image
@@ -205,25 +203,6 @@ export default function HomePageContent() {
             </motion.div>
           </div>
 
-          {/* Scroll cue — fades out as user starts scrolling */}
-          <motion.div
-            className="pointer-events-none absolute bottom-10 left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-2"
-            style={{ opacity: heroCueOpacity }}
-          >
-            <div
-              className="flex flex-col items-center gap-2"
-              style={{ animation: "fadeInUp 0.6s ease-out 1.4s both" }}
-            >
-              <span className="text-[10px] uppercase tracking-[0.25em] text-white/50">Scroll</span>
-              <motion.div
-                className="flex h-9 w-5 items-start justify-center rounded-full border border-white/25 pt-1.5"
-                animate={{ y: [0, 4, 0] }}
-                transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
-              >
-                <div className="h-2 w-0.5 rounded-full bg-white/60" />
-              </motion.div>
-            </div>
-          </motion.div>
         </section>
 
         <section className="bg-white px-4 pb-16 pt-28 sm:pb-24 sm:pt-32">
