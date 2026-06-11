@@ -710,14 +710,19 @@ export async function deleteOrder(orderId: number, restoreStock: boolean): Promi
                 );
 
                 for (const item of items) {
-                    await sequelize.query(
-                        `UPDATE inventario SET stock = stock + :cantidad WHERE id = :id_producto`,
-                        {
-                            replacements: { cantidad: item.cantidad, id_producto: item.id_producto },
-                            type: QueryTypes.UPDATE,
-                            transaction,
-                        }
+                    const products = await sequelize.query<any>(
+                        `SELECT stock, status FROM productos WHERE id = :id`,
+                        { replacements: { id: item.id_producto }, type: QueryTypes.SELECT, transaction }
                     );
+                    if (products.length > 0) {
+                        const p = products[0];
+                        const newStock = Number(p.stock) + Number(item.cantidad);
+                        const newStatus = p.status === 'agotado' && newStock > 0 ? 'disponible' : p.status;
+                        await sequelize.query(
+                            `UPDATE productos SET stock = :newStock, status = :newStatus WHERE id = :id`,
+                            { replacements: { id: item.id_producto, newStock, newStatus }, type: QueryTypes.UPDATE, transaction }
+                        );
+                    }
                 }
             }
         }

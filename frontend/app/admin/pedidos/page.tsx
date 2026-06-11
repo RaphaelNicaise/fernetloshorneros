@@ -287,7 +287,7 @@ export default function AdminPedidosPage() {
         type: "success"
       });
       setEditModalOpen(false);
-      fetchOrders();
+      fetchOrders(true);
     } catch (e: any) {
       setAlertDialog({
         isOpen: true,
@@ -342,7 +342,7 @@ export default function AdminPedidosPage() {
       setDispatchModalOpen(false);
       setDispatchModalTarget(null);
       setQuickTrackingCode("");
-      fetchOrders();
+      fetchOrders(true);
     } catch (e: any) {
       setAlertDialog({
         isOpen: true,
@@ -392,7 +392,7 @@ export default function AdminPedidosPage() {
             type: "success"
           });
           setConfirmDialog(prev => ({ ...prev, isOpen: false }));
-          fetchOrders();
+          fetchOrders(true);
         } catch (err: any) {
           setAlertDialog({
             isOpen: true,
@@ -471,7 +471,7 @@ export default function AdminPedidosPage() {
             type: "success"
           });
           setConfirmDialog(prev => ({ ...prev, isOpen: false }));
-          fetchOrders();
+          fetchOrders(true);
         } catch (error) {
           console.error(error);
           setAlertDialog({
@@ -485,9 +485,9 @@ export default function AdminPedidosPage() {
     });
   }
 
-  async function fetchOrders() {
+  async function fetchOrders(background = false) {
     try {
-      setLoading(true)
+      if (!background) setLoading(true)
       const token = localStorage.getItem("admin_token")
       const res = await fetch(`${API_BASE_URL}/orders`, {
         headers: {
@@ -727,7 +727,7 @@ export default function AdminPedidosPage() {
             <Download className="w-4 h-4" />
             {exporting ? "Exportando..." : "Exportar Excel"}
           </Button>
-          <Button variant="secondary" className="h-10 bg-[#AA6F3B]/20 text-[#AA6F3B] hover:bg-[#AA6F3B]/30 border border-[#AA6F3B]/30" onClick={fetchOrders}>
+          <Button variant="secondary" className="h-10 bg-[#AA6F3B]/20 text-[#AA6F3B] hover:bg-[#AA6F3B]/30 border border-[#AA6F3B]/30" onClick={() => fetchOrders()}>
             Recargar
           </Button>
         </div>

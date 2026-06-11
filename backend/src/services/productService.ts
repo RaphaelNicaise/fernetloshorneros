@@ -47,10 +47,17 @@ export async function createProduct(product: Product): Promise<void> {
 }
 
 export async function updateProduct(product: Product): Promise<void> {
+    let newStatus = product.status;
+    if (product.stock === 0) {
+        newStatus = 'agotado';
+    } else if (product.stock > 0 && product.status === 'agotado') {
+        newStatus = 'disponible';
+    }
+
     await sequelize.query(
         `UPDATE productos SET name = :name, description = :description, price = :price, image = :image, limite = :limite, stock = :stock, status = :status WHERE id = :id`,
         {
-            replacements: product,
+            replacements: { ...product, status: newStatus },
             type: QueryTypes.UPDATE,
         }
     );
@@ -95,25 +102,23 @@ export async function decreaseStock(id: string, quantity: number): Promise<numbe
  * Actualiza solo el stock de un producto
  */
 export async function updateStock(id: string, stock: number): Promise<void> {
-    const newStatus = stock === 0 ? 'agotado' : undefined;
+    const product = await getProductById(id);
+    if (!product) return;
 
-    if (newStatus) {
-        await sequelize.query(
-            `UPDATE productos SET stock = :stock, status = :newStatus WHERE id = :id`,
-            {
-                replacements: { id, stock, newStatus },
-                type: QueryTypes.UPDATE,
-            }
-        );
-    } else {
-        await sequelize.query(
-            `UPDATE productos SET stock = :stock WHERE id = :id`,
-            {
-                replacements: { id, stock },
-                type: QueryTypes.UPDATE,
-            }
-        );
+    let newStatus = product.status;
+    if (stock === 0) {
+        newStatus = 'agotado';
+    } else if (stock > 0 && product.status === 'agotado') {
+        newStatus = 'disponible';
     }
+
+    await sequelize.query(
+        `UPDATE productos SET stock = :stock, status = :newStatus WHERE id = :id`,
+        {
+            replacements: { id, stock, newStatus },
+            type: QueryTypes.UPDATE,
+        }
+    );
 }
 
 /**

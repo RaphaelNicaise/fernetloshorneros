@@ -10,6 +10,10 @@ import {
   type Provincia,
   type Localidad 
 } from "@/lib/api"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
+import { Check, ChevronsUpDown } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 // Iconos SVG inline
 const HomeIcon = () => (
@@ -88,6 +92,7 @@ export function ShippingSelector({ items, productsTotal, onSelectionComplete, on
   // Estado paso 1: Código postal y provincia
   const [codigoPostal, setCodigoPostal] = useState("")
   const [provincia, setProvincia] = useState("")
+  const [openProvincia, setOpenProvincia] = useState(false)
   const [provincias, setProvincias] = useState<Provincia[]>([])
   const [loadingProvincias, setLoadingProvincias] = useState(false)
   
@@ -102,6 +107,7 @@ export function ShippingSelector({ items, productsTotal, onSelectionComplete, on
   
   // Estado formulario domicilio
   const [ciudad, setCiudad] = useState("")
+  const [openCiudad, setOpenCiudad] = useState(false)
   const [localidades, setLocalidades] = useState<Localidad[]>([])
   const [loadingLocalidades, setLoadingLocalidades] = useState(false)
   const [direccion, setDireccion] = useState("")
@@ -297,42 +303,111 @@ export function ShippingSelector({ items, productsTotal, onSelectionComplete, on
             <label className={labelClassName}>
               Provincia *
             </label>
-            <select
-              value={provincia}
-              onChange={(e) => setProvincia(e.target.value)}
-              disabled={loadingProvincias}
-              className={fieldClassName}
-            >
-              <option value="">
-                {loadingProvincias ? "Cargando..." : "Seleccionar provincia"}
-              </option>
-              {provincias.map((p) => (
-                <option key={p.id} value={p.nombre}>{p.nombre}</option>
-              ))}
-            </select>
+            <Popover open={openProvincia} onOpenChange={setOpenProvincia}>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  disabled={loadingProvincias}
+                  role="combobox"
+                  className={cn(
+                    fieldClassName,
+                    "flex w-full items-center justify-between font-normal text-left",
+                    !provincia && "text-black/30"
+                  )}
+                >
+                  <span className="truncate">{provincia || (loadingProvincias ? "Cargando..." : "Seleccionar provincia")}</span>
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Buscar provincia..." className="h-9" />
+                  <CommandList>
+                    <CommandEmpty>No se encontró la provincia.</CommandEmpty>
+                    <CommandGroup>
+                      {provincias.map((p) => (
+                        <CommandItem
+                          key={p.id}
+                          value={p.nombre}
+                          onSelect={(currentValue) => {
+                            // En CommandItem value suele normalizarse a minúsculas, usamos el p.nombre original comparando
+                            const selected = provincias.find(prov => prov.nombre.toLowerCase() === currentValue.toLowerCase())
+                            setProvincia(selected ? selected.nombre : "")
+                            setOpenProvincia(false)
+                          }}
+                        >
+                          {p.nombre}
+                          <Check
+                            className={cn(
+                              "ml-auto h-4 w-4",
+                              provincia === p.nombre ? "opacity-100 text-[#aa825e]" : "opacity-0"
+                            )}
+                          />
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div>
             <label className={labelClassName}>
               Ciudad *
             </label>
-            <select
-              value={ciudad}
-              onChange={(e) => setCiudad(e.target.value)}
-              disabled={!provincia || loadingLocalidades}
-              className={fieldClassName}
-            >
-              <option value="">
-                {loadingLocalidades 
-                  ? "Cargando..." 
-                  : !provincia 
-                    ? "Primero seleccioná provincia" 
-                    : "Seleccionar ciudad"}
-              </option>
-              {localidades.map((l) => (
-                <option key={l.id} value={l.nombre}>{l.nombre}</option>
-              ))}
-            </select>
+            <Popover open={openCiudad} onOpenChange={setOpenCiudad}>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  disabled={!provincia || loadingLocalidades}
+                  role="combobox"
+                  className={cn(
+                    fieldClassName,
+                    "flex w-full items-center justify-between font-normal text-left",
+                    !ciudad && "text-black/30"
+                  )}
+                >
+                  <span className="truncate">
+                    {loadingLocalidades 
+                      ? "Cargando..." 
+                      : !provincia 
+                        ? "Primero seleccioná provincia" 
+                        : (ciudad || "Seleccionar ciudad")}
+                  </span>
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Buscar ciudad..." className="h-9" />
+                  <CommandList>
+                    <CommandEmpty>No se encontró la ciudad.</CommandEmpty>
+                    <CommandGroup>
+                      {localidades.map((l) => (
+                        <CommandItem
+                          key={l.id}
+                          value={l.nombre}
+                          onSelect={(currentValue) => {
+                            const selected = localidades.find(loc => loc.nombre.toLowerCase() === currentValue.toLowerCase())
+                            setCiudad(selected ? selected.nombre : "")
+                            setOpenCiudad(false)
+                          }}
+                        >
+                          {l.nombre}
+                          <Check
+                            className={cn(
+                              "ml-auto h-4 w-4",
+                              ciudad === l.nombre ? "opacity-100 text-[#aa825e]" : "opacity-0"
+                            )}
+                          />
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div>
