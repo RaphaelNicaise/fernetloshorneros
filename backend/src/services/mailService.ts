@@ -16,9 +16,9 @@ function getEmailWrapper(title: string, contentHtml: string): string {
         body {
           margin: 0;
           padding: 0;
-          background-color: #1a1512;
+          background-color: #0b0a07;
           font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-          color: #f5f0eb;
+          color: #ffffff;
           -webkit-font-smoothing: antialiased;
         }
         table {
@@ -28,127 +28,127 @@ function getEmailWrapper(title: string, contentHtml: string): string {
         .container {
           max-width: 600px;
           margin: 0 auto;
-          background-color: #241d1a;
-          border-radius: 8px;
+          background-color: #14120f;
+          border-radius: 12px;
           overflow: hidden;
-          border: 1px solid #3d2f29;
-          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+          border: 1px solid #ffffff15;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
         }
         .header {
-          background-color: #150f0d;
-          padding: 30px 20px;
+          background-color: #0b0a07;
+          padding: 40px 20px;
           text-align: center;
-          border-bottom: 2px solid #c9933b;
+          border-bottom: 1px solid #AA6F3B;
         }
         .header h1 {
-          color: #c9933b;
+          color: #ffffff;
           font-family: 'Georgia', serif;
           margin: 0;
-          font-size: 26px;
+          font-size: 28px;
           letter-spacing: 2px;
           text-transform: uppercase;
         }
         .header p {
-          color: #a39081;
-          margin: 5px 0 0 0;
-          font-size: 11px;
-          letter-spacing: 3px;
+          color: #AA6F3B;
+          margin: 8px 0 0 0;
+          font-size: 12px;
+          letter-spacing: 4px;
           text-transform: uppercase;
+          font-weight: bold;
         }
         .content {
-          padding: 35px 25px;
+          padding: 40px 30px;
           text-align: left;
         }
         .content h2 {
-          color: #c9933b;
+          color: #ffffff;
           font-family: 'Georgia', serif;
-          font-size: 20px;
+          font-size: 22px;
           margin-top: 0;
           margin-bottom: 20px;
         }
         .content p {
           line-height: 1.6;
-          color: #d1c7bd;
+          color: #cccccc;
           font-size: 15px;
           margin-top: 0;
           margin-bottom: 20px;
         }
         .button-container {
           text-align: center;
-          margin: 30px 0;
+          margin: 35px 0;
         }
         .btn {
-          background-color: #c9933b;
-          color: #150f0d !important;
-          padding: 12px 28px;
+          background-color: #AA6F3B;
+          color: #ffffff !important;
+          padding: 14px 32px;
           text-decoration: none;
           font-weight: bold;
-          border-radius: 4px;
+          border-radius: 6px;
           display: inline-block;
           font-size: 15px;
-        }
-        .btn:hover {
-          background-color: #dfa84a;
+          text-transform: uppercase;
+          letter-spacing: 1px;
         }
         .order-table {
-          margin: 25px 0;
-          border-top: 1px solid #3d2f29;
-          border-bottom: 1px solid #3d2f29;
+          margin: 30px 0;
+          border-top: 1px solid #ffffff15;
+          border-bottom: 1px solid #ffffff15;
         }
         .order-table th {
           text-align: left;
-          padding: 12px 8px;
-          color: #a39081;
+          padding: 15px 8px;
+          color: #AA6F3B;
           font-size: 12px;
           text-transform: uppercase;
           letter-spacing: 1px;
-          border-bottom: 1px solid #3d2f29;
+          border-bottom: 1px solid #ffffff15;
         }
         .order-table td {
-          padding: 12px 8px;
+          padding: 15px 8px;
           font-size: 14px;
-          border-bottom: 1px solid #2d231f;
-          color: #e6ded6;
+          border-bottom: 1px solid #ffffff0a;
+          color: #eeeeee;
         }
         .order-table tr:last-child td {
           border-bottom: none;
         }
         .summary-row td {
           font-weight: bold;
-          padding-top: 12px;
-          padding-bottom: 12px;
+          padding-top: 15px;
+          padding-bottom: 15px;
           font-size: 15px;
         }
         .summary-row .label {
-          color: #a39081;
+          color: #aaaaaa;
           text-align: right;
         }
         .summary-row .value {
-          color: #c9933b;
+          color: #ffffff;
           text-align: right;
         }
         .tracking-box {
-          background-color: #150f0d;
-          border: 1px dashed #c9933b;
-          padding: 15px;
-          border-radius: 6px;
+          background-color: #0b0a07;
+          border: 1px dashed #AA6F3B;
+          padding: 20px;
+          border-radius: 8px;
           text-align: center;
-          margin: 25px 0;
+          margin: 30px 0;
         }
         .tracking-box code {
           font-family: 'Courier New', Courier, monospace;
-          font-size: 20px;
-          color: #c9933b;
+          font-size: 22px;
+          color: #AA6F3B;
           font-weight: bold;
-          letter-spacing: 1px;
+          letter-spacing: 2px;
         }
         .footer {
-          background-color: #150f0d;
-          padding: 25px;
+          background-color: #0b0a07;
+          padding: 30px;
           text-align: center;
-          border-top: 1px solid #2d231f;
+          border-top: 1px solid #ffffff15;
           font-size: 12px;
-          color: #6e5e54;
+          color: #666666;
         }
         .footer p {
           margin: 5px 0;
@@ -156,12 +156,12 @@ function getEmailWrapper(title: string, contentHtml: string): string {
       </style>
     </head>
     <body>
-      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #1a1512; padding: 20px 0; margin: 0;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #0b0a07; padding: 40px 0; margin: 0;">
         <tr>
           <td align="center">
             <div class="container">
               <div class="header">
-                <h1>Los Horneros</h1>
+                <img src="${process.env.FRONTEND_URL || 'https://fernetloshorneros.com.ar'}/logo-fernet.webp" alt="Los Horneros" style="width: 200px; height: auto; margin-bottom: 5px; display: inline-block; filter: invert(1); opacity: 0.9;" />
                 <p>Fernet de Autor</p>
               </div>
               <div class="content">
