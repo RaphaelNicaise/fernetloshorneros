@@ -187,6 +187,17 @@ export async function getBiAnalytics(req: Request, res: Response) {
             { type: QueryTypes.SELECT }
         );
 
+        const waitlistEvolution = await sequelize.query(
+            `SELECT 
+                DATE(fecha_registro) as date,
+                COUNT(id) as signups
+             FROM usuario_lista_espera
+             WHERE fecha_registro BETWEEN :start AND :end
+             GROUP BY date
+             ORDER BY date ASC`,
+            { replacements: { start, end }, type: QueryTypes.SELECT }
+        );
+
         // Ensamblar respuesta
         return res.json({
             revenue: revenueEvolution,
@@ -207,7 +218,8 @@ export async function getBiAnalytics(req: Request, res: Response) {
             clients: {
                 top: topClients,
                 waitlistConversion: waitlistConversionResult,
-                waitlistGeoDistribution
+                waitlistGeoDistribution,
+                waitlistEvolution
             }
         });
 

@@ -91,6 +91,11 @@ export default function AnalyticsPage() {
   
   // Filtros Locales
   const [revenueGroup, setRevenueGroup] = useState("day")
+  
+  // Filtros Lista de Espera
+  const [waitlistGroup, setWaitlistGroup] = useState("day")
+  const [waitlistStart, setWaitlistStart] = useState("")
+  const [waitlistEnd, setWaitlistEnd] = useState("")
 
   const load = async (showRefresh = false) => {
     if (showRefresh) setRefreshing(true)
@@ -160,6 +165,46 @@ export default function AnalyticsPage() {
 
     return Object.values(groups)
   }, [stats?.revenue, revenueGroup])
+
+  const groupedWaitlist = useMemo(() => {
+    if (!stats || !stats.clients?.waitlistEvolution) return []
+    
+    // Filtrado por fecha
+    let filtered = stats.clients.waitlistEvolution
+    if (waitlistStart) {
+      filtered = filtered.filter(item => item.date >= waitlistStart)
+    }
+    if (waitlistEnd) {
+      filtered = filtered.filter(item => item.date <= waitlistEnd)
+    }
+
+    if (waitlistGroup === "day") return filtered
+
+    const groups: Record<string, { date: string, signups: number }> = {}
+
+    filtered.forEach((item) => {
+      const parsedDate = parseISO(item.date)
+      let key = ""
+      let displayDate = ""
+
+      if (waitlistGroup === "week") {
+        const start = startOfWeek(parsedDate, { weekStartsOn: 1 }) // Lunes
+        key = format(start, "yyyy-MM-dd")
+        displayDate = `Semana ${format(start, "dd MMM", { locale: es })}`
+      } else {
+        const start = startOfMonth(parsedDate)
+        key = format(start, "yyyy-MM")
+        displayDate = format(start, "MMMM yyyy", { locale: es })
+      }
+
+      if (!groups[key]) {
+        groups[key] = { date: displayDate, signups: 0 }
+      }
+      groups[key].signups += Number(item.signups)
+    })
+
+    return Object.values(groups)
+  }, [stats?.clients?.waitlistEvolution, waitlistGroup, waitlistStart, waitlistEnd])
 
   if (loading && !stats) {
     return (
@@ -754,13 +799,70 @@ export default function AnalyticsPage() {
 
         </div>
 
-        {/* Mapa de Hype - Lista de Espera */}
+        {/* Gráfico de Evolución de Lista de Espera */}
         <div className="rounded-2xl border border-white/8 bg-[#0b0a07]/40 p-7 shadow-lg backdrop-blur-sm">
-          <div className="mb-4">
-            <p className="font-serif text-lg font-bold text-white">Mapa de Hype — Lista de Espera por Provincia</p>
-            <p className="text-xs text-white/40 mt-1">Dónde está la demanda latente. Zonas con más interesados anotados.</p>
+          <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+            <div>
+              <p className="font-serif text-lg font-bold text-white">Evolución de Anotados</p>
+              <p className="text-xs text-white/40 mt-1">Crecimiento histórico de la lista de espera.</p>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <input 
+                  type="date" 
+                  value={waitlistStart}
+                  onChange={(e) => setWaitlistStart(e.target.value)}
+                  className="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white/80 focus:outline-none focus:border-[#AA6F3B] w-full sm:w-auto"
+                />
+                <span className="text-white/40 text-xs">hasta</span>
+                <input 
+                  type="date" 
+                  value={waitlistEnd}
+                  onChange={(e) => setWaitlistEnd(e.target.value)}
+                  className="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white/80 focus:outline-none focus:border-[#AA6F3B] w-full sm:w-auto"
+                />
+                {(waitlistStart || waitlistEnd) && (
+                  <button onClick={() => { setWaitlistStart(""); setWaitlistEnd(""); }} className="text-[#AA6F3B] text-xs hover:text-white px-2">Limpiar</button>
+                )}
+              </div>
+              <div className="inline-flex w-full sm:w-auto bg-[#1a1511] p-1 rounded-xl">
+                <button onClick={() => setWaitlistGroup("day")} className={`flex-1 sm:flex-none rounded-lg px-4 py-1.5 text-xs font-semibold transition-all ${waitlistGroup === "day" ? "bg-[#AA6F3B] text-white shadow-md" : "text-white/40 hover:text-white"}`}>Días</button>
+                <button onClick={() => setWaitlistGroup("week")} className={`flex-1 sm:flex-none rounded-lg px-4 py-1.5 text-xs font-semibold transition-all ${waitlistGroup === "week" ? "bg-[#AA6F3B] text-white shadow-md" : "text-white/40 hover:text-white"}`}>Semanas</button>
+                <button onClick={() => setWaitlistGroup("month")} className={`flex-1 sm:flex-none rounded-lg px-4 py-1.5 text-xs font-semibold transition-all ${waitlistGroup === "month" ? "bg-[#AA6F3B] text-white shadow-md" : "text-white/40 hover:text-white"}`}>Meses</button>
+              </div>
+            </div>
           </div>
-          <div className="grid gap-6 lg:grid-cols-3">
+          
+          <div className="h-[280px] w-full mb-8">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={groupedWaitlist} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorWait" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#AA6F3B" stopOpacity={0.6} />
+                    <stop offset="95%" stopColor="#AA6F3B" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff0a" vertical={false} />
+                <XAxis dataKey="date" stroke="#ffffff30" fontSize={11} tickLine={false} axisLine={false} dy={10} />
+                <YAxis stroke="#ffffff30" fontSize={11} tickLine={false} axisLine={false} />
+                <RechartsTooltip
+                  contentStyle={{ backgroundColor: "#120e0b", borderColor: "#AA6F3B30", borderRadius: "12px", boxShadow: "0 10px 30px -10px rgba(0,0,0,0.5)" }}
+                  itemStyle={{ color: "#AA6F3B", fontWeight: "bold" }}
+                  labelStyle={{ color: "#ffffff80", marginBottom: "4px" }}
+                />
+                <Area type="monotoneX" dataKey="signups" name="Nuevos Anotados" stroke="#AA6F3B" strokeWidth={3} fillOpacity={1} fill="url(#colorWait)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Mapa de Hype - Lista de Espera */}
+          <div className="mt-8 border-t border-white/10 pt-8">
+            <div className="mb-4">
+              <p className="font-serif text-lg font-bold text-white">Mapa de Hype — Distribución Geográfica</p>
+              <p className="text-xs text-white/40 mt-1">Dónde está la demanda latente. Zonas con más interesados anotados.</p>
+            </div>
+            <div className="grid gap-6 lg:grid-cols-3">
             {/* Ranking waitlist */}
             <div className="flex flex-col gap-2 lg:col-span-1 max-h-[420px] overflow-y-auto pr-2 custom-scrollbar">
               {waitlistMapData.length === 0 ? (
