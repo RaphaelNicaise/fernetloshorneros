@@ -1070,6 +1070,12 @@ export default function AdminPedidosPage() {
           <div 
             className="w-full max-w-3xl bg-[#0b0a07] rounded-xl shadow-2xl border border-white/10 overflow-hidden flex flex-col text-white max-h-[95vh] transform transition-all duration-300"
             onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                submitEditForm();
+              }
+            }}
           >
             {/* Header */}
             <div className="px-6 py-4 border-b border-white/8 bg-white/5 flex items-center justify-between">
@@ -1123,9 +1129,16 @@ export default function AdminPedidosPage() {
                       <div className="space-y-1">
                         <label className="text-xs font-semibold text-white/40 uppercase tracking-wider block">Código de Seguimiento (Correo Argentino)</label>
                         <Input
+                          autoFocus
                           placeholder="Ej: CP123456789AR"
                           value={formTrackingCode}
                           onChange={(e) => setFormTrackingCode(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              submitEditForm();
+                            }
+                          }}
                           className="bg-white/5 border-white/10 text-white text-sm placeholder:text-white/30 focus:border-[#AA6F3B]/50 h-10"
                         />
                       </div>

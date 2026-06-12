@@ -582,7 +582,7 @@ export default function AnalyticsPage() {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={stats.payments.methods} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#ffffff0a" vertical={false} />
-                  <XAxis dataKey="payment_method" stroke="#ffffff30" fontSize={11} tickLine={false} axisLine={false} dy={10} tickFormatter={(val) => PAYMENT_METHODS_MAP[val] || val} />
+                  <XAxis dataKey="payment_method" stroke="#ffffff30" fontSize={10} interval={0} tickLine={false} axisLine={false} dy={10} tickFormatter={(val) => PAYMENT_METHODS_MAP[val] || val} />
                   <YAxis stroke="#ffffff30" fontSize={11} tickLine={false} axisLine={false} />
                   <RechartsTooltip contentStyle={{ backgroundColor: "#120e0b", borderColor: "#AA6F3B30", borderRadius: "12px", boxShadow: "0 10px 30px -10px rgba(0,0,0,0.5)" }} itemStyle={{ color: "#3b82f6", fontWeight: "bold" }} cursor={{fill: 'transparent'}} labelFormatter={(label: any) => PAYMENT_METHODS_MAP[label] || label} />
                   <Bar dataKey="count" name="Uso" fill="#3b82f6" radius={[8, 8, 0, 0]} barSize={40} />
