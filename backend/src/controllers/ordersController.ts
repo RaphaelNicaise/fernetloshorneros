@@ -52,7 +52,10 @@ export async function cancelOrderShipment(req: Request, res: Response) {
         let refundResult = null;
         try {
             const payment = await getPaymentByOrderId(orderId);
-            if (payment && payment.mp_payment_id) {
+            // Evitar intentar reembolsar pedidos manuales (efectivo/transferencia creados en admin)
+            const isManualPayment = payment?.mp_payment_id && String(payment.mp_payment_id).startsWith('manual_');
+            
+            if (payment && payment.mp_payment_id && !isManualPayment) {
                 const mpAccessToken = process.env.MP_ACCESS_TOKEN;
                 if (mpAccessToken) {
                     const refundRes = await fetch(
@@ -62,6 +65,7 @@ export async function cancelOrderShipment(req: Request, res: Response) {
                             headers: {
                                 'Authorization': `Bearer ${mpAccessToken}`,
                                 'Content-Type': 'application/json',
+                                'X-Idempotency-Key': uuidv4()
                             },
                             body: JSON.stringify({}),
                         }
@@ -71,6 +75,8 @@ export async function cancelOrderShipment(req: Request, res: Response) {
                 } else {
                     console.warn('MP_ACCESS_TOKEN no configurado, no se pudo hacer refund');
                 }
+            } else if (isManualPayment) {
+                console.log('Pedido manual, se omite el refund en MercadoPago.');
             }
         } catch (refundError: any) {
             console.error('Error haciendo refund en MercadoPago:', refundError);
