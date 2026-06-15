@@ -1,0 +1,327 @@
+"use client"
+
+import { useState, useEffect, useRef } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { API_BASE_URL } from "@/lib/api"
+import { Mail, Send, RotateCcw, Save, Copy, Check, Eye } from "lucide-react"
+
+type EmailTemplateType = "compra_confirmacion" | "envio_tracking" | "notif_vendedor"
+
+interface EmailTemplate {
+  key: string
+  subject: string
+  html_content: string
+  isCustom: boolean
+  updated_at?: string
+}
+
+const TEMPLATE_NAMES: Record<string, string> = {
+  compra_confirmacion: "Confirmación de Compra",
+  envio_tracking: "Notificación de Envío",
+  notif_vendedor: "Notificación al Vendedor",
+}
+
+const TEMPLATE_VARS: Record<string, string[]> = {
+  compra_confirmacion: ["nombre", "pedidoId", "items", "total", "costoEnvio"],
+  envio_tracking: ["nombre", "pedidoId", "trackingCode", "trackingUrl"],
+  notif_vendedor: ["pedidoId", "detalles"],
+}
+
+export default function AdminEmailsPage() {
+  const [activeTab, setActiveTab] = useState<EmailTemplateType>("compra_confirmacion")
+  const [templates, setTemplates] = useState<Record<string, EmailTemplate>>({})
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [successMsg, setSuccessMsg] = useState<string | null>(null)
+  const [copiedVar, setCopiedVar] = useState<string | null>(null)
+  
+  // Test email state
+  const [testEmail, setTestEmail] = useState("")
+
+  const iframeRef = useRef<HTMLIFrameElement>(null)
+
+  const loadTemplates = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const token = localStorage.getItem("admin_token")
+      const res = await fetch(`${API_BASE_URL}/email-templates`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      })
+      if (!res.ok) throw new Error("Error al cargar plantillas")
+      const data: EmailTemplate[] = await res.json()
+      
+      const newTemplates: Record<string, EmailTemplate> = {}
+      data.forEach(t => {
+        newTemplates[t.key] = t
+      })
+      setTemplates(newTemplates)
+    } catch (e: any) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadTemplates()
+  }, [])
+
+  const currentTemplate = templates[activeTab]
+
+  // Update iframe whenever content changes
+  useEffect(() => {
+    if (iframeRef.current && currentTemplate) {
+      const doc = iframeRef.current.contentDocument
+      if (doc) {
+        doc.open()
+        doc.write(currentTemplate.html_content || '<div style="color: white; font-family: sans-serif; padding: 20px;">Sin contenido HTML (Se usará default)</div>')
+        doc.close()
+      }
+    }
+  }, [currentTemplate?.html_content, activeTab])
+
+  const handleCopyVar = (v: string) => {
+    navigator.clipboard.writeText(`{{${v}}}`)
+    setCopiedVar(v)
+    setTimeout(() => setCopiedVar(null), 2000)
+  }
+
+  const handleChange = (field: "subject" | "html_content", value: string) => {
+    setTemplates(prev => ({
+      ...prev,
+      [activeTab]: {
+        ...prev[activeTab],
+        [field]: value
+      }
+    }))
+  }
+
+  const handleSave = async () => {
+    if (!currentTemplate) return
+    setSaving(true)
+    setError(null)
+    setSuccessMsg(null)
+    try {
+      const token = localStorage.getItem("admin_token")
+      const res = await fetch(`${API_BASE_URL}/email-templates/${activeTab}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          subject: currentTemplate.subject,
+          html_content: currentTemplate.html_content
+        })
+      })
+      if (!res.ok) throw new Error("Error al guardar plantilla")
+      setSuccessMsg("Plantilla guardada correctamente")
+      await loadTemplates() // recargar para actualizar isCustom
+    } catch (e: any) {
+      setError(e.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleRestore = async () => {
+    if (!confirm("¿Seguro que querés restaurar la plantilla por defecto? Se perderán tus cambios.")) return
+    
+    setSaving(true)
+    setError(null)
+    setSuccessMsg(null)
+    try {
+      const token = localStorage.getItem("admin_token")
+      const res = await fetch(`${API_BASE_URL}/email-templates/${activeTab}`, {
+        method: "DELETE",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      })
+      if (!res.ok) throw new Error("Error al restaurar plantilla")
+      setSuccessMsg("Plantilla restaurada a valor por defecto")
+      await loadTemplates()
+    } catch (e: any) {
+      setError(e.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleSendTest = async () => {
+    if (!testEmail) {
+      setError("Por favor ingresá un email para la prueba")
+      return
+    }
+    setSaving(true)
+    setError(null)
+    setSuccessMsg(null)
+    try {
+      const token = localStorage.getItem("admin_token")
+      const res = await fetch(`${API_BASE_URL}/email-templates/${activeTab}/preview`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          subject: currentTemplate.subject,
+          html_content: currentTemplate.html_content,
+          test_email: testEmail
+        })
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || "Error al enviar prueba")
+      }
+      setSuccessMsg(`Correo de prueba enviado a ${testEmail}`)
+    } catch (e: any) {
+      setError(e.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) return <div className="text-white p-8">Cargando plantillas...</div>
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+        <h1 className="font-serif text-3xl font-bold text-white flex items-center gap-2">
+          <Mail className="w-8 h-8 text-[#AA6F3B]" />
+          Personalización de Emails
+        </h1>
+      </div>
+
+      {error && <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-md">{error}</div>}
+      {successMsg && <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-4 rounded-md">{successMsg}</div>}
+
+      <div className="grid lg:grid-cols-[250px_1fr] gap-6">
+        {/* Tabs Sidebar */}
+        <div className="flex flex-col gap-2">
+          {(Object.keys(TEMPLATE_NAMES) as EmailTemplateType[]).map(key => (
+            <button
+              key={key}
+              onClick={() => { setActiveTab(key); setError(null); setSuccessMsg(null); }}
+              className={`p-4 rounded-xl text-left transition-all border ${
+                activeTab === key 
+                  ? "bg-[#AA6F3B]/10 border-[#AA6F3B] text-white" 
+                  : "bg-[#0b0a07] border-white/5 text-white/60 hover:bg-white/5 hover:text-white"
+              }`}
+            >
+              <div className="font-medium">{TEMPLATE_NAMES[key]}</div>
+              {templates[key]?.isCustom ? (
+                <span className="text-xs text-[#AA6F3B] mt-1 block">Personalizado</span>
+              ) : (
+                <span className="text-xs text-white/40 mt-1 block">Default</span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Editor Area */}
+        <div className="bg-[#0b0a07] border border-white/8 rounded-xl p-6">
+          {currentTemplate && (
+            <div className="space-y-6">
+              
+              {/* Header Actions */}
+              <div className="flex justify-between items-center pb-4 border-b border-white/10">
+                <h2 className="text-xl font-serif text-white">{TEMPLATE_NAMES[activeTab]}</h2>
+                <div className="flex gap-2">
+                  <Button variant="outline" className="border-white/10 hover:bg-white/10 text-white" onClick={handleRestore} disabled={saving || !currentTemplate.isCustom}>
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Restaurar Default
+                  </Button>
+                  <Button className="bg-[#AA6F3B] hover:bg-[#AA6F3B]/90 text-white border-0" onClick={handleSave} disabled={saving}>
+                    <Save className="w-4 h-4 mr-2" />
+                    Guardar Cambios
+                  </Button>
+                </div>
+              </div>
+
+              {/* Layout dividido (Editor / Preview) */}
+              <div className="grid lg:grid-cols-2 gap-6">
+                
+                {/* Lado Izquierdo: Editor */}
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm text-white/60 font-medium">Asunto del correo</label>
+                    <Input 
+                      value={currentTemplate.subject} 
+                      onChange={e => handleChange("subject", e.target.value)}
+                      className="bg-white/5 border-white/10 text-white"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm text-white/60 font-medium">Contenido HTML</label>
+                    <Textarea 
+                      value={currentTemplate.html_content} 
+                      onChange={e => handleChange("html_content", e.target.value)}
+                      className="font-mono text-sm bg-[#14120f] border-white/10 text-white/90 min-h-[400px] resize-y"
+                      placeholder="Ingresa el HTML de la plantilla aquí..."
+                    />
+                  </div>
+
+                  <div className="bg-[#14120f] border border-white/10 rounded-lg p-4">
+                    <p className="text-sm text-white/60 mb-2 font-medium">Variables disponibles (Click para copiar)</p>
+                    <div className="flex flex-wrap gap-2">
+                      {TEMPLATE_VARS[activeTab].map(v => (
+                        <button
+                          key={v}
+                          onClick={() => handleCopyVar(v)}
+                          className="flex items-center gap-1.5 px-2 py-1 rounded bg-[#AA6F3B]/20 text-[#AA6F3B] hover:bg-[#AA6F3B]/30 text-xs font-mono transition-colors border border-[#AA6F3B]/30"
+                        >
+                          {copiedVar === v ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                          {`{{${v}}}`}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Lado Derecho: Preview */}
+                <div className="space-y-4 flex flex-col">
+                  <div className="flex items-center gap-2">
+                    <Eye className="w-4 h-4 text-[#AA6F3B]" />
+                    <label className="text-sm text-white/60 font-medium">Vista Previa en Vivo</label>
+                  </div>
+                  
+                  <div className="flex-1 bg-white rounded-lg overflow-hidden border border-white/10 relative min-h-[500px]">
+                    <iframe 
+                      ref={iframeRef} 
+                      className="absolute inset-0 w-full h-full bg-[#0b0a07]" 
+                      title="Email Preview"
+                    />
+                  </div>
+
+                  {/* Send Test Tool */}
+                  <div className="bg-[#14120f] border border-white/10 rounded-lg p-4 mt-auto">
+                    <label className="text-sm text-white/60 mb-2 block font-medium">Enviar prueba a correo</label>
+                    <div className="flex gap-2">
+                      <Input 
+                        placeholder="tu@email.com" 
+                        value={testEmail}
+                        onChange={e => setTestEmail(e.target.value)}
+                        className="bg-white/5 border-white/10 text-white flex-1"
+                      />
+                      <Button variant="outline" className="border-white/10 hover:bg-white/10 text-white" onClick={handleSendTest} disabled={saving}>
+                        <Send className="w-4 h-4 mr-2" />
+                        Enviar Prueba
+                      </Button>
+                    </div>
+                  </div>
+
+                </div>
+
+              </div>
+              
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}

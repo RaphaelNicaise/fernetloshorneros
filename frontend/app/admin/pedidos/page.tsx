@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { API_BASE_URL } from "@/lib/api"
-import { ChevronDown, ChevronRight, Info, Search, Download, Pencil, Trash2, AlertTriangle } from "lucide-react"
+import { ChevronDown, ChevronRight, Info, Search, Download, Pencil, Trash2, AlertTriangle, Printer, CheckSquare } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import {
   Select,
@@ -17,6 +17,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/h
 import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import * as XLSX from "xlsx"
+import { generateShippingLabels, generateSingleLabel, LabelOrder } from "@/lib/label-generator"
 
 type OrderStatus = "pending" | "paid" | "failed" | "cancelled"
 
@@ -95,6 +96,10 @@ export default function AdminPedidosPage() {
   const [page, setPage] = useState(1)
   const [sortKey, setSortKey] = useState<SortKey>("fecha")
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc")
+
+  // Estados para modo de selección (Etiquetas en lote)
+  const [selectionMode, setSelectionMode] = useState(false)
+  const [selectedOrders, setSelectedOrders] = useState<Set<number>>(new Set())
 
   // Estados para modales personalizados y edición de datos
   const [editModalOpen, setEditModalOpen] = useState(false)
@@ -821,6 +826,38 @@ export default function AdminPedidosPage() {
           <Button variant="secondary" className="h-10 bg-[#AA6F3B]/20 text-[#AA6F3B] hover:bg-[#AA6F3B]/30 border border-[#AA6F3B]/30" onClick={() => fetchOrders()}>
             Recargar
           </Button>
+          
+          {selectionMode ? (
+            <div className="flex items-center gap-2 bg-[#AA6F3B]/10 rounded-md p-1 border border-[#AA6F3B]/30">
+              <span className="text-sm text-[#AA6F3B] font-medium px-2">{selectedOrders.size} seleccionados</span>
+              <Button
+                size="sm"
+                className="h-8 bg-[#AA6F3B] hover:bg-[#AA6F3B]/90 text-white border-0"
+                disabled={selectedOrders.size === 0}
+                onClick={() => {
+                  const ordersToPrint = orders.filter((o) => selectedOrders.has(o.id));
+                  generateShippingLabels(ordersToPrint as any[]);
+                  setSelectionMode(false);
+                  setSelectedOrders(new Set());
+                }}
+              >
+                Generar Etiquetas en Lote
+              </Button>
+              <Button size="sm" variant="ghost" className="h-8 text-[#AA6F3B] hover:bg-[#AA6F3B]/20" onClick={() => { setSelectionMode(false); setSelectedOrders(new Set()); }}>
+                Cancelar
+              </Button>
+            </div>
+          ) : (
+            <Button
+              variant="outline"
+              className="h-10 border-white/10 bg-white/5 text-white hover:bg-white/10 flex items-center gap-2"
+              onClick={() => setSelectionMode(true)}
+            >
+              <CheckSquare className="w-4 h-4 mr-1 text-white/40" />
+              Seleccionar varios
+            </Button>
+          )}
+
           <Button className="h-10 bg-[#AA6F3B] hover:bg-[#AA6F3B]/90 text-white border-0 font-semibold" onClick={openCreateManualModal}>
             Crear Pedido Manual
           </Button>
@@ -830,6 +867,29 @@ export default function AdminPedidosPage() {
         <Table className="w-full">
           <TableHeader className="border-b border-white/8">
             <TableRow className="hover:bg-transparent border-b border-white/8">
+              {selectionMode && (
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={visible.length > 0 && visible.every(o => selectedOrders.has(o.id) || !['para_despachar', 'enviado'].includes(getEffectiveStatus(o)))}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        const newSelected = new Set(selectedOrders);
+                        visible.forEach(o => {
+                          if (['para_despachar', 'enviado'].includes(getEffectiveStatus(o))) {
+                            newSelected.add(o.id);
+                          }
+                        });
+                        setSelectedOrders(newSelected);
+                      } else {
+                        const newSelected = new Set(selectedOrders);
+                        visible.forEach(o => newSelected.delete(o.id));
+                        setSelectedOrders(newSelected);
+                      }
+                    }}
+                    className="border-white/40"
+                  />
+                </TableHead>
+              )}
               <TableHead className="w-12"></TableHead>
               <TableHead className="w-20 cursor-pointer whitespace-nowrap text-white/60 hover:text-white" onClick={() => changeSort("id")}>
                 ID {sortKey === "id" ? (sortDir === "asc" ? "▲" : "▼") : null}
@@ -862,6 +922,21 @@ export default function AdminPedidosPage() {
                 return (
                   <React.Fragment key={order.id}>
                     <TableRow className="hover:bg-white/5 border-b border-white/5 cursor-pointer text-white/90" onClick={() => toggleOrder(order.id)}>
+                      {selectionMode && (
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={selectedOrders.has(order.id)}
+                            disabled={!['para_despachar', 'enviado'].includes(effectiveStatus)}
+                            onCheckedChange={(checked) => {
+                              const newSelected = new Set(selectedOrders);
+                              if (checked) newSelected.add(order.id);
+                              else newSelected.delete(order.id);
+                              setSelectedOrders(newSelected);
+                            }}
+                            className="border-white/40"
+                          />
+                        </TableCell>
+                      )}
                       <TableCell>
                         {isExpanded ? (
                           <ChevronDown className="w-4 h-4 text-white/40" />
@@ -898,7 +973,7 @@ export default function AdminPedidosPage() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="border-2 border-green-500/40 text-green-300 hover:bg-green-500/20 bg-green-500/10 h-8 px-3 rounded-md transition-colors font-semibold"
+                                className="border-2 border-green-500/40 text-green-300 hover:bg-green-500/20 bg-green-500/10 h-8 px-3 rounded-md transition-colors font-semibold flex items-center gap-1.5"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   openDispatchModal(order);
@@ -909,17 +984,44 @@ export default function AdminPedidosPage() {
                               <Button
                                 size="sm"
                                 variant="outline"
+                                className="border-2 border-slate-500/40 text-slate-300 hover:bg-slate-500/20 bg-slate-500/10 flex items-center justify-center h-8 w-8 p-0 rounded-md transition-colors"
+                                title="Imprimir etiqueta"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  generateSingleLabel(order as any);
+                                }}
+                              >
+                                <Printer className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
                                 className="border-2 border-red-500/40 text-red-300 hover:bg-red-500/20 bg-red-500/10 h-8 px-3 rounded-md transition-colors font-semibold"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleCancelClick(order);
                                 }}
                               >
-                                Anular (Reembolso MP)
+                                Cancelar
                               </Button>
                             </>
                           )}
  
+                          {effectiveStatus === 'enviado' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-2 border-slate-500/40 text-slate-300 hover:bg-slate-500/20 bg-slate-500/10 flex items-center justify-center h-8 w-8 p-0 rounded-md transition-colors"
+                              title="Imprimir etiqueta"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                generateSingleLabel(order as any);
+                              }}
+                            >
+                              <Printer className="w-3.5 h-3.5" />
+                            </Button>
+                          )}
+
                           {effectiveStatus === 'enviado' && order.tracking_code && (
                             <Button
                               asChild

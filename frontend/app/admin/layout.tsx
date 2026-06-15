@@ -18,6 +18,8 @@ import {
   ChevronRight,
   Menu,
   X,
+  Mail,
+  Ticket,
 } from "lucide-react"
 
 const NAV_ITEMS = [
@@ -25,6 +27,8 @@ const NAV_ITEMS = [
   { href: "/admin/pedidos", label: "Pedidos", icon: ShoppingBag },
   { href: "/admin/lista-espera", label: "Lista de Espera", icon: Users },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/admin/cupones", label: "Cupones", icon: Ticket },
+  { href: "/admin/emails", label: "Emails", icon: Mail },
   { href: "/admin/config", label: "Configuración", icon: Settings },
 ]
 
