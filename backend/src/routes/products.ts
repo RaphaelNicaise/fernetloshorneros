@@ -1,8 +1,19 @@
 import { Router } from 'express';
 import { getAllProducts, getProductById, updateProduct, createProduct, deleteProduct} from '@/services/productService';
 import { Product } from '@/services/productService';
+import { getReservedStockByProduct } from '@/services/ordersService';
+import adminAuth from '@/middleware/adminAuth';
 
 const productsRouter = Router();
+
+productsRouter.get('/reserved-stock', adminAuth, async (req, res) => {
+  try {
+    const map = await getReservedStockByProduct();
+    res.json(map);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener stock reservado' });
+  }
+});
 
 productsRouter.get('/', async (req, res) => {
   try {

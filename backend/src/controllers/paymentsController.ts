@@ -16,6 +16,7 @@ import {
 } from "@/services/ordersService";
 import { getProductById, decreaseStock, increaseStock } from "@/services/productService";
 import { enviarMailConfirmacionCompra } from "@/services/mailService";
+import { couponService } from "@/services/couponService";
 // import { createShipment } from "@/services/enviosService"; // Legacy
 
 /**
@@ -23,7 +24,7 @@ import { enviarMailConfirmacionCompra } from "@/services/mailService";
  */
 export async function createPreference(req: Request, res: Response) {
     try {
-        const { items, shipping } = req.body;
+        const { items, shipping, couponCode } = req.body;
 
         // Limpiar reservas expiradas (órdenes pendientes > 5 min)
         try {
@@ -94,8 +95,38 @@ export async function createPreference(req: Request, res: Response) {
             });
         }
 
-        const shippingCost = Number(shipping.cost);
-        const totalWithShipping = total + shippingCost;
+        let discountAmount = 0;
+        let validCoupon = null;
+
+        if (couponCode) {
+            validCoupon = await couponService.getCouponByCode(couponCode);
+            if (validCoupon) {
+                const validation = couponService.validateCoupon(validCoupon);
+                if (validation.valid) {
+                    if (validCoupon.tipo_descuento === 'porcentaje') {
+                        discountAmount = (total * validCoupon.valor) / 100;
+                    } else if (validCoupon.tipo_descuento === 'fijo') {
+                        discountAmount = validCoupon.valor;
+                    }
+                    if (discountAmount > total && validCoupon.tipo_descuento !== 'envio_gratis') {
+                        discountAmount = total;
+                    }
+                } else {
+                    validCoupon = null;
+                }
+            }
+        }
+
+        let shippingCost = Number(shipping.cost);
+        let appliedShippingDiscount = 0;
+
+        if (validCoupon?.tipo_descuento === 'envio_gratis') {
+            appliedShippingDiscount = shippingCost;
+            discountAmount = shippingCost;
+            shippingCost = 0; // Para el cobro en MP
+        }
+
+        const totalWithShipping = total + shippingCost - (validCoupon?.tipo_descuento === 'envio_gratis' ? 0 : discountAmount);
 
         const external_reference = uuidv4();
 
@@ -108,8 +139,10 @@ export async function createPreference(req: Request, res: Response) {
             })),
             total: totalWithShipping,
             external_reference,
+            cupon_codigo: validCoupon ? validCoupon.codigo : null,
+            cupon_descuento: discountAmount,
             shipping_info: {
-                cost: shippingCost,
+                cost: Number(shipping.cost), // Guardamos el costo real en la base de datos
                 rate_id: shipping.rate_id,
                 service_type: shipping.service_type,
                 logistic_type: shipping.logistic_type || null,
@@ -134,22 +167,41 @@ export async function createPreference(req: Request, res: Response) {
         }
 
         // Crear preferencia de MercadoPago
-        const mpItems = [
-            ...validatedItems.map(item => ({
+        // Distribuimos el descuento proporcionalmente si aplica al subtotal
+        let totalDiscountedItems = 0;
+        const mpItems = validatedItems.map((item, index) => {
+            let discountedUnitPrice = item.unit_price;
+            if (discountAmount > 0 && validCoupon?.tipo_descuento !== 'envio_gratis') {
+                const discountRatio = (total - discountAmount) / total;
+                discountedUnitPrice = Math.round(item.unit_price * discountRatio * 100) / 100;
+            }
+            totalDiscountedItems += discountedUnitPrice * item.quantity;
+            return {
                 id: item.id_producto,
                 title: item.title,
                 quantity: item.quantity,
-                unit_price: item.unit_price,
+                unit_price: discountedUnitPrice,
                 currency_id: "ARS",
-            })),
-            {
-                id: "shipping",
-                title: `Envío (${shipping.service_type === 'pickup_point' ? 'Punto de retiro' : 'A domicilio'})`,
-                quantity: 1,
-                unit_price: shippingCost,
-                currency_id: "ARS",
-            },
-        ];
+            };
+        });
+
+        // Corregir posible error de redondeo en el primer item
+        if (discountAmount > 0 && validCoupon?.tipo_descuento !== 'envio_gratis' && mpItems.length > 0) {
+            const expectedTotalItems = total - discountAmount;
+            const diff = expectedTotalItems - totalDiscountedItems;
+            if (diff !== 0) {
+                mpItems[0].unit_price += (diff / mpItems[0].quantity);
+            }
+        }
+
+        // Agregar envío
+        mpItems.push({
+            id: "shipping",
+            title: `Envío (${shipping.service_type === 'pickup_point' ? 'Punto de retiro' : 'A domicilio'})${validCoupon?.tipo_descuento === 'envio_gratis' ? ' - GRATIS' : ''}`,
+            quantity: 1,
+            unit_price: shippingCost,
+            currency_id: "ARS",
+        });
 
         const preference = await preferenceClient.create({
             body: {
@@ -239,6 +291,15 @@ export async function handleWebhook(req: Request, res: Response) {
                 await updateOrderStatus(order.id, "paid");
                 await markOrderStockReleased(order.id);
                 console.log(`Orden ${order.id} marcada como pagada, stock confirmado`);
+
+                if (order.cupon_codigo) {
+                    try {
+                        await couponService.incrementUsage(order.cupon_codigo);
+                        console.log(`Uso de cupón ${order.cupon_codigo} incrementado`);
+                    } catch (err) {
+                        console.error(`Error incrementando uso de cupón ${order.cupon_codigo}:`, err);
+                    }
+                }
 
                 // Marcar envío para ser despachado
                 const envio = await getEnvioByOrderId(order.id);

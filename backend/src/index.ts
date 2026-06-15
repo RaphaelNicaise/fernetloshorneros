@@ -13,6 +13,8 @@ import uploadsRouter from '@/routes/uploads';
 import ordersRouter from '@/routes/orders';
 import shippingRouter from '@/routes/shipping';
 import settingsRouter from '@/routes/settings';
+import emailTemplatesRouter from '@/routes/emailTemplates';
+import couponsRouter from '@/routes/coupons';
 
 dotenv.config();
 
@@ -37,6 +39,8 @@ app.use('/products', productsRouter);
 app.use('/orders', ordersRouter);
 app.use('/shipping', shippingRouter);
 app.use('/settings', settingsRouter);
+app.use('/email-templates', emailTemplatesRouter);
+app.use('/coupons', couponsRouter);
 
 
 const startServer = async () => {

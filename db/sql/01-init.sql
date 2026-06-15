@@ -25,7 +25,9 @@ CREATE TABLE IF NOT EXISTS pedidos (
     total DECIMAL(10, 2) NOT NULL,
     status VARCHAR(20) DEFAULT 'pending', -- 'pending', 'paid', 'failed'
     fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    external_reference VARCHAR(100) -- Aquí guardaremos un UUID o referencia única si quieres
+    external_reference VARCHAR(100), -- Aquí guardaremos un UUID o referencia única si quieres
+    cupon_codigo VARCHAR(50) DEFAULT NULL,
+    cupon_descuento DECIMAL(10, 2) DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS pedido_items (
@@ -86,3 +88,26 @@ CREATE TABLE IF NOT EXISTS settings (
 INSERT INTO settings (key_name, value) VALUES ('min_purchase_amount', '1000') ON DUPLICATE KEY UPDATE value=value;
 INSERT INTO settings (key_name, value) VALUES ('fixed_shipping_cost', '5000') ON DUPLICATE KEY UPDATE value=value;
 INSERT INTO settings (key_name, value) VALUES ('maintenance_mode', 'false') ON DUPLICATE KEY UPDATE value=value;
+
+-- Tabla para plantillas de email personalizadas
+CREATE TABLE IF NOT EXISTS email_templates (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  template_key VARCHAR(100) NOT NULL UNIQUE,
+  subject VARCHAR(255) NOT NULL,
+  html_content LONGTEXT NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Tabla para cupones de descuento
+CREATE TABLE IF NOT EXISTS cupones (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  codigo VARCHAR(50) NOT NULL UNIQUE,
+  tipo_descuento ENUM('porcentaje', 'fijo', 'envio_gratis') NOT NULL,
+  valor DECIMAL(10, 2) NOT NULL,
+  limite_usos INT DEFAULT NULL,
+  usos_actuales INT DEFAULT 0,
+  fecha_expiracion TIMESTAMP NULL DEFAULT NULL,
+  activo BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);

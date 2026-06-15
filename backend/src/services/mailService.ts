@@ -1,5 +1,6 @@
 import { transporter } from '@/config/mail';
 import { OrderItem } from './ordersService';
+import { emailTemplateService } from './emailTemplateService';
 
 /**
  * Genera el contenedor HTML común para mantener una estética unificada de marca (premium dark mode)
@@ -190,6 +191,15 @@ function getEmailWrapper(title: string, contentHtml: string): string {
   `;
 }
 
+function replaceVariables(text: string, data: Record<string, string>): string {
+  let result = text;
+  for (const [key, value] of Object.entries(data)) {
+    const regex = new RegExp(`{{${key}}}`, 'g');
+    result = result.replace(regex, value);
+  }
+  return result;
+}
+
 /**
  * Envia el correo de confirmación de compra ("Gracias por tu compra")
  */
@@ -201,7 +211,6 @@ export async function enviarMailConfirmacionCompra(
   total: number,
   costoEnvio: number
 ) {
-  // Construir filas de la tabla de items
   const itemsHtml = items.map(item => `
     <tr>
       <td style="text-align: left;">${item.title}</td>
@@ -212,15 +221,7 @@ export async function enviarMailConfirmacionCompra(
 
   const subtotal = total - costoEnvio;
 
-  const contentHtml = `
-    <h2>¡Gracias por tu compra, ${nombre}!</h2>
-    <p>Hemos registrado tu pago para el pedido <strong>#${pedidoId}</strong> de forma exitosa y ya estamos trabajando en su preparación.</p>
-    
-    <p style="background-color: #2d231f; border-left: 3px solid #c9933b; padding: 12px 15px; border-radius: 4px; color: #dfa84a; font-size: 14px;">
-      <strong>Información de Envío:</strong> Una vez que despachemos tu paquete, te llegará otro correo con el enlace y código de seguimiento de Correo Argentino para que puedas seguir tu envío en tiempo real.
-    </p>
-
-    <h3 style="color: #c9933b; font-family: 'Georgia', serif; font-size: 16px; margin-top: 30px; margin-bottom: 10px; border-bottom: 1px solid #3d2f29; padding-bottom: 5px;">Detalle de Compra</h3>
+  const orderTableHtml = `
     <table class="order-table" cellspacing="0" cellpadding="0">
       <thead>
         <tr>
@@ -245,19 +246,48 @@ export async function enviarMailConfirmacionCompra(
         </tr>
       </tbody>
     </table>
-    
-    <p style="margin-top: 30px; font-size: 14px; color: #a39081; text-align: center;">
-      Si tenés alguna consulta, no dudes en responder directamente a este mail.
-    </p>
   `;
 
-  const html = getEmailWrapper(`Confirmación de Pago - Pedido #${pedidoId}`, contentHtml);
+  const templateData = {
+    nombre,
+    pedidoId,
+    total: `$ ${Number(total).toFixed(2)}`,
+    items: orderTableHtml,
+    costoEnvio: `$ ${Number(costoEnvio).toFixed(2)}`
+  };
+
+  const customTemplate = await emailTemplateService.getTemplate('compra_confirmacion');
+
+  let subject = `¡Gracias por tu compra! - Pedido #${pedidoId}`;
+  let finalHtml = '';
+
+  if (customTemplate) {
+    subject = replaceVariables(customTemplate.subject, templateData);
+    finalHtml = replaceVariables(customTemplate.html_content, templateData);
+  } else {
+    const contentHtml = `
+      <h2>¡Gracias por tu compra, ${nombre}!</h2>
+      <p>Hemos registrado tu pago para el pedido <strong>#${pedidoId}</strong> de forma exitosa y ya estamos trabajando en su preparación.</p>
+      
+      <p style="background-color: #2d231f; border-left: 3px solid #c9933b; padding: 12px 15px; border-radius: 4px; color: #dfa84a; font-size: 14px;">
+        <strong>Información de Envío:</strong> Una vez que despachemos tu paquete, te llegará otro correo con el enlace y código de seguimiento de Correo Argentino para que puedas seguir tu envío en tiempo real.
+      </p>
+
+      <h3 style="color: #c9933b; font-family: 'Georgia', serif; font-size: 16px; margin-top: 30px; margin-bottom: 10px; border-bottom: 1px solid #3d2f29; padding-bottom: 5px;">Detalle de Compra</h3>
+      ${orderTableHtml}
+      
+      <p style="margin-top: 30px; font-size: 14px; color: #a39081; text-align: center;">
+        Si tenés alguna consulta, no dudes en responder directamente a este mail.
+      </p>
+    `;
+    finalHtml = getEmailWrapper(`Confirmación de Pago - Pedido #${pedidoId}`, contentHtml);
+  }
 
   await transporter.sendMail({
     from: `"Fernet Los Horneros" <${process.env.MAIL_USER}>`,
     to: email,
-    subject: `¡Gracias por tu compra! - Pedido #${pedidoId}`,
-    html,
+    subject,
+    html: finalHtml,
   });
 }
 
@@ -271,44 +301,94 @@ export async function enviarMailComprador(
   pedidoId: string,
   trackingCode?: string
 ) {
-  const contentHtml = `
-    <h2>¡Tu pedido #${pedidoId} está en camino!</h2>
-    <p>Hola ${nombre}, queremos avisarte que tu compra de Fernet Los Horneros ya fue despachada y se encuentra en viaje hacia tu destino.</p>
-    
-    <p>Espero que lo disfrutes y que compartas este gran fernet de autor con los tuyos tanto como nosotros disfrutamos elaborándolo para vos.</p>
+  const templateData = {
+    nombre,
+    pedidoId,
+    trackingCode: trackingCode || 'Código cargado en enlace',
+    trackingUrl,
+  };
 
-    <div class="tracking-box">
-      <p style="margin: 0 0 5px 0; font-size: 11px; text-transform: uppercase; color: #a39081; letter-spacing: 1px;">Código de Seguimiento</p>
-      <code>${trackingCode || 'Código cargado en enlace'}</code>
-    </div>
+  const customTemplate = await emailTemplateService.getTemplate('envio_tracking');
 
-    <div class="button-container">
-      <a href="${trackingUrl}" target="_blank" class="btn">Rastrear mi pedido</a>
-    </div>
+  let subject = `Tu pedido #${pedidoId} ha sido enviado - ¡Espero que lo disfrutes!`;
+  let finalHtml = '';
 
-    <p style="font-size: 13px; color: #a39081; text-align: center;">
-      También podés seguir el envío ingresando el código en el portal de Correo Argentino.
-    </p>
-  `;
+  if (customTemplate) {
+    subject = replaceVariables(customTemplate.subject, templateData);
+    finalHtml = replaceVariables(customTemplate.html_content, templateData);
+  } else {
+    const contentHtml = `
+      <h2>¡Tu pedido #${pedidoId} está en camino!</h2>
+      <p>Hola ${nombre}, queremos avisarte que tu compra de Fernet Los Horneros ya fue despachada y se encuentra en viaje hacia tu destino.</p>
+      
+      <p>Espero que lo disfrutes y que compartas este gran fernet de autor con los tuyos tanto como nosotros disfrutamos elaborándolo para vos.</p>
 
-  const html = getEmailWrapper(`Tu pedido #${pedidoId} ha sido enviado`, contentHtml);
+      <div class="tracking-box">
+        <p style="margin: 0 0 5px 0; font-size: 11px; text-transform: uppercase; color: #a39081; letter-spacing: 1px;">Código de Seguimiento</p>
+        <code>${trackingCode || 'Código cargado en enlace'}</code>
+      </div>
+
+      <div class="button-container">
+        <a href="${trackingUrl}" target="_blank" class="btn">Rastrear mi pedido</a>
+      </div>
+
+      <p style="font-size: 13px; color: #a39081; text-align: center;">
+        También podés seguir el envío ingresando el código en el portal de Correo Argentino.
+      </p>
+    `;
+    finalHtml = getEmailWrapper(`Tu pedido #${pedidoId} ha sido enviado`, contentHtml);
+  }
 
   await transporter.sendMail({
     from: `"Fernet Los Horneros" <${process.env.MAIL_USER}>`,
     to: email,
-    subject: `Tu pedido #${pedidoId} ha sido enviado - ¡Espero que lo disfrutes!`,
-    html,
+    subject,
+    html: finalHtml,
   });
 }
 
 /**
- * Mail heredado para notificar al vendedor de una venta
+ * Envia un correo de notificación de nueva compra al vendedor
  */
-export async function enviarMailVendedor(email: string, pedidoId: string, detalles: string) {
+export async function enviarMailVendedor(
+  emailVendedor: string,
+  pedidoId: string,
+  detallesPedido: string
+) {
+  const templateData = {
+    pedidoId,
+    detalles: detallesPedido.replace(/\n/g, '<br>')
+  };
+
+  const customTemplate = await emailTemplateService.getTemplate('notif_vendedor');
+
+  let subject = `Nuevo Pedido #${pedidoId} Recibido!`;
+  let finalHtml = '';
+
+  if (customTemplate) {
+    subject = replaceVariables(customTemplate.subject, templateData);
+    finalHtml = replaceVariables(customTemplate.html_content, templateData);
+  } else {
+    const contentHtml = `
+      <h2>¡Nuevo pedido recibido!</h2>
+      <p>Has recibido un nuevo pedido en la tienda.</p>
+      
+      <h3 style="color: #c9933b; margin-top: 30px;">Detalles del Pedido #${pedidoId}:</h3>
+      <div style="background-color: #14120f; padding: 20px; border: 1px solid #ffffff15; border-radius: 8px; color: #cccccc; font-family: monospace; white-space: pre-wrap;">
+        ${detallesPedido}
+      </div>
+
+      <div class="button-container">
+        <a href="${process.env.FRONTEND_URL || 'https://fernetloshorneros.com.ar'}/admin" class="btn">Ir al Panel de Administración</a>
+      </div>
+    `;
+    finalHtml = getEmailWrapper(`Nuevo Pedido #${pedidoId}`, contentHtml);
+  }
+
   await transporter.sendMail({
     from: `"Fernet Los Horneros" <${process.env.MAIL_USER}>`,
-    to: email,
-    subject: `Se realizó una venta: Pedido ${pedidoId}`,
-    html: `<p>Pedido ${pedidoId} registrado.</p><pre>${detalles}</pre>`,
+    to: emailVendedor,
+    subject,
+    html: finalHtml,
   });
 }

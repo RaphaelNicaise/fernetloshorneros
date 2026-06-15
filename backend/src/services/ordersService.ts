@@ -30,6 +30,8 @@ export type Order = {
     numero?: string | null;
     extra?: string | null;
     costo_envio?: number | null;
+    cupon_codigo?: string | null;
+    cupon_descuento?: number | null;
 };
 
 export type OrderItem = {
@@ -72,6 +74,8 @@ export type CreateOrderInput = {
             telefono: string;
         };
     };
+    cupon_codigo?: string | null;
+    cupon_descuento?: number;
 };
 
 export type Payment = {
@@ -93,11 +97,14 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     try {
         // Insertar orden
         const [orderId] = await sequelize.query(
-            `INSERT INTO pedidos (total, status, external_reference) VALUES (:total, 'pending', :external_reference)`,
+            `INSERT INTO pedidos (total, status, external_reference, cupon_codigo, cupon_descuento) 
+             VALUES (:total, 'pending', :external_reference, :cupon_codigo, :cupon_descuento)`,
             {
                 replacements: {
                     total: input.total,
                     external_reference: input.external_reference,
+                    cupon_codigo: input.cupon_codigo || null,
+                    cupon_descuento: input.cupon_descuento || 0,
                 },
                 type: QueryTypes.INSERT,
                 transaction,
@@ -434,6 +441,24 @@ export async function updateEnvioTracking(
             type: QueryTypes.UPDATE,
         }
     );
+}
+/**
+ * Devuelve la cantidad de stock reservado por producto (pendientes de pago con stock reservado)
+ */
+export async function getReservedStockByProduct(): Promise<Record<string, number>> {
+    const rows = await sequelize.query<{ id_producto: string; reserved: string }>(
+        `SELECT pi.id_producto, SUM(pi.cantidad) as reserved
+         FROM pedido_items pi
+         JOIN pedidos p ON p.id = pi.id_pedido
+         WHERE p.status = 'pending' AND p.stock_reserved = 1
+         GROUP BY pi.id_producto`,
+        { type: QueryTypes.SELECT }
+    );
+    const map: Record<string, number> = {};
+    for (const row of rows) {
+        map[row.id_producto] = Number(row.reserved) || 0;
+    }
+    return map;
 }
 
 /**
