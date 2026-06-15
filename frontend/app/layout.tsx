@@ -1,11 +1,15 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Playfair_Display, Montserrat } from "next/font/google"
+import { Cinzel_Decorative, Montserrat } from "next/font/google"
 import "./globals.css"
 import { Providers } from "@/app/providers"
 import { Toaster } from "@/components/ui/toaster"
 
-const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-serif" })
+const cinzelDecorative = Cinzel_Decorative({
+  weight: ["400", "700", "900"],
+  subsets: ["latin"],
+  variable: "--font-serif",
+})
 const montserrat = Montserrat({ subsets: ["latin"], variable: "--font-sans" })
 
 const SITE_URL = "https://fernetloshorneros.com"
@@ -87,7 +91,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body suppressHydrationWarning className={`${playfair.variable} ${montserrat.variable} font-sans antialiased`}>
+      <body suppressHydrationWarning className={`${cinzelDecorative.variable} ${montserrat.variable} font-sans antialiased`}>
         <Providers>
           {children}
           <Toaster />

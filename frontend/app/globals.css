@@ -76,7 +76,7 @@
 
 @theme inline {
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
-  --font-serif: "Playfair Display", Georgia, serif;
+  --font-serif: "Cinzel Decorative", Georgia, serif;
 
   --color-primary: #c79256;
   --color-secondary: #f5ede0;
@@ -233,3 +233,9 @@
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(170, 111, 59, 0.6);
 }
+
+/* Forzar que Cinzel Decorative se renderice con trazo fino/elegante */
+.font-serif {
+  font-weight: 400 !important;
+}
+

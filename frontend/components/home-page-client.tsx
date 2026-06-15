@@ -122,7 +122,7 @@ export default function HomePageContent() {
             <motion.img
               src="/fernet1.webp"
               alt="Fernet Los Horneros"
-              className="h-full w-full object-cover object-[58%_42%] will-change-transform"
+              className="h-full w-full object-cover object-[48%_42%] will-change-transform"
               style={{ scale: heroScale, y: heroImageY }}
             />
             <div className="absolute inset-0 z-[1] bg-[linear-gradient(90deg,rgba(8,7,5,0.92)_0%,rgba(8,7,5,0.7)_36%,rgba(8,7,5,0.18)_64%,rgba(8,7,5,0.5)_100%),linear-gradient(0deg,rgba(8,7,5,0.85)_0%,transparent_32%,transparent_70%,rgba(8,7,5,0.55)_100%)]" />
