@@ -9,6 +9,7 @@ import { toast } from "@/hooks/use-toast"
 import { useState, useCallback, useEffect } from "react"
 import { ShippingSelector, type ShippingSelection } from "@/components/shipping-selector"
 import { useCartValidation } from "@/hooks/use-cart-validation"
+import { Loader2 } from "lucide-react"
 
 function RecommendedCard({ product, onAdd, wide }: { product: Product; onAdd: () => void; wide?: boolean }) {
   const [added, setAdded] = useState(false)
@@ -104,6 +105,63 @@ export default function CartPage() {
   // Selección de envío
   const [shippingSelection, setShippingSelection] = useState<ShippingSelection | null>(null)
   const [totalWithShipping, setTotalWithShipping] = useState(totalPrice)
+
+  // Cupones
+  const [couponCodeInput, setCouponCodeInput] = useState("")
+  const [appliedCoupon, setAppliedCoupon] = useState<{ codigo: string; tipo_descuento: string; valor: number } | null>(null)
+  const [discountAmount, setDiscountAmount] = useState(0)
+  const [validatingCoupon, setValidatingCoupon] = useState(false)
+
+  // Recalcular el descuento cada vez que cambian los precios
+  useEffect(() => {
+    if (appliedCoupon) {
+      let calcDiscount = 0;
+      if (appliedCoupon.tipo_descuento === 'porcentaje') {
+        calcDiscount = (totalPrice * appliedCoupon.valor) / 100;
+      } else if (appliedCoupon.tipo_descuento === 'fijo') {
+        calcDiscount = appliedCoupon.valor;
+      } else if (appliedCoupon.tipo_descuento === 'envio_gratis') {
+        calcDiscount = shippingSelection ? shippingSelection.shipping_cost : 0;
+      }
+      
+      if (calcDiscount > totalPrice && appliedCoupon.tipo_descuento !== 'envio_gratis') {
+        calcDiscount = totalPrice;
+      }
+      setDiscountAmount(calcDiscount);
+    } else {
+      setDiscountAmount(0);
+    }
+  }, [totalPrice, appliedCoupon, shippingSelection]);
+
+  const applyCoupon = async () => {
+    if (!couponCodeInput.trim()) return;
+    setValidatingCoupon(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/coupons/validate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ codigo: couponCodeInput, subtotal: totalPrice })
+      });
+      const data = await res.json();
+      if (res.ok && data.valid) {
+        setAppliedCoupon(data.coupon);
+        setCouponCodeInput("");
+        toast({ title: "Cupón aplicado", description: "Se ha aplicado el descuento correctamente." });
+      } else {
+        throw new Error(data.error || "Cupón inválido");
+      }
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+      setAppliedCoupon(null);
+    } finally {
+      setValidatingCoupon(false);
+    }
+  };
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+    setDiscountAmount(0);
+  };
 
   useEffect(() => {
     const fetchMinPurchaseAmount = async () => {
@@ -251,7 +309,8 @@ export default function CartPage() {
           point_id: shippingSelection.point_id || null,
           address: shippingSelection.address || null,
           contact: shippingSelection.contact,
-        }
+        },
+        appliedCoupon ? appliedCoupon.codigo : undefined
       )
 
       // Redirigir a MercadoPago
@@ -472,11 +531,49 @@ export default function CartPage() {
                       </span>
                     </div>
                   )}
+
+                  {/* Sección de Cupón */}
+                  <div className="pt-3 border-t border-white/10">
+                    {!appliedCoupon ? (
+                      <div className="flex gap-2">
+                        <Input 
+                          placeholder="Código de descuento" 
+                          className="bg-[#1a1a1a] border-white/10 text-white placeholder:text-white/40 uppercase h-10"
+                          value={couponCodeInput}
+                          onChange={(e) => setCouponCodeInput(e.target.value.toUpperCase())}
+                          onKeyDown={(e) => { if(e.key === 'Enter') applyCoupon() }}
+                        />
+                        <button 
+                          className="px-4 bg-white/10 hover:bg-white/20 text-white rounded-md text-sm font-medium transition-colors disabled:opacity-50 h-10"
+                          onClick={applyCoupon}
+                          disabled={validatingCoupon || !couponCodeInput}
+                        >
+                          {validatingCoupon ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Aplicar'}
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="bg-[#1a1a1a] border border-[#AA6F3B]/30 rounded-md p-3">
+                        <div className="flex justify-between items-center text-sm">
+                          <div className="flex items-center gap-2 text-[#AA6F3B] font-medium">
+                            <Tag className="w-4 h-4" />
+                            <span>{appliedCoupon.codigo}</span>
+                          </div>
+                          <button onClick={removeCoupon} className="text-white/50 hover:text-white text-xs underline">Quitar</button>
+                        </div>
+                        <div className="flex justify-between text-[#f5f0e6] mt-2 text-sm font-bold">
+                          <span>Descuento</span>
+                          <span className="text-[#AA6F3B]">
+                            -{appliedCoupon.tipo_descuento === 'envio_gratis' ? 'Envío' : `$${discountAmount.toLocaleString('es-AR')}`}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                   
                   <div className="flex justify-between border-t border-white/10 pt-3">
                     <span className="text-lg font-bold text-[#f5f0e6]">Total</span>
                     <span className="text-lg font-bold text-[#f5f0e6]">
-                      ${(skipShippingCost ? totalPrice : totalWithShipping).toLocaleString('es-AR')}
+                      ${Math.max(0, (skipShippingCost ? totalPrice : totalWithShipping) - discountAmount).toLocaleString('es-AR')}
                     </span>
                   </div>
                 </div>

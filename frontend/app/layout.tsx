@@ -4,6 +4,7 @@ import { Cinzel_Decorative, Montserrat } from "next/font/google"
 import "./globals.css"
 import { Providers } from "@/app/providers"
 import { Toaster } from "@/components/ui/toaster"
+import { LoadingScreen } from "@/components/loading-screen"
 
 const cinzelDecorative = Cinzel_Decorative({
   weight: ["400", "700", "900"],
@@ -92,6 +93,7 @@ export default function RootLayout({
         />
       </head>
       <body suppressHydrationWarning className={`${cinzelDecorative.variable} ${montserrat.variable} font-sans antialiased`}>
+        <LoadingScreen />
         <Providers>
           {children}
           <Toaster />

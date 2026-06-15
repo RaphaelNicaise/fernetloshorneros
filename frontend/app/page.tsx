@@ -2,7 +2,7 @@
 
 import { Suspense } from "react"
 import Image from "next/image"
-import { ReactLenis } from "lenis/react"
+import { ReactLenis } from "@studio-freight/react-lenis"
 import HomePageContent from "@/components/home-page-client"
 
 export default function HomePage() {
