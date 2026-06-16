@@ -9,7 +9,7 @@ import { toast } from "@/hooks/use-toast"
 import { useState, useCallback, useEffect } from "react"
 import { ShippingSelector, type ShippingSelection } from "@/components/shipping-selector"
 import { useCartValidation } from "@/hooks/use-cart-validation"
-import { Loader2 } from "lucide-react"
+import { Loader2, Tag } from "lucide-react"
 
 function RecommendedCard({ product, onAdd, wide }: { product: Product; onAdd: () => void; wide?: boolean }) {
   const [added, setAdded] = useState(false)
