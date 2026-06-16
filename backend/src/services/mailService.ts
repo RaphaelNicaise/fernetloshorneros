@@ -164,13 +164,13 @@ function getEmailWrapper(title: string, contentHtml: string): string {
               <div class="header" style="padding: 0; overflow: hidden;">
                 <!-- Hero Banner -->
                 <div style="width: 100%; max-height: 120px; overflow: hidden; background-color: #1a1713;">
-                  <img src="${process.env.FRONTEND_URL || 'https://fernetloshorneros.com.ar'}/fernet1.webp" alt="Botella Los Horneros" style="width: 100%; min-height: 120px; object-fit: cover; object-position: 58% 42%; display: block; opacity: 0.8;" />
+                  <img src="${process.env.FRONTEND_URL || 'https://fernetloshorneros.com'}/fernet1.webp" alt="Botella Los Horneros" style="width: 100%; min-height: 120px; object-fit: cover; object-position: 58% 42%; display: block; opacity: 0.8;" />
                 </div>
                 <!-- Logos -->
                 <div style="padding: 30px 20px 0 20px;">
                   <div style="text-align: center; margin-bottom: 5px;">
-                    <img src="${process.env.FRONTEND_URL || 'https://fernetloshorneros.com.ar'}/logonuevo.webp" alt="Pájaro" style="height: 40px; width: auto; display: inline-block; vertical-align: middle; margin-right: 10px; filter: invert(1); opacity: 0.9;" />
-                    <img src="${process.env.FRONTEND_URL || 'https://fernetloshorneros.com.ar'}/logo-fernet.webp" alt="Los Horneros" style="height: 40px; width: auto; display: inline-block; vertical-align: middle; filter: invert(1); opacity: 0.9;" />
+                    <img src="${process.env.FRONTEND_URL || 'https://fernetloshorneros.com'}/logonuevo.webp" alt="Pájaro" style="height: 40px; width: auto; display: inline-block; vertical-align: middle; margin-right: 10px; filter: invert(1); opacity: 0.9;" />
+                    <img src="${process.env.FRONTEND_URL || 'https://fernetloshorneros.com'}/logo-fernet.webp" alt="Los Horneros" style="height: 40px; width: auto; display: inline-block; vertical-align: middle; filter: invert(1); opacity: 0.9;" />
                   </div>
                   <p>Fernet de Autor</p>
                 </div>
@@ -250,7 +250,7 @@ export function getDefaultTemplate(key: string, title?: string): { subject: stri
       </div>
 
       <div class="button-container">
-        <a href="${process.env.FRONTEND_URL || 'https://fernetloshorneros.com.ar'}/admin" class="btn">Ir al Panel de Administración</a>
+        <a href="${process.env.FRONTEND_URL || 'https://fernetloshorneros.com'}/admin" class="btn">Ir al Panel de Administración</a>
       </div>
     `;
       return {

@@ -300,7 +300,8 @@ export default function AdminEmailsPage() {
                     <Textarea 
                       value={currentTemplate.html_content} 
                       onChange={e => handleChange("html_content", e.target.value)}
-                      className="font-mono text-sm bg-[#14120f] border-white/10 text-white/90 min-h-[400px] resize-y"
+                      className="font-mono text-sm bg-[#14120f] border-white/10 text-white/90 h-[500px] overflow-y-auto"
+                      style={{ fieldSizing: 'fixed' }}
                       placeholder="Ingresa el HTML de la plantilla aquí..."
                     />
                   </div>
