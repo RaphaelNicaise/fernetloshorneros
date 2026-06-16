@@ -41,6 +41,8 @@ type Order = {
   numero?: string | null
   extra?: string | null
   costo_envio?: number | null
+  cupon_codigo?: string | null
+  cupon_descuento?: number | null
 }
 
 type OrderItem = {
@@ -1091,6 +1093,17 @@ export default function AdminPedidosPage() {
                                         </TableRow>
                                       ))
                                     )}
+                                    {order.cupon_codigo && order.cupon_descuento ? (
+                                      <TableRow className="border-b border-white/5 bg-[#AA6F3B]/10">
+                                        <TableCell className="text-xs font-mono text-[#AA6F3B]">CUPON</TableCell>
+                                        <TableCell className="text-sm text-[#AA6F3B] font-medium">Cupón aplicado: {order.cupon_codigo}</TableCell>
+                                        <TableCell className="text-sm text-center text-[#AA6F3B]">1</TableCell>
+                                        <TableCell className="text-sm text-right text-[#AA6F3B]">-${Number(order.cupon_descuento).toFixed(2)}</TableCell>
+                                        <TableCell className="text-sm text-right font-bold text-[#AA6F3B]">
+                                          -${Number(order.cupon_descuento).toFixed(2)}
+                                        </TableCell>
+                                      </TableRow>
+                                    ) : null}
                                   </TableBody>
                                 </Table>
                               </div>

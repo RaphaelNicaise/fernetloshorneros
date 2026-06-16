@@ -76,7 +76,7 @@ export default function CuponesAdmin() {
     const fetchCoupons = async () => {
         try {
             setLoading(true);
-            const token = localStorage.getItem("adminToken");
+            const token = localStorage.getItem("admin_token");
             const res = await fetch(`${API_BASE_URL}/coupons`, {
                 headers: {
                     Authorization: `Bearer ${token}`
@@ -100,7 +100,7 @@ export default function CuponesAdmin() {
         if(e) e.preventDefault();
         
         try {
-            const token = localStorage.getItem("adminToken");
+            const token = localStorage.getItem("admin_token");
             const url = formData.id ? `${API_BASE_URL}/coupons/${formData.id}` : `${API_BASE_URL}/coupons`;
             const method = formData.id ? 'PUT' : 'POST';
 
@@ -145,7 +145,7 @@ export default function CuponesAdmin() {
         if (!confirm("¿Estás seguro de eliminar este cupón?")) return;
         
         try {
-            const token = localStorage.getItem("adminToken");
+            const token = localStorage.getItem("admin_token");
             const res = await fetch(`${API_BASE_URL}/coupons/${id}`, {
                 method: 'DELETE',
                 headers: { Authorization: `Bearer ${token}` }
