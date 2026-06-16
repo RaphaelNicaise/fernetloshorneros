@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { adminAuth } from '../middleware/adminAuth';
 import { emailTemplateService } from '../services/emailTemplateService';
 import { transporter } from '../config/mail';
+import { getDefaultTemplate } from '../services/mailService';
 
 const router = Router();
 
@@ -33,10 +34,11 @@ router.get('/', async (req: Request, res: Response) => {
           updated_at: custom.updated_at
         };
       }
+      const defaultTpl = getDefaultTemplate(key);
       return {
         key,
-        subject: DEFAULT_SUBJECTS[key] || '',
-        html_content: '', // El frontend sabrá que usar default
+        subject: defaultTpl.subject,
+        html_content: defaultTpl.html,
         isCustom: false
       };
     });
@@ -57,10 +59,11 @@ router.get('/:key', async (req: Request, res: Response) => {
     if (template) {
       res.json({ ...template, isCustom: true });
     } else {
+      const defaultTpl = getDefaultTemplate(key);
       res.json({ 
         template_key: key, 
-        subject: DEFAULT_SUBJECTS[key] || '', 
-        html_content: '', 
+        subject: defaultTpl.subject, 
+        html_content: defaultTpl.html, 
         isCustom: false 
       });
     }

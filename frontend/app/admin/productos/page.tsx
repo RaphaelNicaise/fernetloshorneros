@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { API_BASE_URL } from "@/lib/api"
-import { Search, Download, Package } from "lucide-react"
+import { Search, Download, Package, Info } from "lucide-react"
 import * as XLSX from "xlsx"
 
 type Product = {
@@ -519,8 +520,8 @@ export default function AdminProductosPage() {
       </div>
 
       {/* Lista */}
-      <div className="rounded-xl border border-white/8 bg-[#0b0a07]/40 shadow-2xl backdrop-blur-sm text-white overflow-hidden p-2">
-        <Table className="table-fixed">
+      <div className="rounded-xl border border-white/8 bg-[#0b0a07]/40 shadow-2xl backdrop-blur-sm text-white overflow-x-auto p-2">
+        <Table className="table-fixed min-w-[1000px]">
           <colgroup>
             <col className="w-[76px]" />
             <col className="w-[140px]" />
@@ -537,7 +538,23 @@ export default function AdminProductosPage() {
               <TableHead className="text-white/60">ID</TableHead>
               <TableHead className="text-white/60">Nombre</TableHead>
               <TableHead className="text-white/60">Precio</TableHead>
-              <TableHead className="text-white/60">Stock (Total / Rsv / Disp)</TableHead>
+              <TableHead className="text-white/60">
+                <div className="flex items-center gap-2">
+                  Stock (Total / Rsv / Disp)
+                  <HoverCard>
+                    <HoverCardTrigger asChild>
+                      <Info className="w-4 h-4 text-white/40 hover:text-white transition-colors cursor-pointer" />
+                    </HoverCardTrigger>
+                    <HoverCardContent className="w-64 bg-[#0b0a07] p-3 shadow-2xl border border-white/10 text-white text-xs z-50">
+                      <div className="space-y-2 font-normal">
+                        <p><strong>Total:</strong> Cantidad física en el depósito.</p>
+                        <p><strong className="text-[#AA6F3B]">Reservado:</strong> Productos en carritos pendientes de pago.</p>
+                        <p><strong className="text-emerald-400">Disponible:</strong> Stock real que los clientes pueden comprar (Total - Reservado).</p>
+                      </div>
+                    </HoverCardContent>
+                  </HoverCard>
+                </div>
+              </TableHead>
               <TableHead className="text-white/60">Estado</TableHead>
               <TableHead className="text-white/60">Límite</TableHead>
               <TableHead className="text-white/60 text-right pr-4">Acciones</TableHead>

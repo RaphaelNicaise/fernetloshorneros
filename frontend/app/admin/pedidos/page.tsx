@@ -863,8 +863,8 @@ export default function AdminPedidosPage() {
           </Button>
         </div>
       </div>
-      <div className="rounded-xl border border-white/8 bg-[#0b0a07]/40 shadow-2xl backdrop-blur-sm text-white overflow-hidden">
-        <Table className="w-full">
+      <div className="rounded-xl border border-white/8 bg-[#0b0a07]/40 shadow-2xl backdrop-blur-sm text-white overflow-x-auto p-2">
+        <Table className="w-full min-w-[1000px]">
           <TableHeader className="border-b border-white/8">
             <TableRow className="hover:bg-transparent border-b border-white/8">
               {selectionMode && (
@@ -1597,19 +1597,19 @@ export default function AdminPedidosPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-xs text-white/60">Nombre completo *</label>
-                <Input value={manualNombre} onChange={e => setManualNombre(e.target.value)} className="bg-white/5 border-white/10" placeholder="Ej. Juan Pérez" />
+                <Input value={manualNombre} onChange={e => setManualNombre(e.target.value)} className="bg-white/5 border-white/10 placeholder:text-white/60" placeholder="Ej. Juan Pérez" />
               </div>
               <div>
                 <label className="text-xs text-white/60">Email *</label>
-                <Input type="email" value={manualEmail} onChange={e => setManualEmail(e.target.value)} className="bg-white/5 border-white/10" placeholder="juan@gmail.com" />
+                <Input type="email" value={manualEmail} onChange={e => setManualEmail(e.target.value)} className="bg-white/5 border-white/10 placeholder:text-white/60" placeholder="juan@gmail.com" />
               </div>
               <div>
                 <label className="text-xs text-white/60">DNI (Opcional)</label>
-                <Input value={manualDni} onChange={e => setManualDni(e.target.value)} className="bg-white/5 border-white/10" />
+                <Input value={manualDni} onChange={e => setManualDni(e.target.value)} className="bg-white/5 border-white/10 placeholder:text-white/60" placeholder="Ej. 12345678" />
               </div>
               <div>
                 <label className="text-xs text-white/60">Teléfono (Opcional)</label>
-                <Input value={manualTelefono} onChange={e => setManualTelefono(e.target.value)} className="bg-white/5 border-white/10" />
+                <Input value={manualTelefono} onChange={e => setManualTelefono(e.target.value)} className="bg-white/5 border-white/10 placeholder:text-white/60" placeholder="Ej. 1122334455" />
               </div>
             </div>
 

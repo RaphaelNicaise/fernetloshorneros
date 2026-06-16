@@ -29,6 +29,38 @@ const TEMPLATE_VARS: Record<string, string[]> = {
   notif_vendedor: ["pedidoId", "detalles"],
 }
 
+const DUMMY_DATA: Record<string, string> = {
+  nombre: 'Juan Pérez',
+  pedidoId: '12345',
+  total: '$ 15,000',
+  items: `
+    <table class="order-table" cellspacing="0" cellpadding="0" style="width: 100%; margin: 30px 0; border-top: 1px solid #ffffff15; border-bottom: 1px solid #ffffff15;">
+      <thead>
+        <tr>
+          <th style="width: 60%; text-align: left; padding: 15px 8px; color: #AA6F3B; font-size: 12px; text-transform: uppercase;">Producto</th>
+          <th style="width: 15%; text-align: center; padding: 15px 8px; color: #AA6F3B; font-size: 12px; text-transform: uppercase;">Cant.</th>
+          <th style="width: 25%; text-align: right; padding: 15px 8px; color: #AA6F3B; font-size: 12px; text-transform: uppercase;">Subtotal</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="padding: 15px 8px; border-bottom: 1px solid #ffffff0a; color: #eeeeee; font-size: 14px;">Fernet de Autor</td>
+          <td style="padding: 15px 8px; text-align: center; border-bottom: 1px solid #ffffff0a; color: #eeeeee; font-size: 14px;">2</td>
+          <td style="padding: 15px 8px; text-align: right; border-bottom: 1px solid #ffffff0a; color: #eeeeee; font-size: 14px; font-weight: 500;">$15000.00</td>
+        </tr>
+        <tr class="summary-row" style="border-top: 1px solid #3d2f29;">
+          <td colspan="2" class="label" style="text-align: right; color: #f5f0eb; padding: 15px 8px; font-size: 18px; font-weight: bold;">Total:</td>
+          <td class="value" style="text-align: right; color: #dfa84a; padding: 15px 8px; font-size: 18px; font-weight: bold;">$15000.00</td>
+        </tr>
+      </tbody>
+    </table>
+  `,
+  costoEnvio: '$ 2,500',
+  trackingCode: 'TN123456789AR',
+  trackingUrl: '#',
+  detalles: 'Pedido de prueba.\nCliente: Juan Pérez\nEmail: juan@gmail.com'
+};
+
 export default function AdminEmailsPage() {
   const [activeTab, setActiveTab] = useState<EmailTemplateType>("compra_confirmacion")
   const [templates, setTemplates] = useState<Record<string, EmailTemplate>>({})
@@ -77,8 +109,16 @@ export default function AdminEmailsPage() {
     if (iframeRef.current && currentTemplate) {
       const doc = iframeRef.current.contentDocument
       if (doc) {
+        let html = currentTemplate.html_content || '<div style="color: white; font-family: sans-serif; padding: 20px;">Sin contenido HTML</div>'
+        
+        // Replace variables with dummy data for preview
+        Object.entries(DUMMY_DATA).forEach(([key, value]) => {
+          const regex = new RegExp(`{{\s*${key}\s*}}`, 'g');
+          html = html.replace(regex, value);
+        });
+
         doc.open()
-        doc.write(currentTemplate.html_content || '<div style="color: white; font-family: sans-serif; padding: 20px;">Sin contenido HTML (Se usará default)</div>')
+        doc.write(html)
         doc.close()
       }
     }

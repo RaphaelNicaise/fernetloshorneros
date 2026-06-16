@@ -111,8 +111,8 @@ export default function AdminListaEsperaPage() {
       {error && <div className="text-red-400">{error}</div>}
  
       {!loading && !error && (
-        <div className="rounded-xl border border-white/8 bg-[#0b0a07]/40 shadow-2xl backdrop-blur-sm text-white overflow-hidden">
-          <Table className="table-fixed w-full">
+        <div className="rounded-xl border border-white/8 bg-[#0b0a07]/40 shadow-2xl backdrop-blur-sm text-white overflow-x-auto">
+          <Table className="min-w-[800px]">
             <colgroup>
               <col style={{ width: "64px" }} />
               <col style={{ width: "260px" }} />
