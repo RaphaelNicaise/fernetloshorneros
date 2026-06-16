@@ -474,9 +474,6 @@ export async function markOrderStockReserved(orderId: number): Promise<void> {
     );
 }
 
-/**
- * Marca una orden como que ya no tiene stock reservado (fue usado o liberado)
- */
 export async function markOrderStockReleased(orderId: number): Promise<void> {
     await sequelize.query(
         `UPDATE pedidos SET stock_reserved = 0 WHERE id = :id`,
@@ -485,6 +482,20 @@ export async function markOrderStockReleased(orderId: number): Promise<void> {
             type: QueryTypes.UPDATE,
         }
     );
+}
+
+/**
+ * Verifica si el stock de una orden está marcado como reservado
+ */
+export async function isOrderStockReserved(orderId: number): Promise<boolean> {
+    const pedidoRows = await sequelize.query<any>(
+        `SELECT stock_reserved FROM pedidos WHERE id = :id`,
+        {
+            replacements: { id: orderId },
+            type: QueryTypes.SELECT,
+        }
+    );
+    return pedidoRows && pedidoRows.length > 0 && pedidoRows[0].stock_reserved === 1;
 }
 
 /**

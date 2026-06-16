@@ -13,6 +13,7 @@ import {
     markOrderStockReserved,
     markOrderStockReleased,
     getExpiredReservations,
+    isOrderStockReserved,
 } from "@/services/ordersService";
 import { getProductById, decreaseStock, increaseStock } from "@/services/productService";
 import { enviarMailConfirmacionCompra } from "@/services/mailService";
@@ -334,12 +335,16 @@ export async function handleWebhook(req: Request, res: Response) {
                 console.log(`Orden ${order.id} marcada como fallida`);
 
                 try {
-                    const orderItems = await getOrderItems(order.id);
-                    for (const item of orderItems) {
-                        await increaseStock(item.id_producto, item.cantidad);
-                        console.log(`Stock restaurado: ${item.cantidad} x ${item.id_producto}`);
+                    if (await isOrderStockReserved(order.id)) {
+                        const orderItems = await getOrderItems(order.id);
+                        for (const item of orderItems) {
+                            await increaseStock(item.id_producto, item.cantidad);
+                            console.log(`Stock restaurado: ${item.cantidad} x ${item.id_producto}`);
+                        }
+                        await markOrderStockReleased(order.id);
+                    } else {
+                        console.log(`Stock de la orden ${order.id} ya habia sido liberado previamente.`);
                     }
-                    await markOrderStockReleased(order.id);
                 } catch (stockError: any) {
                     console.error("Error restaurando stock:", stockError);
                 }
