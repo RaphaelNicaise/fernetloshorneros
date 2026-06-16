@@ -48,7 +48,7 @@ export async function createProduct(product: Product): Promise<void> {
 
 export async function updateProduct(product: Product): Promise<void> {
     let newStatus = product.status;
-    if (product.stock === 0) {
+    if (product.stock === 0 && product.status !== 'proximamente') {
         newStatus = 'agotado';
     } else if (product.stock > 0 && product.status === 'agotado') {
         newStatus = 'disponible';
@@ -85,7 +85,7 @@ export async function decreaseStock(id: string, quantity: number): Promise<numbe
     }
 
     const newStock = Math.max(0, product.stock - quantity);
-    const newStatus = newStock === 0 ? 'agotado' : product.status;
+    const newStatus = newStock === 0 && product.status !== 'proximamente' ? 'agotado' : product.status;
 
     await sequelize.query(
         `UPDATE productos SET stock = :newStock, status = :newStatus WHERE id = :id`,
@@ -106,7 +106,7 @@ export async function updateStock(id: string, stock: number): Promise<void> {
     if (!product) return;
 
     let newStatus = product.status;
-    if (stock === 0) {
+    if (stock === 0 && product.status !== 'proximamente') {
         newStatus = 'agotado';
     } else if (stock > 0 && product.status === 'agotado') {
         newStatus = 'disponible';
