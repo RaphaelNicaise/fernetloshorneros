@@ -137,6 +137,9 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    background-color: var(--background);
+  }
   body {
     @apply bg-background text-foreground;
     margin: 0; /* elimina el margen por defecto del navegador que puede verse como un borde blanco */

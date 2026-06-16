@@ -87,6 +87,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     router.replace("/admin/login")
   }
 
+  // Forzar fondo oscuro en html y body para que el scroll horizontal no muestre blanco
+  useEffect(() => {
+    const html = document.documentElement
+    const body = document.body
+    const prevHtmlBg = html.style.backgroundColor
+    const prevBodyBg = body.style.backgroundColor
+    html.style.backgroundColor = "#0f0d0a"
+    body.style.backgroundColor = "#0f0d0a"
+    return () => {
+      html.style.backgroundColor = prevHtmlBg
+      body.style.backgroundColor = prevBodyBg
+    }
+  }, [])
+
   if (!checked) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#0b0a07]">
@@ -100,7 +114,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="dark flex min-h-screen bg-[#0f0d0a] text-foreground">
+    <div className="dark min-h-screen bg-[#0f0d0a] text-foreground">
       {/* Sidebar backdrop (mobile) */}
       <AnimatePresence>
         {sidebarOpen && (
@@ -182,7 +196,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       {/* Main content area */}
-      <div className="flex flex-1 flex-col lg:pl-64">
+      <div className="flex flex-1 flex-col lg:pl-64 min-w-0">
         {/* Top bar */}
         <header className="sticky top-0 z-20 flex h-16 items-center gap-4 border-b border-white/8 bg-[#0b0a07]/90 px-4 backdrop-blur-xl sm:px-6">
           <button
@@ -217,7 +231,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </header>
 
         {/* Page content */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-x-auto">
           <motion.div
             key={pathname}
             initial={{ opacity: 0, y: 10 }}
