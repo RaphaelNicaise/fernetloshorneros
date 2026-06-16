@@ -282,14 +282,22 @@ export async function deleteOrderHandler(req: Request, res: Response) {
  */
 export async function createManualOrderHandler(req: Request, res: Response) {
     try {
-        const { items, cliente } = req.body;
+        const { cliente, items, venta_local } = req.body;
 
         if (!items || !Array.isArray(items) || items.length === 0) {
             return res.status(400).json({ error: 'Debe incluir al menos un producto' });
         }
 
-        if (!cliente || !cliente.nombre || !cliente.email) {
+        if (!venta_local && (!cliente || !cliente.nombre || !cliente.email)) {
             return res.status(400).json({ error: 'Debe proveer nombre y email del cliente' });
+        }
+
+        const effectiveCliente = cliente || {};
+        if (venta_local) {
+            effectiveCliente.nombre = effectiveCliente.nombre || "Cliente en Local";
+            effectiveCliente.email = effectiveCliente.email || "local@fernetloshorneros.com";
+            effectiveCliente.dni = effectiveCliente.dni || "-";
+            effectiveCliente.telefono = effectiveCliente.telefono || "-";
         }
 
         const validatedItems = [];
@@ -329,13 +337,13 @@ export async function createManualOrderHandler(req: Request, res: Response) {
             external_reference,
             shipping_info: {
                 cost: 0,
-                rate_id: "manual",
-                service_type: "pickup_point",
+                rate_id: venta_local ? "local" : "manual",
+                service_type: venta_local ? "store_pickup" : "pickup_point",
                 contact: {
-                    nombre: cliente.nombre,
-                    email: cliente.email,
-                    dni: cliente.dni || "-",
-                    telefono: cliente.telefono || "-"
+                    nombre: effectiveCliente.nombre,
+                    email: effectiveCliente.email,
+                    dni: effectiveCliente.dni || "-",
+                    telefono: effectiveCliente.telefono || "-"
                 }
             }
         });
@@ -352,7 +360,7 @@ export async function createManualOrderHandler(req: Request, res: Response) {
             total: total
         });
 
-        await manualUpdateOrderStatus(order.id, 'para_despachar', null, false);
+        await manualUpdateOrderStatus(order.id, venta_local ? 'venta_local' : 'para_despachar', null, false);
 
         return res.json({ success: true, order });
     } catch (error: any) {

@@ -677,23 +677,39 @@ export default function AnalyticsPage() {
         <div className="grid gap-6 lg:grid-cols-2">
             
             {/* Funnel Logistico */}
-            <div className="rounded-2xl border border-white/8 bg-[#0b0a07]/40 p-7 shadow-lg backdrop-blur-sm">
-                <div className="flex items-center gap-2 mb-8 group relative">
-                    <p className="font-serif text-lg font-bold text-white">Estado del Embudo de Envíos</p>
-                    <Info size={16} className="text-white/30 cursor-help" />
-                    <div className="absolute bottom-full mb-2 left-0 hidden w-64 rounded-md bg-[#1a1511] p-3 text-xs text-white/80 shadow-xl group-hover:block border border-[#AA6F3B]/20 z-50">
-                        Visualización del estado de los envíos para órdenes pagadas (Pendientes de despacho vs Ya enviados por Correo Argentino).
+            <div className="rounded-2xl border border-white/8 bg-[#0b0a07]/40 p-7 shadow-lg backdrop-blur-sm lg:col-span-2">
+                <div className="flex items-center justify-between mb-8">
+                    <div className="flex items-center gap-2 group relative">
+                        <p className="font-serif text-lg font-bold text-white">Estado del Embudo de Envíos y Ventas</p>
+                        <Info size={16} className="text-white/30 cursor-help" />
+                        <div className="absolute bottom-full mb-2 left-0 hidden w-64 rounded-md bg-[#1a1511] p-3 text-xs text-white/80 shadow-xl group-hover:block border border-[#AA6F3B]/20 z-50">
+                            Visualización del estado de los envíos para órdenes pagadas y ventas en local.
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <div className="flex flex-col items-end">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-1">Total Confirmados</p>
+                            <p className="font-mono text-2xl font-black text-white">
+                                {(() => {
+                                    const enviados = Number(stats.shipping.funnel.find(f => f.status === 'enviado')?.count || 0);
+                                    const ventasLocal = Number(stats.shipping.funnel.find(f => f.status === 'venta_local')?.count || 0);
+                                    return enviados + ventasLocal;
+                                })()}
+                            </p>
+                            <p className="text-[10px] text-white/30">Enviados + En Local</p>
+                        </div>
                     </div>
                 </div>
                 
                 <div className="relative flex w-full justify-between items-start px-2 mt-12 mb-4">
                     {/* Línea de conexión base */}
-                    <div className="absolute top-5 left-12 right-12 h-1 bg-[#120e0b] -z-10" />
+                    <div className="absolute top-5 left-8 right-8 h-1 bg-[#120e0b] -z-10" />
                     {/* Renderizamos pasos lógicos del funnel */}
                     {[
                         { id: 'pendiente', label: 'Pendiente de Pago', color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/30' },
                         { id: 'para_despachar', label: 'Pendiente de Despacho', color: 'text-yellow-500', bg: 'bg-yellow-500/10', border: 'border-yellow-500/30' },
                         { id: 'enviado', label: 'Enviado (Tracking)', color: 'text-green-500', bg: 'bg-green-500/10', border: 'border-green-500/30' },
+                        { id: 'venta_local', label: 'Venta en Local', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30' },
                         { id: 'cancelado', label: 'Anulado', color: 'text-gray-500', bg: 'bg-gray-500/10', border: 'border-gray-500/30' },
                     ].map((step) => {
                         const count = Number(stats.shipping.funnel.find(f => f.status === step.id)?.count || 0)
@@ -701,7 +717,7 @@ export default function AnalyticsPage() {
                         const percent = total > 0 ? ((count / total)*100).toFixed(0) : "0"
 
                         return (
-                            <div key={step.id} className="flex flex-col items-center relative z-10 px-2 text-center w-1/4">
+                            <div key={step.id} className="flex flex-col items-center relative z-10 px-2 text-center w-1/5">
                                 <div className={`flex h-12 w-12 items-center justify-center rounded-full border-2 ${step.bg} ${step.border} ${step.color} shadow-lg backdrop-blur-md`}>
                                     <span className="font-mono text-sm font-bold">{count}</span>
                                 </div>

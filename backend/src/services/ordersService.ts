@@ -509,7 +509,7 @@ export async function getExpiredReservations(minutesThreshold: number = 5): Prom
  */
 export async function manualUpdateOrderStatus(
     orderId: number,
-    newEffectiveStatus: "pendiente" | "para_despachar" | "enviado" | "cancelado",
+    newEffectiveStatus: "pendiente" | "para_despachar" | "enviado" | "cancelado" | "venta_local",
     trackingCode?: string | null,
     restoreStock: boolean = false
 ): Promise<void> {
@@ -536,6 +536,7 @@ export async function manualUpdateOrderStatus(
         const oldEffectiveStatus = (() => {
             if (currentOrder.envio_status === 'cancelled' || currentOrder.order_status === 'cancelled' || currentOrder.order_status === 'failed') return "cancelado";
             if (currentOrder.order_status === 'paid') {
+                if (currentOrder.envio_status === 'local') return "venta_local";
                 if (currentOrder.envio_status === 'shipped') return "enviado";
                 return "para_despachar";
             }
@@ -558,6 +559,9 @@ export async function manualUpdateOrderStatus(
         } else if (newEffectiveStatus === "cancelado") {
             pedidoStatus = "cancelled";
             envioStatus = "cancelled";
+        } else if (newEffectiveStatus === "venta_local") {
+            pedidoStatus = "paid";
+            envioStatus = "local";
         }
 
         // 2. Actualizar estado del pedido (pedidos)

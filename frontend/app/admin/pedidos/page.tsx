@@ -60,11 +60,12 @@ type SortKey = keyof Pick<Order, "id" | "status" | "fecha" | "total">
 // ESTADOS EFECTIVOS SIMPLIFICADOS (4 estados)
 // ============================================
 
-type EffectiveStatus = "pendiente" | "para_despachar" | "enviado" | "cancelado"
+type EffectiveStatus = "pendiente" | "para_despachar" | "enviado" | "cancelado" | "venta_local"
 
 function getEffectiveStatus(order: Order): EffectiveStatus {
   if (order.envio_status === 'cancelled' || order.status === 'cancelled' || order.status === 'failed') return "cancelado"
   if (order.status === 'paid') {
+    if (order.envio_status === 'local') return "venta_local"
     if (order.envio_status === 'shipped') return "enviado"
     return "para_despachar"
   }
@@ -76,6 +77,7 @@ const EFFECTIVE_STATUS_LABELS: Record<EffectiveStatus, string> = {
   para_despachar: "Para Despachar",
   enviado: "Enviado",
   cancelado: "Cancelado",
+  venta_local: "Venta en Local",
 }
 
 const EFFECTIVE_STATUS_COLORS: Record<EffectiveStatus, string> = {
@@ -83,6 +85,7 @@ const EFFECTIVE_STATUS_COLORS: Record<EffectiveStatus, string> = {
   para_despachar: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
   enviado: "bg-green-500/10 text-green-400 border border-green-500/20",
   cancelado: "bg-white/5 text-white/50 border border-white/10",
+  venta_local: "bg-green-600/20 text-green-300 border border-green-500/30",
 }
 
 const PAGE_SIZE = 75
@@ -134,8 +137,9 @@ export default function AdminPedidosPage() {
   const [submittingStatus, setSubmittingStatus] = useState(false)
   const [exporting, setExporting] = useState(false)
 
-  // Estados para crear pedido manual
+  // Estados para crear pedido manual y venta local
   const [createManualModalOpen, setCreateManualModalOpen] = useState(false)
+  const [createLocalModalOpen, setCreateLocalModalOpen] = useState(false)
   const [availableProducts, setAvailableProducts] = useState<any[]>([])
   const [manualOrderItems, setManualOrderItems] = useState<{id_producto: string, cantidad: number, max: number, price: number}[]>([])
   const [manualNombre, setManualNombre] = useState("")
@@ -215,6 +219,18 @@ export default function AdminPedidosPage() {
     }
   }
 
+  async function openCreateLocalModal() {
+    setCreateLocalModalOpen(true);
+    setManualOrderItems([]);
+    try {
+      const res = await fetch(`${API_BASE_URL}/products`, { cache: 'no-store' });
+      const prods = await res.json();
+      setAvailableProducts(prods.filter((p: any) => p.status !== 'agotado' && p.stock > 0));
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
   async function handleCreateManualOrder() {
     if (!manualNombre || !manualEmail || manualOrderItems.length === 0) {
         setAlertDialog({ isOpen: true, title: "Error", message: "Completá nombre, email y seleccioná al menos un producto.", type: "error" });
@@ -251,9 +267,48 @@ export default function AdminPedidosPage() {
         type: "success"
       });
       setCreateManualModalOpen(false);
-      fetchOrders(true);
+      await fetchOrders(true);
     } catch (e: any) {
       setAlertDialog({ isOpen: true, title: "Error", message: e?.message || "Error", type: "error" });
+    } finally {
+      setSubmittingStatus(false);
+    }
+  }
+
+  async function handleCreateLocalOrder() {
+    if (manualOrderItems.length === 0) {
+        setAlertDialog({ isOpen: true, title: "Error", message: "Seleccioná al menos un producto.", type: "error" });
+        return;
+    }
+    try {
+      setSubmittingStatus(true);
+      const token = localStorage.getItem("admin_token");
+      const payload = {
+        items: manualOrderItems,
+        venta_local: true
+      };
+      const res = await fetch(`${API_BASE_URL}/orders/manual`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.success !== true) {
+        throw new Error(data.error || "Error al registrar la venta física");
+      }
+      setAlertDialog({
+        isOpen: true,
+        title: "Éxito",
+        message: "Venta física registrada correctamente.",
+        type: "success"
+      });
+      await fetchOrders();
+      setCreateLocalModalOpen(false);
+    } catch (e: any) {
+      setAlertDialog({ isOpen: true, title: "Error", message: e.message, type: "error" });
     } finally {
       setSubmittingStatus(false);
     }
@@ -830,25 +885,13 @@ export default function AdminPedidosPage() {
           </Button>
           
           {selectionMode ? (
-            <div className="flex items-center gap-2 bg-[#AA6F3B]/10 rounded-md p-1 border border-[#AA6F3B]/30">
-              <span className="text-sm text-[#AA6F3B] font-medium px-2">{selectedOrders.size} seleccionados</span>
-              <Button
-                size="sm"
-                className="h-8 bg-[#AA6F3B] hover:bg-[#AA6F3B]/90 text-white border-0"
-                disabled={selectedOrders.size === 0}
-                onClick={() => {
-                  const ordersToPrint = orders.filter((o) => selectedOrders.has(o.id));
-                  generateShippingLabels(ordersToPrint as any[]);
-                  setSelectionMode(false);
-                  setSelectedOrders(new Set());
-                }}
-              >
-                Generar Etiquetas en Lote
-              </Button>
-              <Button size="sm" variant="ghost" className="h-8 text-[#AA6F3B] hover:bg-[#AA6F3B]/20" onClick={() => { setSelectionMode(false); setSelectedOrders(new Set()); }}>
-                Cancelar
-              </Button>
-            </div>
+            <Button
+              variant="secondary"
+              className="h-10 bg-[#AA6F3B]/10 text-[#AA6F3B] hover:bg-[#AA6F3B]/20 border border-[#AA6F3B]/30"
+              onClick={() => { setSelectionMode(false); setSelectedOrders(new Set()); }}
+            >
+              Cancelar Selección
+            </Button>
           ) : (
             <Button
               variant="outline"
@@ -859,6 +902,10 @@ export default function AdminPedidosPage() {
               Seleccionar varios
             </Button>
           )}
+
+          <Button className="h-10 bg-green-600/20 text-green-300 hover:bg-green-600/30 border border-green-500/30 font-semibold" onClick={openCreateLocalModal}>
+            Crear Venta Física
+          </Button>
 
           <Button className="h-10 bg-[#AA6F3B] hover:bg-[#AA6F3B]/90 text-white border-0 font-semibold" onClick={openCreateManualModal}>
             Crear Pedido Manual
@@ -1148,32 +1195,52 @@ export default function AdminPedidosPage() {
         </Table>
       </div>
 
-      {/* Paginación Sticky */}
-      <div className="sticky bottom-4 z-10 bg-[#0b0a07]/90 backdrop-blur-md border border-white/10 px-6 py-4 shadow-[0_12px_40px_rgba(0,0,0,0.7)] flex flex-col sm:flex-row items-center justify-between gap-4 text-white rounded-xl mt-4">
-        <div className="text-sm font-medium text-white/80">
-          Mostrando <span className="text-white font-semibold">{visible.length > 0 ? start + 1 : 0}</span>–<span className="text-white font-semibold">{Math.min(start + PAGE_SIZE, total)}</span> de <span className="text-[#AA6F3B] font-semibold">{total}</span>
-        </div>
-        <div className="flex items-center gap-4">
-          <Button 
-            variant="outline" 
-            disabled={current === 1} 
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            className="border-white/10 bg-white/5 text-white hover:bg-white/10 disabled:opacity-40 disabled:hover:bg-white/5"
-          >
-            Anterior
-          </Button>
-          <span className="text-sm text-white/80">
-            Página <span className="text-[#AA6F3B] font-semibold">{current}</span> / {pages}
-          </span>
-          <Button 
-            variant="outline" 
-            disabled={current === pages} 
-            onClick={() => setPage((p) => Math.min(pages, p + 1))}
-            className="border-white/10 bg-white/5 text-white hover:bg-white/10 disabled:opacity-40 disabled:hover:bg-white/5"
-          >
-            Siguiente
-          </Button>
-        </div>
+      {/* Paginación y Acciones Sticky */}
+      <div className="sticky bottom-4 z-10 bg-[#0b0a07]/90 backdrop-blur-md border border-white/10 px-6 py-4 shadow-[0_12px_40px_rgba(0,0,0,0.7)] flex flex-col sm:flex-row items-center justify-between gap-4 text-white rounded-xl mt-4 min-h-[72px]">
+        {selectionMode ? (
+          <div className="flex items-center gap-4 w-full justify-between">
+            <span className="text-sm text-[#AA6F3B] font-medium px-2">{selectedOrders.size} pedidos seleccionados</span>
+            <Button
+              className="h-10 bg-[#AA6F3B] hover:bg-[#AA6F3B]/90 text-white border-0 font-semibold"
+              disabled={selectedOrders.size === 0}
+              onClick={() => {
+                const ordersToPrint = orders.filter((o) => selectedOrders.has(o.id));
+                generateShippingLabels(ordersToPrint as any[]);
+                setSelectionMode(false);
+                setSelectedOrders(new Set());
+              }}
+            >
+              Generar Etiquetas en Lote
+            </Button>
+          </div>
+        ) : (
+          <>
+            <div className="text-sm font-medium text-white/80">
+              Mostrando <span className="text-white font-semibold">{visible.length > 0 ? start + 1 : 0}</span>–<span className="text-white font-semibold">{Math.min(start + PAGE_SIZE, total)}</span> de <span className="text-[#AA6F3B] font-semibold">{total}</span>
+            </div>
+            <div className="flex items-center gap-4">
+              <Button 
+                variant="outline" 
+                disabled={current === 1} 
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                className="border-white/10 bg-white/5 text-white hover:bg-white/10 disabled:opacity-40 disabled:hover:bg-white/5"
+              >
+                Anterior
+              </Button>
+              <span className="text-sm text-white/80">
+                Página <span className="text-[#AA6F3B] font-semibold">{current}</span> / {pages}
+              </span>
+              <Button 
+                variant="outline" 
+                disabled={current === pages} 
+                onClick={() => setPage((p) => Math.min(pages, p + 1))}
+                className="border-white/10 bg-white/5 text-white hover:bg-white/10 disabled:opacity-40 disabled:hover:bg-white/5"
+              >
+                Siguiente
+              </Button>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Modal de Edición Completo */}
@@ -1681,6 +1748,75 @@ export default function AdminPedidosPage() {
             <Button variant="outline" className="border-white/10 text-white hover:bg-white/10" onClick={() => setCreateManualModalOpen(false)}>Cancelar</Button>
             <Button className="bg-[#AA6F3B] hover:bg-[#AA6F3B]/90 text-white" disabled={submittingStatus || manualOrderItems.length === 0 || !manualNombre || !manualEmail} onClick={handleCreateManualOrder}>
               {submittingStatus ? "Creando..." : "Crear Pedido"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal para Crear Venta Física */}
+      <Dialog open={createLocalModalOpen} onOpenChange={setCreateLocalModalOpen}>
+        <DialogContent className="bg-[#0b0a07] border-white/10 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-green-400">Crear Venta Física (Local)</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-white/60">Agregá los productos que se vendieron en el local. No se requiere información de envío.</p>
+
+            <div className="space-y-2 mt-4">
+              <label className="text-xs text-white/60 font-semibold">Agregar Producto</label>
+              <Select onValueChange={addManualItem}>
+                <SelectTrigger className="bg-white/5 border-white/10">
+                  <SelectValue placeholder="Seleccioná un producto..." />
+                </SelectTrigger>
+                <SelectContent className="bg-[#0b0a07] border-white/10 text-white max-h-[200px]">
+                  {availableProducts.map(p => (
+                    <SelectItem key={p.id} value={p.id} disabled={manualOrderItems.some(i => i.id_producto === p.id)}>
+                      {p.name} - ${Number(p.price).toLocaleString('es-AR')} (Stock: {p.stock})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {manualOrderItems.length > 0 && (
+              <div className="space-y-2">
+                <label className="text-xs text-white/60 font-semibold">Productos Seleccionados</label>
+                <div className="space-y-2">
+                  {manualOrderItems.map(item => {
+                    const p = availableProducts.find(prod => prod.id === item.id_producto);
+                    return (
+                      <div key={item.id_producto} className="flex items-center gap-3 bg-white/5 p-2 rounded-lg border border-white/10">
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold">{p?.name}</p>
+                          <p className="text-xs text-white/60">${item.price.toLocaleString('es-AR')} c/u (Max: {item.max})</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Input 
+                            type="number" 
+                            min={1} 
+                            max={item.max} 
+                            value={item.cantidad} 
+                            onChange={e => updateManualItemQuantity(item.id_producto, Number(e.target.value))}
+                            className="w-20 bg-white/5 border-white/10 text-center h-8"
+                          />
+                          <Button variant="ghost" size="icon" className="text-red-400 hover:text-red-300 hover:bg-red-500/20" onClick={() => removeManualItem(item.id_producto)}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+                <div className="flex justify-end pt-2 text-lg font-bold">
+                  Total: ${manualOrderItems.reduce((acc, item) => acc + (item.cantidad * item.price), 0).toLocaleString('es-AR')}
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" className="border-white/10 text-white hover:bg-white/10" onClick={() => setCreateLocalModalOpen(false)}>Cancelar</Button>
+            <Button className="bg-green-600 hover:bg-green-500 text-white" disabled={submittingStatus || manualOrderItems.length === 0} onClick={handleCreateLocalOrder}>
+              {submittingStatus ? "Registrando..." : "Registrar Venta"}
             </Button>
           </DialogFooter>
         </DialogContent>
