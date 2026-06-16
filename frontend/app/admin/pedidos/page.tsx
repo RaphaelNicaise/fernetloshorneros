@@ -1261,38 +1261,34 @@ export default function AdminPedidosPage() {
 
       {/* Paginación y Acciones Sticky */}
       <div className="sticky bottom-4 z-10 bg-[#0b0a07]/90 backdrop-blur-md border border-white/10 px-6 py-4 shadow-[0_12px_40px_rgba(0,0,0,0.7)] flex flex-col sm:flex-row items-center justify-between gap-4 text-white rounded-xl mt-4 min-h-[72px]">
-        {selectionMode ? (
-          <div className="flex items-center gap-4 w-full justify-center">
-            <span className="text-sm text-[#AA6F3B] font-medium px-2">{selectedOrders.size} pedidos seleccionados</span>
-          </div>
-        ) : (
-          <>
-            <div className="text-sm font-medium text-white/80">
-              Mostrando <span className="text-white font-semibold">{visible.length > 0 ? start + 1 : 0}</span>–<span className="text-white font-semibold">{Math.min(start + PAGE_SIZE, total)}</span> de <span className="text-[#AA6F3B] font-semibold">{total}</span>
-            </div>
-            <div className="flex items-center gap-4">
-              <Button 
-                variant="outline" 
-                disabled={current === 1} 
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="border-white/10 bg-white/5 text-white hover:bg-white/10 disabled:opacity-40 disabled:hover:bg-white/5"
-              >
-                Anterior
-              </Button>
-              <span className="text-sm text-white/80">
-                Página <span className="text-[#AA6F3B] font-semibold">{current}</span> / {pages}
-              </span>
-              <Button 
-                variant="outline" 
-                disabled={current === pages} 
-                onClick={() => setPage((p) => Math.min(pages, p + 1))}
-                className="border-white/10 bg-white/5 text-white hover:bg-white/10 disabled:opacity-40 disabled:hover:bg-white/5"
-              >
-                Siguiente
-              </Button>
-            </div>
-          </>
-        )}
+        <div className="text-sm font-medium text-white/80 w-full sm:w-auto text-center sm:text-left">
+          {selectionMode ? (
+            <span className="text-[#AA6F3B] font-medium px-2">{selectedOrders.size} pedidos seleccionados</span>
+          ) : (
+            <>Mostrando <span className="text-white font-semibold">{visible.length > 0 ? start + 1 : 0}</span>–<span className="text-white font-semibold">{Math.min(start + PAGE_SIZE, total)}</span> de <span className="text-[#AA6F3B] font-semibold">{total}</span></>
+          )}
+        </div>
+        <div className="flex items-center gap-4 w-full sm:w-auto justify-center sm:justify-end">
+          <Button 
+            variant="outline" 
+            disabled={current === 1} 
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            className="border-white/10 bg-white/5 text-white hover:bg-white/10 disabled:opacity-40 disabled:hover:bg-white/5"
+          >
+            Anterior
+          </Button>
+          <span className="text-sm text-white/80">
+            Página <span className="text-[#AA6F3B] font-semibold">{current}</span> / {pages}
+          </span>
+          <Button 
+            variant="outline" 
+            disabled={current === pages} 
+            onClick={() => setPage((p) => Math.min(pages, p + 1))}
+            className="border-white/10 bg-white/5 text-white hover:bg-white/10 disabled:opacity-40 disabled:hover:bg-white/5"
+          >
+            Siguiente
+          </Button>
+        </div>
       </div>
 
       {/* Modal de Edición Completo */}
