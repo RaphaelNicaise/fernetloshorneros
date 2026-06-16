@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -104,25 +104,17 @@ export default function AdminEmailsPage() {
 
   const currentTemplate = templates[activeTab]
 
-  // Update iframe whenever content changes
-  useEffect(() => {
-    if (iframeRef.current && currentTemplate) {
-      const doc = iframeRef.current.contentDocument
-      if (doc) {
-        let html = currentTemplate.html_content || '<div style="color: white; font-family: sans-serif; padding: 20px;">Sin contenido HTML</div>'
-        
-        // Replace variables with dummy data for preview
-        Object.entries(DUMMY_DATA).forEach(([key, value]) => {
-          const regex = new RegExp(`{{\s*${key}\s*}}`, 'g');
-          html = html.replace(regex, value);
-        });
-
-        doc.open()
-        doc.write(html)
-        doc.close()
-      }
-    }
-  }, [currentTemplate?.html_content, activeTab])
+  const previewHtml = useMemo(() => {
+    if (!currentTemplate) return '<div style="color: white; font-family: sans-serif; padding: 20px;">Sin contenido HTML</div>';
+    let html = currentTemplate.html_content || '<div style="color: white; font-family: sans-serif; padding: 20px;">Sin contenido HTML</div>';
+    
+    // Replace variables with dummy data for preview
+    Object.entries(DUMMY_DATA).forEach(([key, value]) => {
+      const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
+      html = html.replace(regex, value);
+    });
+    return html;
+  }, [currentTemplate?.html_content]);
 
   const handleCopyVar = (v: string) => {
     navigator.clipboard.writeText(`{{${v}}}`)
@@ -160,6 +152,7 @@ export default function AdminEmailsPage() {
       })
       if (!res.ok) throw new Error("Error al guardar plantilla")
       setSuccessMsg("Plantilla guardada correctamente")
+      setTimeout(() => setSuccessMsg(null), 3000)
       await loadTemplates() // recargar para actualizar isCustom
     } catch (e: any) {
       setError(e.message)
@@ -182,6 +175,7 @@ export default function AdminEmailsPage() {
       })
       if (!res.ok) throw new Error("Error al restaurar plantilla")
       setSuccessMsg("Plantilla restaurada a valor por defecto")
+      setTimeout(() => setSuccessMsg(null), 3000)
       await loadTemplates()
     } catch (e: any) {
       setError(e.message)
@@ -217,6 +211,7 @@ export default function AdminEmailsPage() {
         throw new Error(data.error || "Error al enviar prueba")
       }
       setSuccessMsg(`Correo de prueba enviado a ${testEmail}`)
+      setTimeout(() => setSuccessMsg(null), 3000)
     } catch (e: any) {
       setError(e.message)
     } finally {
@@ -235,8 +230,13 @@ export default function AdminEmailsPage() {
         </h1>
       </div>
 
-      {error && <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-md">{error}</div>}
-      {successMsg && <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-4 rounded-md">{successMsg}</div>}
+      {error && <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-md mb-6">{error}</div>}
+      {successMsg && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-[#0b0a07] border border-emerald-500/30 text-emerald-400 px-6 py-4 rounded-xl shadow-[0_10px_40px_rgba(16,185,129,0.2)] animate-in slide-in-from-bottom-5">
+          <Check className="w-5 h-5 text-emerald-400" />
+          <span className="font-medium text-sm">{successMsg}</span>
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-[250px_1fr] gap-6">
         {/* Tabs Sidebar */}
@@ -331,10 +331,10 @@ export default function AdminEmailsPage() {
                   </div>
                   
                   <div className="flex-1 bg-white rounded-lg overflow-hidden border border-white/10 relative min-h-[500px]">
-                    <iframe 
-                      ref={iframeRef} 
-                      className="absolute inset-0 w-full h-full bg-[#0b0a07]" 
-                      title="Email Preview"
+                    <iframe
+                      srcDoc={previewHtml}
+                      className="w-full h-[600px] border-0 bg-white"
+                      title="Vista previa"
                     />
                   </div>
 
