@@ -920,7 +920,7 @@ export default function AnalyticsPage() {
         </div>
         </div>
       </section>
-
+      </div>
     </div>
   )
 }
