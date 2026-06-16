@@ -272,7 +272,7 @@ export default function AnalyticsPage() {
     <div className="space-y-10 pb-20">
       
       {/* HEADER & STICKY NAVBAR */}
-      <div className="sticky top-16 z-20 -mx-4 mb-8 bg-[#0b0a07]/95 px-4 py-4 backdrop-blur-xl sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 border-b border-white/5 shadow-2xl flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+      <div className="sticky top-16 z-20 -mx-4 -mt-4 mb-8 bg-[#0b0a07]/95 px-4 py-4 backdrop-blur-xl sm:-mx-6 sm:-mt-6 sm:px-6 lg:-mx-8 lg:-mt-8 lg:px-8 border-b border-white/5 shadow-2xl flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <div>
           <h1 className="font-serif text-3xl font-bold text-white">BI Dashboard</h1>
         </div>
