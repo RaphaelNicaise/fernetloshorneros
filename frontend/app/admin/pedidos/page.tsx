@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { API_BASE_URL } from "@/lib/api"
-import { ChevronDown, ChevronRight, Info, Search, Download, Pencil, Trash2, AlertTriangle, Printer, CheckSquare } from "lucide-react"
+import { ChevronDown, ChevronRight, Info, Search, Download, Pencil, Trash2, AlertTriangle, Printer, CheckSquare, RefreshCw } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import {
   Select,
@@ -146,6 +146,17 @@ export default function AdminPedidosPage() {
   const [manualEmail, setManualEmail] = useState("")
   const [manualTelefono, setManualTelefono] = useState("")
   const [manualDni, setManualDni] = useState("")
+  const [manualProvincia, setManualProvincia] = useState("")
+  const [manualCiudad, setManualCiudad] = useState("")
+  const [manualCodigoPostal, setManualCodigoPostal] = useState("")
+  const [manualDireccion, setManualDireccion] = useState("")
+  const [manualNumero, setManualNumero] = useState("")
+  const [manualPisoDepto, setManualPisoDepto] = useState("")
+
+  const [localNombre, setLocalNombre] = useState("")
+  const [localEmail, setLocalEmail] = useState("")
+  const [localTelefono, setLocalTelefono] = useState("")
+  const [localDni, setLocalDni] = useState("")
 
   // Diálogo de confirmación personalizado
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -210,6 +221,12 @@ export default function AdminPedidosPage() {
     setManualEmail("");
     setManualTelefono("");
     setManualDni("");
+    setManualProvincia("");
+    setManualCiudad("");
+    setManualCodigoPostal("");
+    setManualDireccion("");
+    setManualNumero("");
+    setManualPisoDepto("");
     try {
       const res = await fetch(`${API_BASE_URL}/products`, { cache: 'no-store' });
       const prods = await res.json();
@@ -222,6 +239,10 @@ export default function AdminPedidosPage() {
   async function openCreateLocalModal() {
     setCreateLocalModalOpen(true);
     setManualOrderItems([]);
+    setLocalNombre("");
+    setLocalEmail("");
+    setLocalTelefono("");
+    setLocalDni("");
     try {
       const res = await fetch(`${API_BASE_URL}/products`, { cache: 'no-store' });
       const prods = await res.json();
@@ -232,8 +253,8 @@ export default function AdminPedidosPage() {
   }
 
   async function handleCreateManualOrder() {
-    if (!manualNombre || !manualEmail || manualOrderItems.length === 0) {
-        setAlertDialog({ isOpen: true, title: "Error", message: "Completá nombre, email y seleccioná al menos un producto.", type: "error" });
+    if (!manualNombre || !manualEmail || !manualDireccion || !manualCiudad || !manualProvincia || manualOrderItems.length === 0) {
+        setAlertDialog({ isOpen: true, title: "Error", message: "Completá nombre, email, dirección, ciudad, provincia y seleccioná al menos un producto.", type: "error" });
         return;
     }
     try {
@@ -246,7 +267,13 @@ export default function AdminPedidosPage() {
             telefono: manualTelefono,
             dni: manualDni
         },
-        items: manualOrderItems
+        items: manualOrderItems,
+        direccion: manualDireccion,
+        numero: manualNumero,
+        piso_depto: manualPisoDepto,
+        codigo_postal: manualCodigoPostal,
+        ciudad: manualCiudad,
+        provincia: manualProvincia
       };
       const res = await fetch(`${API_BASE_URL}/orders/manual`, {
         method: "POST",
@@ -276,14 +303,20 @@ export default function AdminPedidosPage() {
   }
 
   async function handleCreateLocalOrder() {
-    if (manualOrderItems.length === 0) {
-        setAlertDialog({ isOpen: true, title: "Error", message: "Seleccioná al menos un producto.", type: "error" });
+    if (!localNombre || !localEmail || manualOrderItems.length === 0) {
+        setAlertDialog({ isOpen: true, title: "Error", message: "Completá nombre, email del comprador y seleccioná al menos un producto.", type: "error" });
         return;
     }
     try {
       setSubmittingStatus(true);
       const token = localStorage.getItem("admin_token");
       const payload = {
+        cliente: {
+            nombre: localNombre,
+            email: localEmail,
+            telefono: localTelefono,
+            dni: localDni
+        },
         items: manualOrderItems,
         venta_local: true
       };
@@ -880,10 +913,6 @@ export default function AdminPedidosPage() {
             <Download className="w-4 h-4" />
             {exporting ? "Exportando..." : "Exportar Excel"}
           </Button>
-          <Button variant="secondary" className="h-10 bg-[#AA6F3B]/20 text-[#AA6F3B] hover:bg-[#AA6F3B]/30 border border-[#AA6F3B]/30" onClick={() => fetchOrders()}>
-            Recargar
-          </Button>
-          
           {selectionMode ? (
             <Button
               variant="secondary"
@@ -909,6 +938,16 @@ export default function AdminPedidosPage() {
 
           <Button className="h-10 bg-[#AA6F3B] hover:bg-[#AA6F3B]/90 text-white border-0 font-semibold" onClick={openCreateManualModal}>
             Crear Pedido Manual
+          </Button>
+
+          <Button 
+            variant="outline" 
+            size="icon" 
+            className="h-10 w-10 bg-[#AA6F3B]/20 text-[#AA6F3B] hover:bg-[#AA6F3B]/30 border border-[#AA6F3B]/30 flex items-center justify-center rounded-lg" 
+            onClick={() => fetchOrders()}
+            disabled={loading}
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           </Button>
         </div>
       </div>
@@ -1693,6 +1732,39 @@ export default function AdminPedidosPage() {
               </div>
             </div>
 
+            {/* Dirección de Envío */}
+            <div className="space-y-2 border-t border-white/10 pt-4">
+              <label className="text-xs text-white font-semibold">Dirección de Envío</label>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="text-xs text-white/60">Provincia *</label>
+                  <Input value={manualProvincia} onChange={e => setManualProvincia(e.target.value)} className="bg-white/5 border-white/10 placeholder:text-white/60" placeholder="Buenos Aires" />
+                </div>
+                <div>
+                  <label className="text-xs text-white/60">Ciudad *</label>
+                  <Input value={manualCiudad} onChange={e => setManualCiudad(e.target.value)} className="bg-white/5 border-white/10 placeholder:text-white/60" placeholder="Tandil" />
+                </div>
+                <div>
+                  <label className="text-xs text-white/60">Código Postal</label>
+                  <Input value={manualCodigoPostal} onChange={e => setManualCodigoPostal(e.target.value)} className="bg-white/5 border-white/10 placeholder:text-white/60" placeholder="7000" />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="col-span-2">
+                  <label className="text-xs text-white/60">Calle / Dirección *</label>
+                  <Input value={manualDireccion} onChange={e => setManualDireccion(e.target.value)} className="bg-white/5 border-white/10 placeholder:text-white/60" placeholder="Av. España" />
+                </div>
+                <div>
+                  <label className="text-xs text-white/60">Número</label>
+                  <Input value={manualNumero} onChange={e => setManualNumero(e.target.value)} className="bg-white/5 border-white/10 placeholder:text-white/60" placeholder="123" />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-white/60">Aclaraciones / Piso / Depto</label>
+                <Input value={manualPisoDepto} onChange={e => setManualPisoDepto(e.target.value)} className="bg-white/5 border-white/10 placeholder:text-white/60" placeholder="Piso 1 Depto B" />
+              </div>
+            </div>
+
             <div className="space-y-2 mt-4">
               <label className="text-xs text-white/60 font-semibold">Agregar Producto</label>
               <Select onValueChange={addManualItem}>
@@ -1746,7 +1818,7 @@ export default function AdminPedidosPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" className="border-white/10 text-white hover:bg-white/10" onClick={() => setCreateManualModalOpen(false)}>Cancelar</Button>
-            <Button className="bg-[#AA6F3B] hover:bg-[#AA6F3B]/90 text-white" disabled={submittingStatus || manualOrderItems.length === 0 || !manualNombre || !manualEmail} onClick={handleCreateManualOrder}>
+            <Button className="bg-[#AA6F3B] hover:bg-[#AA6F3B]/90 text-white" disabled={submittingStatus || manualOrderItems.length === 0 || !manualNombre || !manualEmail || !manualDireccion || !manualCiudad || !manualProvincia} onClick={handleCreateManualOrder}>
               {submittingStatus ? "Creando..." : "Crear Pedido"}
             </Button>
           </DialogFooter>
@@ -1761,6 +1833,25 @@ export default function AdminPedidosPage() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <p className="text-sm text-white/60">Agregá los productos que se vendieron en el local. No se requiere información de envío.</p>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-white/60">Nombre completo *</label>
+                <Input value={localNombre} onChange={e => setLocalNombre(e.target.value)} className="bg-white/5 border-white/10 placeholder:text-white/60" placeholder="Ej. Juan Pérez" />
+              </div>
+              <div>
+                <label className="text-xs text-white/60">Email *</label>
+                <Input type="email" value={localEmail} onChange={e => setLocalEmail(e.target.value)} className="bg-white/5 border-white/10 placeholder:text-white/60" placeholder="cliente@gmail.com" />
+              </div>
+              <div>
+                <label className="text-xs text-white/60">DNI (Opcional)</label>
+                <Input value={localDni} onChange={e => setLocalDni(e.target.value)} className="bg-white/5 border-white/10 placeholder:text-white/60" placeholder="Ej. 12345678" />
+              </div>
+              <div>
+                <label className="text-xs text-white/60">Teléfono (Opcional)</label>
+                <Input value={localTelefono} onChange={e => setLocalTelefono(e.target.value)} className="bg-white/5 border-white/10 placeholder:text-white/60" placeholder="Ej. 1122334455" />
+              </div>
+            </div>
 
             <div className="space-y-2 mt-4">
               <label className="text-xs text-white/60 font-semibold">Agregar Producto</label>
@@ -1815,7 +1906,7 @@ export default function AdminPedidosPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" className="border-white/10 text-white hover:bg-white/10" onClick={() => setCreateLocalModalOpen(false)}>Cancelar</Button>
-            <Button className="bg-green-600 hover:bg-green-500 text-white" disabled={submittingStatus || manualOrderItems.length === 0} onClick={handleCreateLocalOrder}>
+            <Button className="bg-green-600 hover:bg-green-500 text-white" disabled={submittingStatus || manualOrderItems.length === 0 || !localNombre || !localEmail} onClick={handleCreateLocalOrder}>
               {submittingStatus ? "Registrando..." : "Registrar Venta"}
             </Button>
           </DialogFooter>

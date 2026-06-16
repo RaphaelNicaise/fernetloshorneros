@@ -53,7 +53,7 @@ export function Footer() {
             <ul className="space-y-2 text-sm text-white/58">
               <li>loshornerosbb@gmail.com</li>
               <li>+54 9 2916 41-5881</li>
-              <li> dev by <a href="https://www.linkedin.com/in/rapha%C3%ABl-nicaise-68025b27a/?locale=es_ES" target="_blank">Raphael Nicaise</a></li>
+              <li> dev by <a href="https://www.linkedin.com/in/rapha%C3%ABl-nicaise-68025b27a/?locale=es_ES" target="_blank">Raphael Nicaise</a> | <a href="https://landing-ravel.vercel.app/" target="_blank">Ravel</a></li>
             </ul>
           </div>
           <div className="text-center sm:text-left">

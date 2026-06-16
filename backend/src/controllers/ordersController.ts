@@ -282,20 +282,18 @@ export async function deleteOrderHandler(req: Request, res: Response) {
  */
 export async function createManualOrderHandler(req: Request, res: Response) {
     try {
-        const { cliente, items, venta_local } = req.body;
+        const { cliente, items, venta_local, direccion, numero, piso_depto, codigo_postal, ciudad, provincia } = req.body;
 
         if (!items || !Array.isArray(items) || items.length === 0) {
             return res.status(400).json({ error: 'Debe incluir al menos un producto' });
         }
 
-        if (!venta_local && (!cliente || !cliente.nombre || !cliente.email)) {
+        if (!cliente || !cliente.nombre || !cliente.email) {
             return res.status(400).json({ error: 'Debe proveer nombre y email del cliente' });
         }
 
         const effectiveCliente = cliente || {};
         if (venta_local) {
-            effectiveCliente.nombre = effectiveCliente.nombre || "Cliente en Local";
-            effectiveCliente.email = effectiveCliente.email || "local@fernetloshorneros.com";
             effectiveCliente.dni = effectiveCliente.dni || "-";
             effectiveCliente.telefono = effectiveCliente.telefono || "-";
         }
@@ -339,6 +337,14 @@ export async function createManualOrderHandler(req: Request, res: Response) {
                 cost: 0,
                 rate_id: venta_local ? "local" : "manual",
                 service_type: venta_local ? "store_pickup" : "pickup_point",
+                address: venta_local ? undefined : {
+                    provincia: provincia || null,
+                    ciudad: ciudad || null,
+                    codigoPostal: codigo_postal || null,
+                    direccion: direccion || null,
+                    numero: numero || null,
+                    extra: piso_depto || null
+                },
                 contact: {
                     nombre: effectiveCliente.nombre,
                     email: effectiveCliente.email,
