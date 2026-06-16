@@ -865,10 +865,44 @@ export default function AdminPedidosPage() {
   return (
     <div className="space-y-4">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <h2 className="font-serif text-3xl font-bold text-white">
-          Pedidos {total > 0 && <span className="text-white/70 text-2xl ml-2">({total})</span>}
-        </h2>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#AA6F3B]/20">
+              <CheckSquare size={20} className="text-[#AA6F3B]" />
+            </div>
+            <div>
+              <h1 className="font-serif text-3xl font-bold text-white tracking-tight">Pedidos</h1>
+              <p className="text-sm font-medium text-white/40 mt-1">Administrá y despachá tus ventas</p>
+            </div>
+          </div>
+          <div className="w-px h-8 bg-white/10 hidden sm:block mx-2" />
+          <Button 
+            variant="outline" 
+            size="icon" 
+            className="h-10 w-10 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white border border-white/10 flex items-center justify-center rounded-lg transition-colors shadow-sm" 
+            onClick={() => fetchOrders()}
+            disabled={loading}
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+          </Button>
+        </div>
+        
         <div className="flex flex-wrap items-center gap-3">
+          {selectionMode && (
+            <Button
+              className="h-10 bg-[#AA6F3B] hover:bg-[#AA6F3B]/90 text-white border-0 font-semibold"
+              disabled={selectedOrders.size === 0}
+              onClick={() => {
+                const ordersToPrint = orders.filter((o) => selectedOrders.has(o.id));
+                generateShippingLabels(ordersToPrint as any[]);
+                setSelectionMode(false);
+                setSelectedOrders(new Set());
+              }}
+            >
+              Generar Etiquetas en Lote ({selectedOrders.size})
+            </Button>
+          )}
+
           <div className="relative w-full md:w-64">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-white/40" />
             <Input
@@ -914,13 +948,27 @@ export default function AdminPedidosPage() {
             {exporting ? "Exportando..." : "Exportar Excel"}
           </Button>
           {selectionMode ? (
-            <Button
-              variant="secondary"
-              className="h-10 bg-[#AA6F3B]/10 text-[#AA6F3B] hover:bg-[#AA6F3B]/20 border border-[#AA6F3B]/30"
-              onClick={() => { setSelectionMode(false); setSelectedOrders(new Set()); }}
-            >
-              Cancelar Selección
-            </Button>
+            <>
+              <Button
+                variant="secondary"
+                className="h-10 bg-[#AA6F3B]/10 text-[#AA6F3B] hover:bg-[#AA6F3B]/20 border border-[#AA6F3B]/30"
+                onClick={() => { setSelectionMode(false); setSelectedOrders(new Set()); }}
+              >
+                Cancelar Selección
+              </Button>
+              <Button
+                className="h-10 bg-[#AA6F3B] hover:bg-[#AA6F3B]/90 text-white border-0 font-semibold"
+                disabled={selectedOrders.size === 0}
+                onClick={() => {
+                  const ordersToPrint = orders.filter((o) => selectedOrders.has(o.id));
+                  generateShippingLabels(ordersToPrint as any[]);
+                  setSelectionMode(false);
+                  setSelectedOrders(new Set());
+                }}
+              >
+                Generar Etiquetas en Lote ({selectedOrders.size})
+              </Button>
+            </>
           ) : (
             <Button
               variant="outline"
@@ -938,16 +986,6 @@ export default function AdminPedidosPage() {
 
           <Button className="h-10 bg-[#AA6F3B] hover:bg-[#AA6F3B]/90 text-white border-0 font-semibold" onClick={openCreateManualModal}>
             Crear Pedido Manual
-          </Button>
-
-          <Button 
-            variant="outline" 
-            size="icon" 
-            className="h-10 w-10 bg-[#AA6F3B]/20 text-[#AA6F3B] hover:bg-[#AA6F3B]/30 border border-[#AA6F3B]/30 flex items-center justify-center rounded-lg" 
-            onClick={() => fetchOrders()}
-            disabled={loading}
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           </Button>
         </div>
       </div>
@@ -1149,7 +1187,7 @@ export default function AdminPedidosPage() {
                             <div className="grid md:grid-cols-2 gap-6 p-4">
                               <div>
                                 <h4 className="font-semibold text-sm mb-3 text-white/60">Items del pedido:</h4>
-                                <Table className="border border-white/8">
+                                <table className="w-full text-sm border border-white/8">
                                   <TableHeader>
                                     <TableRow className="bg-white/5 hover:bg-white/5 border-b border-white/8">
                                       <TableHead className="text-xs text-white/50 h-8">ID Producto</TableHead>
@@ -1191,7 +1229,7 @@ export default function AdminPedidosPage() {
                                       </TableRow>
                                     ) : null}
                                   </TableBody>
-                                </Table>
+                                </table>
                               </div>
                               
                               <div>
@@ -1237,20 +1275,8 @@ export default function AdminPedidosPage() {
       {/* Paginación y Acciones Sticky */}
       <div className="sticky bottom-4 z-10 bg-[#0b0a07]/90 backdrop-blur-md border border-white/10 px-6 py-4 shadow-[0_12px_40px_rgba(0,0,0,0.7)] flex flex-col sm:flex-row items-center justify-between gap-4 text-white rounded-xl mt-4 min-h-[72px]">
         {selectionMode ? (
-          <div className="flex items-center gap-4 w-full justify-between">
+          <div className="flex items-center gap-4 w-full justify-center">
             <span className="text-sm text-[#AA6F3B] font-medium px-2">{selectedOrders.size} pedidos seleccionados</span>
-            <Button
-              className="h-10 bg-[#AA6F3B] hover:bg-[#AA6F3B]/90 text-white border-0 font-semibold"
-              disabled={selectedOrders.size === 0}
-              onClick={() => {
-                const ordersToPrint = orders.filter((o) => selectedOrders.has(o.id));
-                generateShippingLabels(ordersToPrint as any[]);
-                setSelectionMode(false);
-                setSelectedOrders(new Set());
-              }}
-            >
-              Generar Etiquetas en Lote
-            </Button>
           </div>
         ) : (
           <>

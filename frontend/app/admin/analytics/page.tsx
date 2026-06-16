@@ -269,7 +269,7 @@ export default function AnalyticsPage() {
   };
 
   return (
-    <div className="space-y-10 pb-20">
+    <div className="pb-20">
       
       {/* HEADER & STICKY NAVBAR */}
       <div className="sticky top-16 z-20 -mx-4 -mt-4 mb-8 bg-[#0b0a07]/95 px-4 py-4 backdrop-blur-xl sm:-mx-6 sm:-mt-6 sm:px-6 lg:-mx-8 lg:-mt-8 lg:px-8 border-b border-white/5 shadow-2xl flex flex-col xl:flex-row xl:items-center justify-between gap-4">
@@ -298,14 +298,15 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      {/* SECCIÓN 1: VENTAS E INGRESOS */}
-      <section id="ventas" className="scroll-mt-36 space-y-6">
-        <div className="flex items-center gap-3 border-b border-white/10 pb-4">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-500/20">
-            <TrendingUp size={16} className="text-green-400" />
+      <div className="space-y-10">
+        {/* SECCIÓN 1: VENTAS E INGRESOS */}
+        <section id="ventas" className="scroll-mt-36 space-y-6">
+          <div className="flex items-center gap-3 border-b border-white/10 pb-4">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-500/20">
+              <TrendingUp size={16} className="text-green-400" />
+            </div>
+            <h2 className="font-serif text-2xl font-bold text-white">Ventas e Ingresos</h2>
           </div>
-          <h2 className="font-serif text-2xl font-bold text-white">Ventas e Ingresos</h2>
-        </div>
 
         {/* KPIs Core */}
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
