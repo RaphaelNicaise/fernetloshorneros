@@ -888,20 +888,7 @@ export default function AdminPedidosPage() {
         </div>
         
         <div className="flex flex-wrap items-center gap-3">
-          {selectionMode && (
-            <Button
-              className="h-10 bg-[#AA6F3B] hover:bg-[#AA6F3B]/90 text-white border-0 font-semibold"
-              disabled={selectedOrders.size === 0}
-              onClick={() => {
-                const ordersToPrint = orders.filter((o) => selectedOrders.has(o.id));
-                generateShippingLabels(ordersToPrint as any[]);
-                setSelectionMode(false);
-                setSelectedOrders(new Set());
-              }}
-            >
-              Generar Etiquetas en Lote ({selectedOrders.size})
-            </Button>
-          )}
+
 
           <div className="relative w-full md:w-64">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-white/40" />
