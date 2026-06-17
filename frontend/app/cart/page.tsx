@@ -37,7 +37,7 @@ function RecommendedCard({ product, onAdd, wide }: { product: Product; onAdd: ()
           <p className="text-xs text-black/55 line-clamp-1">{product.description}</p>
         )}
         <div className="flex items-center justify-between gap-2 mt-auto">
-          <span className="text-sm font-bold text-[#0b0a07]">${product.price.toLocaleString('es-AR')}</span>
+          <span className="text-sm font-bold text-[#0b0a07]">${Number(product.price || 0).toLocaleString('es-AR')}</span>
           {outOfStock ? (
             <span className="text-xs text-black/45">Sin stock</span>
           ) : (
@@ -427,7 +427,7 @@ export default function CartPage() {
                       <div className="flex flex-1 flex-col sm:flex-row sm:justify-between gap-2">
                         <div>
                           <h3 className="mb-1 font-serif text-base sm:text-lg font-bold text-[#0b0a07]">{item.name}</h3>
-                          <p className="mb-3 text-xs sm:text-sm text-black/55">${item.price.toLocaleString('es-AR')} por articulo</p>
+                          <p className="mb-3 text-xs sm:text-sm text-black/55">${Number(item.price || 0).toLocaleString('es-AR')} por articulo</p>
                           <div className="flex items-center gap-3 flex-wrap">
                             <div className="flex items-center gap-1 rounded-full border border-[#6B5743]/18 bg-[#f8f5f1] p-1">
                               <button
@@ -455,7 +455,7 @@ export default function CartPage() {
                           </div>
                         </div>
                         <div className="text-left sm:text-right mt-2 sm:mt-0">
-                          <p className="text-base sm:text-lg font-bold text-[#0b0a07]">${(item.price * item.quantity).toLocaleString('es-AR')}</p>
+                          <p className="text-base sm:text-lg font-bold text-[#0b0a07]">${(Number(item.price || 0) * (item.quantity || 1)).toLocaleString('es-AR')}</p>
                         </div>
                       </div>
                     </div>
@@ -507,7 +507,7 @@ export default function CartPage() {
                 <div className="space-y-3 mb-6">
                   <div className="flex justify-between text-[#f5f0e6]/68">
                     <span>Subtotal productos</span>
-                    <span>${totalPrice.toLocaleString('es-AR')}</span>
+                    <span>${Number(totalPrice || 0).toLocaleString('es-AR')}</span>
                   </div>
                   
                   <div className="flex justify-between text-[#f5f0e6]/68">
@@ -515,7 +515,7 @@ export default function CartPage() {
                     {skipShippingCost ? (
                       <span className="font-medium text-[#aa825e]">Gratis (modo prueba)</span>
                     ) : shippingSelection ? (
-                      <span>${shippingSelection.shipping_cost.toLocaleString('es-AR')}</span>
+                      <span>${Number(shippingSelection.shipping_cost || 0).toLocaleString('es-AR')}</span>
                     ) : (
                       <span className="text-sm">Completa los datos</span>
                     )}
