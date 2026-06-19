@@ -211,7 +211,7 @@ export function getDefaultTemplate(key: string, title?: string): { subject: stri
     `;
       return {
         subject: '¡Gracias por tu compra! - Pedido #{{pedidoId}}',
-        html: getEmailWrapper(title || 'Confirmación de Pago - Pedido #{{pedidoId}}', contentHtml)
+        html: getEmailWrapper(title || 'Confirmación de Pago - Pedido #{{pedidoId}}', contentHtml),
       };
     }
     case 'envio_tracking': {
@@ -236,7 +236,7 @@ export function getDefaultTemplate(key: string, title?: string): { subject: stri
     `;
       return {
         subject: 'Tu pedido #{{pedidoId}} ha sido enviado - ¡Espero que lo disfrutes!',
-        html: getEmailWrapper(title || 'Tu pedido #{{pedidoId}} ha sido enviado', contentHtml)
+        html: getEmailWrapper(title || 'Tu pedido #{{pedidoId}} ha sido enviado', contentHtml),
       };
     }
     case 'notif_vendedor': {
@@ -255,7 +255,7 @@ export function getDefaultTemplate(key: string, title?: string): { subject: stri
     `;
       return {
         subject: 'Nuevo Pedido #{{pedidoId}} Recibido!',
-        html: getEmailWrapper(title || 'Nuevo Pedido #{{pedidoId}}', contentHtml)
+        html: getEmailWrapper(title || 'Nuevo Pedido #{{pedidoId}}', contentHtml),
       };
     }
     default:
@@ -283,13 +283,17 @@ export async function enviarMailConfirmacionCompra(
   total: number,
   costoEnvio: number
 ) {
-  const itemsHtml = items.map(item => `
+  const itemsHtml = items
+    .map(
+      (item) => `
     <tr>
       <td style="text-align: left;">${item.title}</td>
       <td style="text-align: center;">${item.cantidad}</td>
       <td style="text-align: right; font-weight: 500;">$${Number(item.precio_unitario * item.cantidad).toFixed(2)}</td>
     </tr>
-  `).join('');
+  `
+    )
+    .join('');
 
   const subtotal = total - costoEnvio;
 
@@ -325,11 +329,11 @@ export async function enviarMailConfirmacionCompra(
     pedidoId,
     total: `$ ${Number(total).toFixed(2)}`,
     items: orderTableHtml,
-    costoEnvio: `$ ${Number(costoEnvio).toFixed(2)}`
+    costoEnvio: `$ ${Number(costoEnvio).toFixed(2)}`,
   };
 
   const customTemplate = await emailTemplateService.getTemplate('compra_confirmacion');
-  
+
   let subject = '';
   let finalHtml = '';
   if (customTemplate) {
@@ -367,7 +371,7 @@ export async function enviarMailComprador(
   };
 
   const customTemplate = await emailTemplateService.getTemplate('envio_tracking');
-  
+
   let subject = '';
   let finalHtml = '';
   if (customTemplate) {
@@ -397,11 +401,11 @@ export async function enviarMailVendedor(
 ) {
   const templateData = {
     pedidoId,
-    detalles: detallesPedido.replace(/\n/g, '<br>')
+    detalles: detallesPedido.replace(/\n/g, '<br>'),
   };
 
   const customTemplate = await emailTemplateService.getTemplate('notif_vendedor');
-  
+
   let subject = '';
   let finalHtml = '';
   if (customTemplate) {

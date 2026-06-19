@@ -1,5 +1,5 @@
-import { MercadoPagoConfig, Preference } from "mercadopago";
-import dotenv from "dotenv";
+import { MercadoPagoConfig, Preference } from 'mercadopago';
+import dotenv from 'dotenv';
 
 dotenv.config();
 
