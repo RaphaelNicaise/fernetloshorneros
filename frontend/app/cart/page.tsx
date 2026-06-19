@@ -9,7 +9,7 @@ import { toast } from "@/hooks/use-toast"
 import { useState, useCallback, useEffect } from "react"
 import { ShippingSelector, type ShippingSelection } from "@/components/shipping-selector"
 import { useCartValidation } from "@/hooks/use-cart-validation"
-import { Loader2, Tag } from "lucide-react"
+import { Loader2, Tag, Trash2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 
 function RecommendedCard({ product, onAdd, wide }: { product: Product; onAdd: () => void; wide?: boolean }) {
@@ -450,8 +450,9 @@ export default function CartPage() {
                             <button
                               onClick={() => removeItem(item.id)}
                               className="text-sm text-black/48 transition-colors hover:text-[#aa825e] cursor-pointer"
+                              aria-label={`Quitar ${item.name} del carrito`}
                             >
-                              Quitar
+                              <Trash2 className="w-5 h-5 text-red-400 hover:text-red-500 transition-colors" />
                             </button>
                           </div>
                         </div>
