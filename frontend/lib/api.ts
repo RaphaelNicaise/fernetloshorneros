@@ -108,12 +108,13 @@ export interface ShippingInfo {
 
 export async function createPaymentPreference(
   items: Array<{ id: string; quantity: number }>,
-  shipping: ShippingInfo
+  shipping: ShippingInfo,
+  coupon?: string
 ) {
   const res = await fetch(`${API_BASE_URL}/payments/create-preference`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ items, shipping }),
+    body: JSON.stringify({ items, shipping, coupon }),
   })
   if (!res.ok) {
     const error = await res.json().catch(() => ({ error: 'Error desconocido' }))

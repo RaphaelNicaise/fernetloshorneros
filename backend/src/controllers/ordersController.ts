@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { getAllOrders, getOrderItems, getEnvioByOrderId, updateEnvioStatus, getPaymentByOrderId, updateOrderStatus, updateEnvioTracking, manualUpdateOrderStatus, updateOrderDetails, getAllOrderItems, createOrder, createPayment } from "@/services/ordersService";
+import { getAllOrders, getOrderItems, getEnvioByOrderId, getPaymentByOrderId, updateEnvioTracking, manualUpdateOrderStatus, updateOrderDetails, getAllOrderItems, createOrder, createPayment } from "@/services/ordersService";
 import { enviarMailComprador } from "@/services/mailService";
 import { getProductById, decreaseStock } from "@/services/productService";
 import { v4 as uuidv4 } from "uuid";

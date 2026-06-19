@@ -31,7 +31,7 @@ export const PROVINCIAS_ARGENTINA = [
 
 export async function addToWaitlist({ nombre, email, provincia }: WaitlistInput): Promise<void> {
     if (!PROVINCIAS_ARGENTINA.includes(provincia)) {
-        throw new Error("Provincia inválida. Debe ser una de las 24 jurisdicciones de Argentina.");
+        throw new Error("Provincia inválida");
     }
     
     try {
@@ -44,7 +44,7 @@ export async function addToWaitlist({ nombre, email, provincia }: WaitlistInput)
         );
     } catch (err: any) {
         if (err?.original?.code === "ER_DUP_ENTRY") {
-            throw new Error("El email ya está registrado en la lista de espera.");
+            throw new Error("El email ya se encuentra registrado");
         }
         throw err;
     }

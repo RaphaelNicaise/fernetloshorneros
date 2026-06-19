@@ -4,7 +4,7 @@ import { QueryTypes } from "sequelize";
 
 export async function getBiAnalytics(req: Request, res: Response) {
     try {
-        const { startDate, endDate, groupBy } = req.query;
+        const { startDate, endDate } = req.query;
 
         // Default: últimos 30 días
         const start = startDate ? new Date(startDate as string) : new Date(new Date().setDate(new Date().getDate() - 30));

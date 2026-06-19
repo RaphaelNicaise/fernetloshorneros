@@ -329,9 +329,9 @@ export async function enviarMailConfirmacionCompra(
   };
 
   const customTemplate = await emailTemplateService.getTemplate('compra_confirmacion');
+  
   let subject = '';
   let finalHtml = '';
-
   if (customTemplate) {
     subject = replaceVariables(customTemplate.subject, templateData);
     finalHtml = replaceVariables(customTemplate.html_content, templateData);
@@ -367,9 +367,9 @@ export async function enviarMailComprador(
   };
 
   const customTemplate = await emailTemplateService.getTemplate('envio_tracking');
+  
   let subject = '';
   let finalHtml = '';
-
   if (customTemplate) {
     subject = replaceVariables(customTemplate.subject, templateData);
     finalHtml = replaceVariables(customTemplate.html_content, templateData);
@@ -401,9 +401,9 @@ export async function enviarMailVendedor(
   };
 
   const customTemplate = await emailTemplateService.getTemplate('notif_vendedor');
+  
   let subject = '';
   let finalHtml = '';
-
   if (customTemplate) {
     subject = replaceVariables(customTemplate.subject, templateData);
     finalHtml = replaceVariables(customTemplate.html_content, templateData);
