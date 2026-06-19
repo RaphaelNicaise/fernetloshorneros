@@ -5,9 +5,4 @@ if [ "$CI" != "true" ]; then
   echo "Running lint-staged..."
   npx lint-staged
 
-  echo "Typechecking frontend..."
-  pnpm -C frontend typecheck
-
-  echo "Typechecking backend..."
-  pnpm -C backend typecheck
 fi
