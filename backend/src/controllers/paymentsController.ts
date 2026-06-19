@@ -20,6 +20,23 @@ import { enviarMailConfirmacionCompra } from "@/services/mailService";
 import { couponService } from "@/services/couponService";
 // import { createShipment } from "@/services/enviosService"; // Legacy
 
+export async function cleanupExpiredOrders() {
+    try {
+        const expiredOrders = await getExpiredReservations(5);
+        for (const expiredOrder of expiredOrders) {
+            const expiredItems = await getOrderItems(expiredOrder.id);
+            for (const item of expiredItems) {
+                await increaseStock(item.id_producto, item.cantidad);
+                console.log(`Stock liberado para producto ${item.id_producto} (orden expirada ${expiredOrder.id})`);
+            }
+            await updateOrderStatus(expiredOrder.id, "cancelled");
+            await markOrderStockReleased(expiredOrder.id);
+        }
+    } catch (cleanupError) {
+        console.error("Error limpiando reservas expiradas:", cleanupError);
+    }
+}
+
 /**
  * POST /payments/create-preference
  */
@@ -28,20 +45,7 @@ export async function createPreference(req: Request, res: Response) {
         const { items, shipping, couponCode } = req.body;
 
         // Limpiar reservas expiradas (órdenes pendientes > 5 min)
-        try {
-            const expiredOrders = await getExpiredReservations(5);
-            for (const expiredOrder of expiredOrders) {
-                const expiredItems = await getOrderItems(expiredOrder.id);
-                for (const item of expiredItems) {
-                    await increaseStock(item.id_producto, item.cantidad);
-                    console.log(`Stock liberado para producto ${item.id_producto} (orden expirada ${expiredOrder.id})`);
-                }
-                await updateOrderStatus(expiredOrder.id, "cancelled");
-                await markOrderStockReleased(expiredOrder.id);
-            }
-        } catch (cleanupError) {
-            console.error("Error limpiando reservas expiradas:", cleanupError);
-        }
+        await cleanupExpiredOrders();
 
         if (!items || !Array.isArray(items) || items.length === 0) {
             return res.status(400).json({ error: "Items requeridos" });
@@ -289,6 +293,21 @@ export async function handleWebhook(req: Request, res: Response) {
             });
 
             if (payment.status === "approved") {
+                // Si la orden había sido cancelada (por expiración u explícita), su stock ya se había devuelto.
+                // Como ahora el pago entró y se aprobó (pagos tardíos), volvemos a descontar el stock para que cuadre el inventario.
+                if (order.status === "cancelled") {
+                    console.log(`Orden ${order.id} aprobada tras haber sido cancelada. Redescontando stock...`);
+                    try {
+                        const orderItems = await getOrderItems(order.id);
+                        for (const item of orderItems) {
+                            await decreaseStock(item.id_producto, item.cantidad);
+                            console.log(`Stock redescontado: ${item.cantidad} x ${item.id_producto} para orden tardía`);
+                        }
+                    } catch (err) {
+                        console.error("Error redescontando stock de orden cancelada pagada tarde:", err);
+                    }
+                }
+
                 await updateOrderStatus(order.id, "paid");
                 await markOrderStockReleased(order.id);
                 console.log(`Orden ${order.id} marcada como pagada, stock confirmado`);
@@ -376,5 +395,44 @@ export async function getOrderByRef(req: Request, res: Response) {
     } catch (error: any) {
         console.error("Error obteniendo orden:", error);
         res.status(500).json({ error: error?.message || "Error interno" });
+    }
+}
+
+/**
+ * POST /payments/cancel/:reference
+ * Permite al frontend cancelar explícitamente una orden pendiente (ej: cuando el usuario presiona "Volver a la tienda").
+ */
+export async function cancelOrderManually(req: Request, res: Response) {
+    try {
+        const { reference } = req.params;
+
+        const order = await getOrderByReference(reference);
+        if (!order) {
+            return res.status(404).json({ error: "Orden no encontrada" });
+        }
+
+        // Solo podemos cancelar manualmente órdenes que están "pending"
+        if (order.status !== "pending") {
+            return res.status(400).json({ error: `La orden no se puede cancelar porque su estado es: ${order.status}` });
+        }
+
+        console.log(`Cancelando manualmente la orden ${order.id} (${reference})`);
+        
+        const isReserved = await isOrderStockReserved(order.id);
+        if (isReserved) {
+            const orderItems = await getOrderItems(order.id);
+            for (const item of orderItems) {
+                await increaseStock(item.id_producto, item.cantidad);
+                console.log(`Stock liberado manualmente: ${item.cantidad} x ${item.id_producto} (orden ${order.id})`);
+            }
+            await markOrderStockReleased(order.id);
+        }
+
+        await updateOrderStatus(order.id, "cancelled");
+
+        res.json({ message: "Orden cancelada exitosamente" });
+    } catch (error: any) {
+        console.error("Error cancelando orden manualmente:", error);
+        res.status(500).json({ error: error?.message || "Error interno cancelando orden" });
     }
 }

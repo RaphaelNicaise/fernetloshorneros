@@ -15,6 +15,7 @@ import shippingRouter from '@/routes/shipping';
 import settingsRouter from '@/routes/settings';
 import emailTemplatesRouter from '@/routes/emailTemplates';
 import couponsRouter from '@/routes/coupons';
+import { cleanupExpiredOrders } from '@/controllers/paymentsController';
 
 dotenv.config();
 
@@ -48,6 +49,11 @@ const startServer = async () => {
     await connectDB({ sync: false });
     app.listen(port, () => {
       console.log(`Servidor escuchando en el puerto ${port}`);
+      
+      // Tarea en segundo plano para limpiar carritos abandonados
+      setInterval(() => {
+        cleanupExpiredOrders().catch(err => console.error("Error en cron de limpieza:", err));
+      }, 60000); // 1 minuto
     });
   } catch (error) {
     process.exit(1);
