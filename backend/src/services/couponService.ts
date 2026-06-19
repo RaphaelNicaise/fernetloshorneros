@@ -6,7 +6,6 @@ export interface Coupon {
   codigo: string;
   tipo_descuento: 'porcentaje' | 'fijo' | 'envio_gratis';
   valor: number;
-  limite_usos: number | null;
   usos_actuales: number;
   fecha_expiracion: Date | null;
   activo: boolean;
@@ -44,14 +43,13 @@ export const couponService = {
     codigo: string,
     tipo_descuento: 'porcentaje' | 'fijo' | 'envio_gratis',
     valor: number,
-    limite_usos: number | null,
     fecha_expiracion: Date | null
   ): Promise<void> {
     await sequelize.query(
-      `INSERT INTO cupones (codigo, tipo_descuento, valor, limite_usos, fecha_expiracion)
-       VALUES (?, ?, ?, ?, ?)`,
+      `INSERT INTO cupones (codigo, tipo_descuento, valor, fecha_expiracion) 
+       VALUES (?, ?, ?, ?)`,
       {
-        replacements: [codigo, tipo_descuento, valor, limite_usos, fecha_expiracion],
+        replacements: [codigo, tipo_descuento, valor, fecha_expiracion],
         type: QueryTypes.INSERT,
       }
     );
@@ -62,16 +60,15 @@ export const couponService = {
     codigo: string,
     tipo_descuento: 'porcentaje' | 'fijo' | 'envio_gratis',
     valor: number,
-    limite_usos: number | null,
     fecha_expiracion: Date | null,
     activo: boolean
   ): Promise<void> {
     await sequelize.query(
       `UPDATE cupones 
-       SET codigo = ?, tipo_descuento = ?, valor = ?, limite_usos = ?, fecha_expiracion = ?, activo = ?
+       SET codigo = ?, tipo_descuento = ?, valor = ?, fecha_expiracion = ?, activo = ?
        WHERE id = ?`,
       {
-        replacements: [codigo, tipo_descuento, valor, limite_usos, fecha_expiracion, activo, id],
+        replacements: [codigo, tipo_descuento, valor, fecha_expiracion, activo, id],
         type: QueryTypes.UPDATE,
       }
     );
@@ -86,13 +83,7 @@ export const couponService = {
 
   async incrementUsage(codigo: string): Promise<void> {
     await sequelize.query(
-      `UPDATE cupones 
-       SET usos_actuales = usos_actuales + 1,
-           activo = CASE 
-                      WHEN limite_usos IS NOT NULL AND (usos_actuales + 1) >= limite_usos THEN FALSE 
-                      ELSE activo 
-                    END
-       WHERE codigo = ?`,
+      `UPDATE cupones SET usos_actuales = usos_actuales + 1 WHERE codigo = ?`,
       {
         replacements: [codigo],
         type: QueryTypes.UPDATE,
@@ -103,9 +94,6 @@ export const couponService = {
   validateCoupon(coupon: Coupon): { valid: boolean; error?: string } {
     if (!coupon.activo) {
       return { valid: false, error: 'El cupón no está activo.' };
-    }
-    if (coupon.limite_usos !== null && coupon.usos_actuales >= coupon.limite_usos) {
-      return { valid: false, error: 'El cupón ha alcanzado su límite de usos.' };
     }
     if (coupon.fecha_expiracion && new Date() > new Date(coupon.fecha_expiracion)) {
       return { valid: false, error: 'El cupón ha expirado.' };

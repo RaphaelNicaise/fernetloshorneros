@@ -41,7 +41,6 @@ type Coupon = {
     codigo: string;
     tipo_descuento: 'porcentaje' | 'fijo' | 'envio_gratis';
     valor: number;
-    limite_usos: number | null;
     usos_actuales: number;
     fecha_expiracion: string | null;
     activo: boolean;
@@ -57,14 +56,12 @@ export default function CuponesAdmin() {
         codigo: string;
         tipo_descuento: 'porcentaje' | 'fijo' | 'envio_gratis';
         valor: number;
-        limite_usos: number | null;
         fecha_expiracion: string | null;
         activo: boolean;
     }>({
         codigo: '',
         tipo_descuento: 'porcentaje',
         valor: 0,
-        limite_usos: null,
         fecha_expiracion: null,
         activo: true
     });
@@ -249,7 +246,7 @@ export default function CuponesAdmin() {
                                              `$${Number(c.valor).toLocaleString('es-AR')}`}
                                         </td>
                                         <td className="px-6 py-4">
-                                            {c.usos_actuales} / {c.limite_usos ? c.limite_usos : '∞'}
+                                            {c.usos_actuales}
                                         </td>
                                         <td className="px-6 py-4">
                                             {c.fecha_expiracion ? format(new Date(c.fecha_expiracion), 'dd/MM/yyyy') : 'Nunca'}
@@ -335,19 +332,6 @@ export default function CuponesAdmin() {
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
-                            <div className="grid gap-2">
-                                <Label htmlFor="limite">Límite de Usos</Label>
-                                <Input 
-                                    id="limite" 
-                                    type="number" 
-                                    value={formData.limite_usos || ''}
-                                    onChange={e => setFormData({...formData, limite_usos: e.target.value ? Number(e.target.value) : null})}
-                                    className="bg-[#1a1a1a] border-white/10"
-                                    placeholder="Dejar vacío para ∞"
-                                    min="1"
-                                />
-                            </div>
-
                             <div className="grid gap-2">
                                 <Label htmlFor="expiracion">Expiración (Opcional)</Label>
                                 <Input 

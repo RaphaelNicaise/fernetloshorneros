@@ -59,7 +59,7 @@ router.get('/', async (req: Request, res: Response) => {
 
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { codigo, tipo_descuento, valor, limite_usos, fecha_expiracion } = req.body;
+    const { codigo, tipo_descuento, valor, fecha_expiracion } = req.body;
     if (!codigo || !tipo_descuento || valor === undefined) {
       return res.status(400).json({ error: 'Faltan campos obligatorios' });
     }
@@ -68,7 +68,6 @@ router.post('/', async (req: Request, res: Response) => {
       codigo.toUpperCase(),
       tipo_descuento,
       valor,
-      limite_usos || null,
       fecha_expiracion ? new Date(fecha_expiracion) : null
     );
     res.status(201).json({ message: 'Cupón creado con éxito' });
@@ -83,14 +82,13 @@ router.post('/', async (req: Request, res: Response) => {
 router.put('/:id', async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
-    const { codigo, tipo_descuento, valor, limite_usos, fecha_expiracion, activo } = req.body;
+    const { codigo, tipo_descuento, valor, fecha_expiracion, activo } = req.body;
     
     await couponService.updateCoupon(
       id,
       codigo.toUpperCase(),
       tipo_descuento,
       valor,
-      limite_usos || null,
       fecha_expiracion ? new Date(fecha_expiracion) : null,
       activo
     );

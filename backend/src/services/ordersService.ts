@@ -331,6 +331,8 @@ export async function getAllOrders(): Promise<Order[]> {
             p.status, 
             p.fecha, 
             p.external_reference,
+            p.cupon_codigo,
+            p.cupon_descuento,
             e.zipnova_shipment_id,
             e.tracking_code,
             e.status AS envio_status,
