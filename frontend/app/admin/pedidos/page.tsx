@@ -190,6 +190,11 @@ export default function AdminPedidosPage() {
 
   useEffect(() => {
     fetchOrders()
+    // Auto-actualización cada 5 segundos para ver ventas en vivo
+    const interval = setInterval(() => {
+      fetchOrders(true)
+    }, 5000)
+    return () => clearInterval(interval)
   }, [])
 
   // Cerrar modales con Escape
