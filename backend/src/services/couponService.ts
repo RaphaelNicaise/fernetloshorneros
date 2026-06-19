@@ -16,10 +16,9 @@ export interface Coupon {
 
 export const couponService = {
   async getAllCoupons(): Promise<Coupon[]> {
-    return sequelize.query(
-      `SELECT * FROM cupones ORDER BY created_at DESC`,
-      { type: QueryTypes.SELECT }
-    );
+    return sequelize.query(`SELECT * FROM cupones ORDER BY created_at DESC`, {
+      type: QueryTypes.SELECT,
+    });
   },
 
   async getCouponByCode(codigo: string): Promise<Coupon | null> {
@@ -34,13 +33,10 @@ export const couponService = {
   },
 
   async getCouponById(id: number): Promise<Coupon | null> {
-    const rows = await sequelize.query<Coupon>(
-      `SELECT * FROM cupones WHERE id = ? LIMIT 1`,
-      {
-        replacements: [id],
-        type: QueryTypes.SELECT,
-      }
-    );
+    const rows = await sequelize.query<Coupon>(`SELECT * FROM cupones WHERE id = ? LIMIT 1`, {
+      replacements: [id],
+      type: QueryTypes.SELECT,
+    });
     return rows.length > 0 ? rows[0] : null;
   },
 
@@ -82,18 +78,21 @@ export const couponService = {
   },
 
   async deleteCoupon(id: number): Promise<void> {
-    await sequelize.query(
-      `DELETE FROM cupones WHERE id = ?`,
-      {
-        replacements: [id],
-        type: QueryTypes.DELETE,
-      }
-    );
+    await sequelize.query(`DELETE FROM cupones WHERE id = ?`, {
+      replacements: [id],
+      type: QueryTypes.DELETE,
+    });
   },
 
   async incrementUsage(codigo: string): Promise<void> {
     await sequelize.query(
-      `UPDATE cupones SET usos_actuales = usos_actuales + 1 WHERE codigo = ?`,
+      `UPDATE cupones 
+       SET usos_actuales = usos_actuales + 1,
+           activo = CASE 
+                      WHEN limite_usos IS NOT NULL AND (usos_actuales + 1) >= limite_usos THEN FALSE 
+                      ELSE activo 
+                    END
+       WHERE codigo = ?`,
       {
         replacements: [codigo],
         type: QueryTypes.UPDATE,
@@ -112,5 +111,5 @@ export const couponService = {
       return { valid: false, error: 'El cupón ha expirado.' };
     }
     return { valid: true };
-  }
+  },
 };
