@@ -10,6 +10,7 @@ import { useState, useCallback, useEffect } from "react"
 import { ShippingSelector, type ShippingSelection } from "@/components/shipping-selector"
 import { useCartValidation } from "@/hooks/use-cart-validation"
 import { Loader2, Tag } from "lucide-react"
+import { Input } from "@/components/ui/input"
 
 function RecommendedCard({ product, onAdd, wide }: { product: Product; onAdd: () => void; wide?: boolean }) {
   const [added, setAdded] = useState(false)
