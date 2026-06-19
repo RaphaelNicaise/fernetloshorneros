@@ -233,13 +233,14 @@ export default function AdminProductosPage() {
     if (!filteredItems || filteredItems.length === 0) return
     const rows = filteredItems.map((p) => {
       const res = reservedStock[p.id] || 0
-      const disp = p.stock - res
+      const disp = p.stock // El backend ya resta el stock disponible al crear la preferencia de pago
+      const stockTotal = p.stock + res
       return {
         ID: p.id,
         Nombre: p.name,
         Descripción: p.description,
         Precio: p.price,
-        "Stock Total": p.stock,
+        "Stock Total": stockTotal,
         "Stock Reservado": res,
         "Stock Disponible": disp,
         Límite: p.limite === 0 ? "Sin límite" : p.limite,
@@ -548,8 +549,8 @@ export default function AdminProductosPage() {
                     <HoverCardContent className="w-64 bg-[#0b0a07] p-3 shadow-2xl border border-white/10 text-white text-xs z-50">
                       <div className="space-y-2 font-normal">
                         <p><strong>Total:</strong> Cantidad física en el depósito.</p>
-                        <p><strong className="text-[#AA6F3B]">Reservado:</strong> Productos en carritos pendientes de pago.</p>
-                        <p><strong className="text-emerald-400">Disponible:</strong> Stock real que los clientes pueden comprar (Total - Reservado).</p>
+                        <p><strong className="text-[#AA6F3B]">Reservado:</strong> Productos en carritos pendientes de pago. Se liberan automáticamente a los 5 minutos.</p>
+                        <p><strong className="text-emerald-400">Disponible:</strong> Stock real que los clientes pueden comprar.</p>
                       </div>
                     </HoverCardContent>
                   </HoverCard>
@@ -574,7 +575,8 @@ export default function AdminProductosPage() {
             ) : (
               filteredItems.map((p) => {
                 const res = reservedStock[p.id] || 0
-                const disp = p.stock - res
+                const disp = p.stock // El backend ya resta el stock disponible al crear la preferencia de pago
+                const stockTotal = p.stock + res
                 return (
                   <TableRow key={p.id} className="hover:bg-white/5 border-b border-white/5 text-white/90">
                     <TableCell>
@@ -598,7 +600,7 @@ export default function AdminProductosPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2 text-sm">
-                        <span className="text-white" title="Stock Total">{p.stock}</span>
+                        <span className="text-white" title="Stock Total">{stockTotal}</span>
                         <span className="text-white/30">|</span>
                         <span className="text-[#AA6F3B]" title="Stock Reservado en carritos">{res}</span>
                         <span className="text-white/30">|</span>
