@@ -6,8 +6,8 @@ WORKDIR /app
 # pnpm solo para build
 RUN corepack enable && corepack prepare pnpm@9.12.3 --activate
 
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+COPY package.json pnpm-lock.yaml* ./
+RUN pnpm install --no-frozen-lockfile
 
 COPY . .
 RUN pnpm build
