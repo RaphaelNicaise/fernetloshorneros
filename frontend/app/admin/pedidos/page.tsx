@@ -1361,9 +1361,16 @@ export default function AdminPedidosPage() {
                         <TableCell colSpan={6} className="border-b border-white/5 bg-white/2 p-0">
                           <div className="grid gap-6 p-4 md:grid-cols-2">
                             <div>
-                              <h4 className="mb-3 text-sm font-semibold text-white/60">
-                                Items del pedido:
-                              </h4>
+                              <div className="mb-3 flex items-center justify-between">
+                                <h4 className="text-sm font-semibold text-white/60">
+                                  Items del pedido:
+                                </h4>
+                                {order.lote_id && (
+                                  <span className="text-sm font-semibold text-amber-500/80">
+                                    Lote: {order.lote_id}
+                                  </span>
+                                )}
+                              </div>
                               <table className="w-full border border-white/8 text-sm">
                                 <TableHeader>
                                   <TableRow className="border-b border-white/8 bg-white/5 hover:bg-white/5">
