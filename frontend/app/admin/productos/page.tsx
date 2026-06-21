@@ -159,7 +159,8 @@ export default function AdminProductosPage() {
   }
 
   function startEdit(p: Product) {
-    setEditForm({ ...p })
+    const res = reservedStock[p.id] || 0
+    setEditForm({ ...p, stock: p.stock + res })
     setImageErrorEdit(null)
     setEditOpen(true)
   }
@@ -167,13 +168,14 @@ export default function AdminProductosPage() {
   async function handleUpdate() {
     setError(null)
     try {
+      const resStock = reservedStock[editForm.id] || 0
       const body = {
         name: editForm.name,
         description: editForm.description,
         price: Number(editForm.price),
         image: editForm.image,
         limite: Number(editForm.limite) || 0,
-        stock: Number(editForm.stock) || 0,
+        stock: Math.max(0, (Number(editForm.stock) || 0) - resStock),
         status: editForm.status,
       }
       const token = localStorage.getItem("admin_token")

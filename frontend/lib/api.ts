@@ -117,7 +117,7 @@ export async function createPaymentPreference(
   const res = await fetch(`${API_BASE_URL}/payments/create-preference`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ items, shipping, coupon }),
+    body: JSON.stringify({ items, shipping, couponCode: coupon }),
   });
   if (!res.ok) {
     const error = await res.json().catch(() => ({ error: 'Error desconocido' }));

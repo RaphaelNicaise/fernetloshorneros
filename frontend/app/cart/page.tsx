@@ -664,9 +664,10 @@ export default function CartPage() {
                             </div>
                             <button
                               onClick={removeCoupon}
-                              className="text-xs text-white/50 underline hover:text-white"
+                              className="text-red-400 hover:text-red-500 transition-colors"
+                              aria-label="Quitar cupón"
                             >
-                              Quitar
+                              <Trash2 className="h-4 w-4" />
                             </button>
                           </div>
                           <div className="mt-2 flex justify-between text-sm font-bold text-[#f5f0e6]">

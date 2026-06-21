@@ -222,10 +222,10 @@ export default function AdminPedidosPage() {
 
   useEffect(() => {
     fetchOrders();
-    // Auto-actualización cada 5 segundos para ver ventas en vivo
+    // Auto-actualización cada 2 segundos para ver ventas en vivo
     const interval = setInterval(() => {
       fetchOrders(true);
-    }, 5000);
+    }, 2000);
     return () => clearInterval(interval);
   }, []);
 
