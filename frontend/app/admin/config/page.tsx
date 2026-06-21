@@ -11,6 +11,10 @@ export default function ConfigPage() {
   const [fixedShippingCost, setFixedShippingCost] = useState('');
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [maintenanceSaving, setMaintenanceSaving] = useState(false);
+  
+  const [lotes, setLotes] = useState<any[]>([]);
+  const [newLoteName, setNewLoteName] = useState('');
+  
   const { toast } = useToast();
 
   useEffect(() => {
@@ -43,7 +47,17 @@ export default function ConfigPage() {
       }
     };
 
+    const fetchLotes = async () => {
+      try {
+        const res = await api.get('/lotes');
+        setLotes(res.data);
+      } catch {
+        toast({ title: 'Error', description: 'No se pudieron obtener los lotes.', variant: 'destructive' });
+      }
+    };
+
     fetchSettings();
+    fetchLotes();
   }, [toast]);
 
   const handleSave = async (key: string, value: string, name: string) => {
@@ -74,10 +88,83 @@ export default function ConfigPage() {
     }
   };
 
+  const handleCreateLote = async () => {
+    if (!newLoteName.trim()) return;
+    try {
+      await api.post('/lotes', { nombre: newLoteName, setAsActive: lotes.length === 0 });
+      setNewLoteName('');
+      toast({ title: 'Éxito', description: 'Lote creado.' });
+      const res = await api.get('/lotes');
+      setLotes(res.data);
+    } catch {
+      toast({ title: 'Error', description: 'No se pudo crear el lote.', variant: 'destructive' });
+    }
+  };
+
+  const handleSetLoteActivo = async (id: number) => {
+    try {
+      await api.put(`/lotes/${id}/set-active`);
+      toast({ title: 'Éxito', description: 'Lote actual actualizado.' });
+      const res = await api.get('/lotes');
+      setLotes(res.data);
+    } catch {
+      toast({ title: 'Error', description: 'No se pudo actualizar el lote actual.', variant: 'destructive' });
+    }
+  };
+
+  const handleDeleteLote = async (id: number) => {
+    try {
+      await api.delete(`/lotes/${id}`);
+      toast({ title: 'Éxito', description: 'Lote eliminado.' });
+      const res = await api.get('/lotes');
+      setLotes(res.data);
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.response?.data?.error || 'No se pudo eliminar el lote.', variant: 'destructive' });
+    }
+  };
+
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-6 text-white">Configuración</h1>
       <div className="space-y-6">
+
+        {/* Lotes */}
+        <div className="bg-white/10 rounded-xl p-5">
+          <h2 className="text-white font-semibold mb-3">Gestión de Lotes de Producción</h2>
+          <div className="flex items-center gap-4 mb-6">
+            <Input
+              placeholder="Ej: Lote 2 - 17.500 Botellas"
+              value={newLoteName}
+              onChange={(e) => setNewLoteName(e.target.value)}
+              className="w-64"
+            />
+            <Button onClick={handleCreateLote}>Crear Nuevo Lote</Button>
+          </div>
+          
+          <div className="space-y-3">
+            {lotes.map((lote) => (
+              <div key={lote.id} className="flex items-center justify-between bg-black/20 p-3 rounded-lg border border-white/5">
+                <div className="flex items-center gap-3">
+                  <span className="text-white font-medium">{lote.nombre}</span>
+                  {lote.activo ? (
+                    <span className="bg-[#AA6F3B]/20 text-[#AA6F3B] text-xs px-2 py-1 rounded-full font-semibold">LOTE ACTUAL</span>
+                  ) : null}
+                </div>
+                <div className="flex items-center gap-2">
+                  {!lote.activo && (
+                    <Button size="sm" variant="outline" className="border-white/20 hover:bg-white/10 text-white" onClick={() => handleSetLoteActivo(lote.id)}>
+                      Fijar como Actual
+                    </Button>
+                  )}
+                  <Button size="sm" variant="destructive" className="bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white" onClick={() => handleDeleteLote(lote.id)}>
+                    Eliminar
+                  </Button>
+                </div>
+              </div>
+            ))}
+            {lotes.length === 0 && <p className="text-white/40 text-sm">No hay lotes creados.</p>}
+          </div>
+        </div>
 
         {/* Monto mínimo */}
         <div className="bg-white/10 rounded-xl p-5">

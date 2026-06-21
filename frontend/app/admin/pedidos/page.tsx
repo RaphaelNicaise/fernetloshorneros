@@ -132,6 +132,9 @@ export default function AdminPedidosPage() {
   const [sortKey, setSortKey] = useState<SortKey>('fecha');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
+  const [lotes, setLotes] = useState<any[]>([]);
+  const [filterLote, setFilterLote] = useState<string>('all');
+
   // Estados para modo de selección (Etiquetas en lote)
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedOrders, setSelectedOrders] = useState<Set<number>>(new Set());
@@ -221,13 +224,26 @@ export default function AdminPedidosPage() {
   });
 
   useEffect(() => {
-    fetchOrders();
+    fetchLotes();
+    fetchOrders(false, 'all');
     // Auto-actualización cada 2 segundos para ver ventas en vivo
     const interval = setInterval(() => {
-      fetchOrders(true);
+      fetchOrders(true, filterLote);
     }, 2000);
     return () => clearInterval(interval);
-  }, []);
+  }, [filterLote]);
+
+  async function fetchLotes() {
+    try {
+      const res = await fetch(`${API_BASE_URL}/lotes`);
+      if (res.ok) {
+        const data = await res.json();
+        setLotes(data);
+      }
+    } catch (e) {
+      console.error('Error cargando lotes:', e);
+    }
+  }
 
   // Cerrar modales con Escape
   useEffect(() => {
@@ -344,7 +360,7 @@ export default function AdminPedidosPage() {
         type: 'success',
       });
       setCreateManualModalOpen(false);
-      await fetchOrders(true);
+      await fetchOrders(true, filterLote);
     } catch (e: any) {
       setAlertDialog({
         isOpen: true,
@@ -539,7 +555,7 @@ export default function AdminPedidosPage() {
         type: 'success',
       });
       setEditModalOpen(false);
-      fetchOrders(true);
+      fetchOrders(true, filterLote);
     } catch (e: any) {
       setAlertDialog({
         isOpen: true,
@@ -594,7 +610,7 @@ export default function AdminPedidosPage() {
       setDispatchModalOpen(false);
       setDispatchModalTarget(null);
       setQuickTrackingCode('');
-      fetchOrders(true);
+      fetchOrders(true, filterLote);
     } catch (e: any) {
       setAlertDialog({
         isOpen: true,
@@ -748,11 +764,12 @@ export default function AdminPedidosPage() {
     });
   }
 
-  async function fetchOrders(background = false) {
+  async function fetchOrders(background = false, loteId: string = filterLote) {
     try {
       if (!background) setLoading(true);
       const token = localStorage.getItem('admin_token');
-      const res = await fetch(`${API_BASE_URL}/orders`, {
+      const url = loteId !== 'all' ? `${API_BASE_URL}/orders?lote_id=${loteId}` : `${API_BASE_URL}/orders`;
+      const res = await fetch(url, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -967,7 +984,7 @@ export default function AdminPedidosPage() {
             variant="outline"
             size="icon"
             className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/80 shadow-sm transition-colors hover:bg-white/10 hover:text-white"
-            onClick={() => fetchOrders()}
+            onClick={() => fetchOrders(false, filterLote)}
             disabled={loading}
           >
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
@@ -1037,6 +1054,26 @@ export default function AdminPedidosPage() {
               <SelectItem value="cancelado">Cancelados</SelectItem>
             </SelectContent>
           </Select>
+
+          <Select
+            value={filterLote}
+            onValueChange={(val) => {
+              setFilterLote(val);
+              setPage(1);
+              fetchOrders(false, val);
+            }}
+          >
+            <SelectTrigger className="h-10 w-full cursor-pointer border-white/10 bg-white/5 text-white select-none placeholder:text-white/40 focus:border-[#AA6F3B]/50 md:w-48">
+              <SelectValue placeholder="Todos los lotes" />
+            </SelectTrigger>
+            <SelectContent className="border border-white/10 bg-[#0b0a07] text-white">
+              <SelectItem value="all">Todos los lotes</SelectItem>
+              {lotes.map(l => (
+                <SelectItem key={l.id} value={String(l.id)}>{l.nombre} {l.activo ? '(Actual)' : ''}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
           <Button
             variant="outline"
             className="flex h-10 items-center gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"

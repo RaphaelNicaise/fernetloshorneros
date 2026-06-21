@@ -95,6 +95,8 @@ export default function AnalyticsPage() {
   const [hoveredWaitlistProv, setHoveredWaitlistProv] = useState<string | null>(null);
 
   // Filtros Globales
+  const [lotes, setLotes] = useState<any[]>([]);
+  const [filterLote, setFilterLote] = useState<string>('all');
 
   // Filtros Locales
   const [revenueGroup, setRevenueGroup] = useState('day');
@@ -117,9 +119,22 @@ export default function AnalyticsPage() {
     start.setFullYear(2023); // histórico completo siempre
 
     try {
-      const res = await fetch(
-        `${API_BASE_URL}/admin/analytics-bi?startDate=${start.toISOString()}&endDate=${end.toISOString()}`,
-        {
+      // Cargar lotes si no están
+      if (lotes.length === 0) {
+        try {
+          const lRes = await fetch(`${API_BASE_URL}/lotes`);
+          if (lRes.ok) setLotes(await lRes.json());
+        } catch (e) {
+          console.error('Error fetching lotes', e);
+        }
+      }
+
+      let url = `${API_BASE_URL}/admin/analytics-bi?startDate=${start.toISOString()}&endDate=${end.toISOString()}`;
+      if (filterLote !== 'all') {
+        url += `&lote_id=${filterLote}`;
+      }
+
+      const res = await fetch(url, {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
@@ -138,7 +153,7 @@ export default function AnalyticsPage() {
     load();
     const interval = setInterval(() => load(false), 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [filterLote]);
 
   const scrollTo = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -343,6 +358,26 @@ export default function AnalyticsPage() {
 
           {/* Filtros Globales */}
           <div className="flex items-center gap-2">
+            <Select
+              value={filterLote}
+              onValueChange={(val) => {
+                setFilterLote(val);
+                // The useEffect will trigger load()
+              }}
+            >
+              <SelectTrigger className="h-8 w-40 border-white/10 bg-white/5 text-white focus:border-[#AA6F3B]/50">
+                <SelectValue placeholder="Todos los lotes" />
+              </SelectTrigger>
+              <SelectContent className="border border-white/10 bg-[#0b0a07] text-white">
+                <SelectItem value="all">Todos los lotes</SelectItem>
+                {lotes.map((l) => (
+                  <SelectItem key={l.id} value={String(l.id)}>
+                    {l.nombre} {l.activo ? '(Actual)' : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
             <button
               onClick={() => load(true)}
               disabled={refreshing}

@@ -18,6 +18,7 @@ import {
 import { getProductById, decreaseStock, increaseStock } from "@/services/productService";
 import { enviarMailConfirmacionCompra } from "@/services/mailService";
 import { couponService } from "@/services/couponService";
+import { lotesService } from "@/services/lotesService";
 // import { createShipment } from "@/services/enviosService"; // Legacy
 
 export async function cleanupExpiredOrders() {
@@ -135,6 +136,8 @@ export async function createPreference(req: Request, res: Response) {
 
         const external_reference = uuidv4();
 
+        const loteActual = await lotesService.getLoteActual();
+
         const order = await createOrder({
             items: validatedItems.map(item => ({
                 id_producto: item.id_producto,
@@ -146,6 +149,7 @@ export async function createPreference(req: Request, res: Response) {
             external_reference,
             cupon_codigo: validCoupon ? validCoupon.codigo : null,
             cupon_descuento: discountAmount,
+            lote_id: loteActual?.id || null,
             shipping_info: {
                 cost: Number(shipping.cost), // Guardamos el costo real en la base de datos
                 rate_id: shipping.rate_id,

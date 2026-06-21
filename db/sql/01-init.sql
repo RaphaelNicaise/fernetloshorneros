@@ -111,3 +111,15 @@ CREATE TABLE IF NOT EXISTS cupones (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
+
+-- Tabla para gestión de lotes
+CREATE TABLE IF NOT EXISTS lotes (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(100) NOT NULL,
+  fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  activo BOOLEAN DEFAULT FALSE
+);
+
+-- Modificar tabla pedidos para asociarla a un lote
+ALTER TABLE pedidos 
+  ADD COLUMN lote_id INT DEFAULT NULL;

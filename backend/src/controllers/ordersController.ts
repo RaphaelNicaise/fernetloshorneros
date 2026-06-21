@@ -13,6 +13,7 @@ import {
 } from '@/services/ordersService';
 import { enviarMailComprador } from '@/services/mailService';
 import { getProductById, decreaseStock } from '@/services/productService';
+import { lotesService } from '@/services/lotesService';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
@@ -20,7 +21,8 @@ import { v4 as uuidv4 } from 'uuid';
  */
 export async function listOrders(req: Request, res: Response) {
   try {
-    const orders = await getAllOrders();
+    const lote_id = req.query.lote_id ? Number(req.query.lote_id) : null;
+    const orders = await getAllOrders(lote_id);
     return res.json(orders);
   } catch (error: any) {
     console.error('Error obteniendo pedidos:', error);
@@ -386,9 +388,12 @@ export async function createManualOrderHandler(req: Request, res: Response) {
 
     const external_reference = `manual_${uuidv4()}`;
 
+    const loteActual = await lotesService.getLoteActual();
+
     const order = await createOrder({
       items: validatedItems,
       total,
+      lote_id: loteActual?.id || null,
       external_reference,
       shipping_info: {
         cost: 0,

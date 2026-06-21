@@ -4,7 +4,11 @@ import { QueryTypes } from 'sequelize';
 
 export async function getBiAnalytics(req: Request, res: Response) {
   try {
-    const { startDate, endDate } = req.query;
+    const { startDate, endDate, lote_id } = req.query;
+
+    const loteIdNum = lote_id ? Number(lote_id) : null;
+    const loteCond = loteIdNum ? ` AND p.lote_id = :loteIdNum ` : ``;
+    const loteCondNoP = loteIdNum ? ` AND lote_id = :loteIdNum ` : ``;
 
     // Default: últimos 30 días
     const start = startDate
@@ -25,10 +29,10 @@ export async function getBiAnalytics(req: Request, res: Response) {
                 SUM(p.total) as revenue,
                 COUNT(p.id) as orders
              FROM pedidos p
-             WHERE p.status = 'paid' AND p.fecha BETWEEN :start AND :end
+             WHERE p.status = 'paid' AND p.fecha BETWEEN :start AND :end ${loteCond}
              GROUP BY date
              ORDER BY MIN(p.fecha) ASC`,
-      { replacements: { start, end }, type: QueryTypes.SELECT }
+      { replacements: { start, end, loteIdNum }, type: QueryTypes.SELECT }
     );
 
     const funnel = await sequelize.query(
@@ -36,16 +40,16 @@ export async function getBiAnalytics(req: Request, res: Response) {
                 status, 
                 COUNT(*) as count
              FROM pedidos
-             WHERE fecha BETWEEN :start AND :end
+             WHERE fecha BETWEEN :start AND :end ${loteCondNoP}
              GROUP BY status`,
-      { replacements: { start, end }, type: QueryTypes.SELECT }
+      { replacements: { start, end, loteIdNum }, type: QueryTypes.SELECT }
     );
 
     const [avgTicketResult]: any = await sequelize.query(
       `SELECT AVG(total) as avgTicket 
              FROM pedidos 
-             WHERE status = 'paid' AND fecha BETWEEN :start AND :end`,
-      { replacements: { start, end }, type: QueryTypes.SELECT }
+             WHERE status = 'paid' AND fecha BETWEEN :start AND :end ${loteCondNoP}`,
+      { replacements: { start, end, loteIdNum }, type: QueryTypes.SELECT }
     );
 
     // ==========================================
@@ -59,11 +63,11 @@ export async function getBiAnalytics(req: Request, res: Response) {
              FROM pedido_items pi
              JOIN pedidos p ON p.id = pi.id_pedido
              LEFT JOIN productos pr ON pr.id = pi.id_producto
-             WHERE p.status = 'paid' AND p.fecha BETWEEN :start AND :end
+             WHERE p.status = 'paid' AND p.fecha BETWEEN :start AND :end ${loteCond}
              GROUP BY pi.title
              ORDER BY total_sold DESC
              LIMIT 10`,
-      { replacements: { start, end }, type: QueryTypes.SELECT }
+      { replacements: { start, end, loteIdNum }, type: QueryTypes.SELECT }
     );
 
     const stockAlerts = await sequelize.query(
@@ -83,9 +87,10 @@ export async function getBiAnalytics(req: Request, res: Response) {
                 status, 
                 COUNT(*) as count
              FROM pagos
-             WHERE fecha BETWEEN :start AND :end
-             GROUP BY status`,
-      { replacements: { start, end }, type: QueryTypes.SELECT }
+             JOIN pedidos p ON p.id = pagos.id_pedido
+             WHERE pagos.fecha BETWEEN :start AND :end ${loteCond}
+             GROUP BY pagos.status`,
+      { replacements: { start, end, loteIdNum }, type: QueryTypes.SELECT }
     );
 
     const paymentMethods = await sequelize.query(
@@ -93,9 +98,10 @@ export async function getBiAnalytics(req: Request, res: Response) {
                 payment_method, 
                 COUNT(*) as count
              FROM pagos
-             WHERE payment_method IS NOT NULL AND fecha BETWEEN :start AND :end
-             GROUP BY payment_method`,
-      { replacements: { start, end }, type: QueryTypes.SELECT }
+             JOIN pedidos p ON p.id = pagos.id_pedido
+             WHERE pagos.payment_method IS NOT NULL AND pagos.fecha BETWEEN :start AND :end ${loteCond}
+             GROUP BY pagos.payment_method`,
+      { replacements: { start, end, loteIdNum }, type: QueryTypes.SELECT }
     );
 
     // ==========================================
@@ -107,10 +113,10 @@ export async function getBiAnalytics(req: Request, res: Response) {
                 COUNT(*) as count
              FROM envios e
              JOIN pedidos p ON p.id = e.id_pedido
-             WHERE p.status = 'paid' AND e.fecha BETWEEN :start AND :end
+             WHERE p.status = 'paid' AND e.fecha BETWEEN :start AND :end ${loteCond}
              GROUP BY provincia
              ORDER BY count DESC`,
-      { replacements: { start, end }, type: QueryTypes.SELECT }
+      { replacements: { start, end, loteIdNum }, type: QueryTypes.SELECT }
     );
 
     const shippingMethods = await sequelize.query(
@@ -119,17 +125,17 @@ export async function getBiAnalytics(req: Request, res: Response) {
                 COUNT(*) as count
              FROM envios e
              JOIN pedidos p ON p.id = e.id_pedido
-             WHERE p.status = 'paid' AND e.fecha BETWEEN :start AND :end
+             WHERE p.status = 'paid' AND e.fecha BETWEEN :start AND :end ${loteCond}
              GROUP BY service_type`,
-      { replacements: { start, end }, type: QueryTypes.SELECT }
+      { replacements: { start, end, loteIdNum }, type: QueryTypes.SELECT }
     );
 
     const [avgShippingResult]: any = await sequelize.query(
       `SELECT AVG(e.costo) as avgShippingCost 
              FROM envios e
              JOIN pedidos p ON p.id = e.id_pedido
-             WHERE p.status = 'paid' AND e.fecha BETWEEN :start AND :end`,
-      { replacements: { start, end }, type: QueryTypes.SELECT }
+             WHERE p.status = 'paid' AND e.fecha BETWEEN :start AND :end ${loteCond}`,
+      { replacements: { start, end, loteIdNum }, type: QueryTypes.SELECT }
     );
 
     const shippingFunnel = await sequelize.query(
@@ -145,9 +151,9 @@ export async function getBiAnalytics(req: Request, res: Response) {
                 COUNT(*) as count
              FROM pedidos p
              LEFT JOIN envios e ON p.id = e.id_pedido
-             WHERE p.fecha BETWEEN :start AND :end
+             WHERE p.fecha BETWEEN :start AND :end ${loteCond}
              GROUP BY 1`,
-      { replacements: { start, end }, type: QueryTypes.SELECT }
+      { replacements: { start, end, loteIdNum }, type: QueryTypes.SELECT }
     );
 
     // ==========================================
@@ -161,11 +167,11 @@ export async function getBiAnalytics(req: Request, res: Response) {
                 SUM(p.total) as total_spent
              FROM envios e
              JOIN pedidos p ON p.id = e.id_pedido
-             WHERE p.status = 'paid'
+             WHERE p.status = 'paid' ${loteCond}
              GROUP BY e.email_cliente, e.nombre_cliente
              ORDER BY orders_count DESC, total_spent DESC
              LIMIT 20`,
-      { type: QueryTypes.SELECT }
+      { replacements: { loteIdNum }, type: QueryTypes.SELECT }
     );
 
     const [waitlistConversionResult]: any = await sequelize.query(
@@ -175,8 +181,8 @@ export async function getBiAnalytics(req: Request, res: Response) {
                  FROM envios e 
                  JOIN pedidos p ON e.id_pedido = p.id 
                  JOIN usuario_lista_espera w ON e.email_cliente = w.email 
-                 WHERE p.status = 'paid') as total_compraron`,
-      { type: QueryTypes.SELECT }
+                 WHERE p.status = 'paid' ${loteCond}) as total_compraron`,
+      { replacements: { loteIdNum }, type: QueryTypes.SELECT }
     );
 
     const waitlistGeoDistribution = await sequelize.query(
