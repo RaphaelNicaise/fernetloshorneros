@@ -68,6 +68,7 @@ type Order = {
   costo_envio?: number | null;
   cupon_codigo?: string | null;
   cupon_descuento?: number | null;
+  lote_id?: number | null;
 };
 
 type OrderItem = {

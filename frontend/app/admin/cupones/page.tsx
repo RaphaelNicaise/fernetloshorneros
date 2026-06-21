@@ -42,6 +42,7 @@ type Coupon = {
     tipo_descuento: 'porcentaje' | 'fijo' | 'envio_gratis';
     valor: number;
     usos_actuales: number;
+    limite_usos: number | null;
     fecha_expiracion: string | null;
     activo: boolean;
 };
@@ -56,12 +57,14 @@ export default function CuponesAdmin() {
         codigo: string;
         tipo_descuento: 'porcentaje' | 'fijo' | 'envio_gratis';
         valor: number;
+        limite_usos: number | null;
         fecha_expiracion: string | null;
         activo: boolean;
     }>({
         codigo: '',
         tipo_descuento: 'porcentaje',
         valor: 0,
+        limite_usos: null,
         fecha_expiracion: null,
         activo: true
     });

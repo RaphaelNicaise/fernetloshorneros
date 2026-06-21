@@ -35,7 +35,7 @@ export const api = {
     const data = await res.json();
     return { data };
   },
-  put: async (url: string, body: any) => {
+  put: async (url: string, body?: any) => {
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
     const token = getAuthToken();
     if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -43,7 +43,40 @@ export const api = {
     const res = await fetch(`${API_BASE_URL}${url}`, {
       method: 'PUT',
       headers,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({ message: 'Error desconocido' }));
+      throw new Error(error.message || `HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    return { data };
+  },
+  post: async (url: string, body: any) => {
+    const headers: HeadersInit = { 'Content-Type': 'application/json' };
+    const token = getAuthToken();
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await fetch(`${API_BASE_URL}${url}`, {
+      method: 'POST',
+      headers,
       body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({ message: 'Error desconocido' }));
+      throw new Error(error.message || `HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    return { data };
+  },
+  delete: async (url: string) => {
+    const headers: HeadersInit = { 'Content-Type': 'application/json' };
+    const token = getAuthToken();
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await fetch(`${API_BASE_URL}${url}`, {
+      method: 'DELETE',
+      headers,
     });
     if (!res.ok) {
       const error = await res.json().catch(() => ({ message: 'Error desconocido' }));
