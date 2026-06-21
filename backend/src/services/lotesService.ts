@@ -34,7 +34,7 @@ export const lotesService = {
       const [result]: any = await sequelize.query(
         `INSERT INTO lotes (nombre, activo) VALUES (?, ?)`,
         {
-          replacements: [nombre, setAsActive],
+          replacements: [nombre, setAsActive ? 1 : 0],
           type: QueryTypes.INSERT,
           transaction
         }

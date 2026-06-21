@@ -32,7 +32,7 @@ export type Order = {
     costo_envio?: number | null;
     cupon_codigo?: string | null;
     cupon_descuento?: number | null;
-    lote_id?: number | null;
+    id_lote?: number | null;
 };
 
 export type OrderItem = {
@@ -77,7 +77,7 @@ export type CreateOrderInput = {
     };
     cupon_codigo?: string | null;
     cupon_descuento?: number;
-    lote_id?: number | null;
+    id_lote?: number | null;
 };
 
 export type Payment = {
@@ -98,9 +98,9 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
 
     try {
         // Insertar orden
-        const [orderId] = await sequelize.query(
-            `INSERT INTO pedidos (total, status, external_reference, cupon_codigo, cupon_descuento, lote_id) 
-             VALUES (:total, :status, :external_reference, :cupon_codigo, :cupon_descuento, :lote_id)`,
+        const [orderResult]: any = await sequelize.query(
+            `INSERT INTO pedidos (total, status, external_reference, cupon_codigo, cupon_descuento, id_lote) 
+             VALUES (:total, :status, :external_reference, :cupon_codigo, :cupon_descuento, :id_lote)`,
             {
                 replacements: {
                     total: input.total,
@@ -108,7 +108,7 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
                     external_reference: input.external_reference,
                     cupon_codigo: input.cupon_codigo || null,
                     cupon_descuento: input.cupon_descuento || 0,
-                    lote_id: input.lote_id || null
+                    id_lote: input.id_lote || null
                 },
                 type: QueryTypes.INSERT,
                 transaction,
@@ -122,7 +122,7 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
                  VALUES (:id_pedido, :id_producto, :title, :cantidad, :precio_unitario)`,
                 {
                     replacements: {
-                        id_pedido: orderId,
+                        id_pedido: orderResult,
                         id_producto: item.id_producto,
                         title: item.title,
                         cantidad: item.cantidad,
@@ -150,7 +150,7 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
                 {
                     replacements: {
                         id: envioId,
-                        id_pedido: orderId,
+                        id_pedido: orderResult,
                         rate_id: ship.rate_id,
                         service_type: ship.service_type,
                         logistic_type: ship.logistic_type || null,
@@ -180,7 +180,7 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
         const orders = await sequelize.query<Order>(
             `SELECT id, total, status, fecha, external_reference FROM pedidos WHERE id = :id`,
             {
-                replacements: { id: orderId },
+                replacements: { id: orderResult },
                 type: QueryTypes.SELECT,
             }
         );
@@ -327,43 +327,26 @@ export async function getPaymentByOrderId(orderId: number): Promise<Payment | nu
 /**
  * Obtiene todas las órdenes
  */
-export async function getAllOrders(lote_id?: number | null): Promise<Order[]> {
+export async function getAllOrders(id_lote?: number | null): Promise<Order[]> {
     let query = `SELECT 
-            p.id, 
-            p.total, 
-            p.status, 
-            p.fecha, 
-            p.external_reference,
-            p.cupon_codigo,
-            p.cupon_descuento,
-            p.lote_id,
-            e.zipnova_shipment_id,
-            e.tracking_code,
-            e.status AS envio_status,
-            e.nombre_cliente,
-            e.email_cliente,
-            e.dni_cliente,
-            e.telefono_cliente,
-            e.provincia,
-            e.ciudad,
-            e.codigo_postal,
-            e.direccion,
-            e.numero,
-            e.extra,
-            e.costo AS costo_envio
+            p.id, p.total, p.status, p.fecha, p.external_reference, p.cupon_codigo, p.cupon_descuento,
+            p.id_lote,
+            e.zipnova_shipment_id, e.tracking_code, e.status as envio_status,
+            e.nombre_cliente, e.email_cliente, e.dni_cliente, e.telefono_cliente,
+            e.provincia, e.ciudad, e.codigo_postal, e.direccion, e.numero, e.extra, e.costo AS costo_envio
          FROM pedidos p 
          LEFT JOIN envios e ON e.id = (
              SELECT id FROM envios e2 WHERE e2.id_pedido = p.id ORDER BY e2.fecha DESC LIMIT 1
          )`;
 
-    if (lote_id) {
-        query += ` WHERE p.lote_id = :lote_id`;
+    if (id_lote) {
+        query += ` WHERE p.id_lote = :id_lote`;
     }
 
     query += ` ORDER BY p.fecha DESC`;
 
     const orders = await sequelize.query<Order>(query, {
-        replacements: lote_id ? { lote_id } : {},
+        replacements: id_lote ? { id_lote } : {},
         type: QueryTypes.SELECT,
     });
 
