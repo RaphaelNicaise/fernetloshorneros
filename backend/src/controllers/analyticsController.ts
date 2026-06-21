@@ -7,8 +7,8 @@ export async function getBiAnalytics(req: Request, res: Response) {
     const { startDate, endDate, lote_id } = req.query;
 
     const loteIdNum = lote_id ? Number(lote_id) : null;
-    const loteCond = loteIdNum ? ` AND p.id_lote = :loteIdNum ` : ``;
-    const loteCondNoP = loteIdNum ? ` AND id_lote = :loteIdNum ` : ``;
+    const loteCond = loteIdNum ? ` AND p.lote_id = :loteIdNum ` : ``;
+    const loteCondNoP = loteIdNum ? ` AND lote_id = :loteIdNum ` : ``;
 
     // Default: últimos 30 días
     const start = startDate

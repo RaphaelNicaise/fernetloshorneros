@@ -393,7 +393,7 @@ export async function createManualOrderHandler(req: Request, res: Response) {
     const order = await createOrder({
       items: validatedItems,
       total,
-      id_lote: loteActual?.id || null,
+      lote_id: loteActual?.id || null,
       external_reference,
       shipping_info: {
         cost: 0,

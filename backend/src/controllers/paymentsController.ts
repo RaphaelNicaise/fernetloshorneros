@@ -149,7 +149,7 @@ export async function createPreference(req: Request, res: Response) {
             external_reference,
             cupon_codigo: validCoupon ? validCoupon.codigo : null,
             cupon_descuento: discountAmount,
-            id_lote: loteActual?.id || null,
+            lote_id: loteActual?.id || null,
             shipping_info: {
                 cost: Number(shipping.cost), // Guardamos el costo real en la base de datos
                 rate_id: shipping.rate_id,
