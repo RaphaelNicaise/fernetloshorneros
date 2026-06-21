@@ -226,8 +226,16 @@ export default function AdminPedidosPage() {
 
   useEffect(() => {
     fetchLotes();
-    fetchOrders(false, 'all');
-    // Auto-actualización cada 2 segundos para ver ventas en vivo
+  }, []);
+
+  useEffect(() => {
+    if (filterLote !== '') {
+      fetchOrders(false, filterLote);
+    }
+  }, [filterStatus, filterLote, page]);
+
+  useEffect(() => {
+    if (filterLote === '') return;
     const interval = setInterval(() => {
       fetchOrders(true, filterLote);
     }, 2000);
@@ -240,9 +248,14 @@ export default function AdminPedidosPage() {
       if (res.ok) {
         const data = await res.json();
         setLotes(data);
+        const active = data.find((l: any) => l.activo);
+        setFilterLote(active ? active.id.toString() : 'all');
+      } else {
+        setFilterLote('all');
       }
     } catch (e) {
       console.error('Error cargando lotes:', e);
+      setFilterLote('all');
     }
   }
 
@@ -957,9 +970,7 @@ export default function AdminPedidosPage() {
     }
   };
 
-  if (loading) {
-    return <div className="text-white">Cargando pedidos...</div>;
-  }
+
 
   if (error) {
     return <div className="text-red-400">Error: {error}</div>;
@@ -1198,9 +1209,18 @@ export default function AdminPedidosPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {visible.length === 0 ? (
+            {loading ? (
               <TableRow>
-                <TableCell colSpan={6} className="py-8 text-center text-gray-500">
+                <TableCell colSpan={8} className="py-20 text-center">
+                  <div className="flex flex-col items-center justify-center gap-3">
+                    <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#AA6F3B] border-t-transparent" />
+                    <span className="text-sm text-white/40">Cargando pedidos...</span>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : visible.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={8} className="py-8 text-center text-gray-500">
                   {filterStatus === 'all'
                     ? 'No hay pedidos registrados'
                     : `No hay pedidos con estado "${EFFECTIVE_STATUS_LABELS[filterStatus as EffectiveStatus]}"`}
@@ -1399,7 +1419,10 @@ export default function AdminPedidosPage() {
                                         colSpan={5}
                                         className="py-4 text-center text-sm text-white/40"
                                       >
-                                        Cargando items...
+                                        <div className="flex flex-col items-center justify-center gap-2 py-4">
+                                          <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#AA6F3B] border-t-transparent" />
+                                          <span>Cargando items...</span>
+                                        </div>
                                       </TableCell>
                                     </TableRow>
                                   ) : (

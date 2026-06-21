@@ -120,18 +120,33 @@ export default function AnalyticsPage() {
 
     try {
       // Cargar lotes si no están
+      let activeLoteId = null;
       if (lotes.length === 0) {
         try {
           const lRes = await fetch(`${API_BASE_URL}/lotes`);
-          if (lRes.ok) setLotes(await lRes.json());
+          if (lRes.ok) {
+            const data = await lRes.json();
+            setLotes(data);
+            const active = data.find((l: any) => l.activo);
+            if (active) {
+               activeLoteId = active.id.toString();
+               if (filterLote === 'all') {
+                 setFilterLote(activeLoteId);
+               }
+            }
+          }
         } catch (e) {
           console.error('Error fetching lotes', e);
         }
       }
 
+      // Si recién cargamos los lotes y había uno activo, usamos ese para la query actual.
+      // Si no, usamos filterLote normal.
+      const currentLote = filterLote === 'all' && activeLoteId ? activeLoteId : filterLote;
+
       let url = `${API_BASE_URL}/admin/analytics-bi?startDate=${start.toISOString()}&endDate=${end.toISOString()}`;
-      if (filterLote !== 'all') {
-        url += `&lote_id=${filterLote}`;
+      if (currentLote !== 'all') {
+        url += `&lote_id=${currentLote}`;
       }
 
       const res = await fetch(url, {

@@ -107,7 +107,14 @@ export default function AdminListaEsperaPage() {
         </div>
       </div>
  
-      {loading && <div className="text-white/40">Cargando...</div>}
+      {loading && (
+        <div className="flex justify-center py-8">
+          <div className="flex flex-col items-center justify-center gap-3">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#AA6F3B] border-t-transparent" />
+            <span className="text-sm text-white/40">Cargando...</span>
+          </div>
+        </div>
+      )}
       {error && <div className="text-red-400">{error}</div>}
  
       {!loading && !error && (

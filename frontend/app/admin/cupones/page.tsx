@@ -227,7 +227,12 @@ export default function CuponesAdmin() {
                         <tbody>
                             {loading ? (
                                 <tr>
-                                    <td colSpan={7} className="px-6 py-8 text-center text-white/50">Cargando cupones...</td>
+                                    <td colSpan={7} className="px-6 py-12 text-center text-white/50">
+                                        <div className="flex flex-col items-center justify-center gap-3">
+                                            <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#AA6F3B] border-t-transparent" />
+                                            <span>Cargando cupones...</span>
+                                        </div>
+                                    </td>
                                 </tr>
                             ) : coupons.length === 0 ? (
                                 <tr>

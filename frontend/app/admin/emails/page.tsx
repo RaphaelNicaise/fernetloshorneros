@@ -219,7 +219,14 @@ export default function AdminEmailsPage() {
     }
   }
 
-  if (loading) return <div className="text-white p-8">Cargando plantillas...</div>
+  if (loading) return (
+    <div className="flex min-h-screen items-center justify-center p-8">
+      <div className="flex flex-col items-center justify-center gap-3">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#AA6F3B] border-t-transparent" />
+        <span className="text-sm text-white/40">Cargando plantillas...</span>
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-6">

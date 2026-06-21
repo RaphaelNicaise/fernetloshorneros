@@ -566,7 +566,12 @@ export default function AdminProductosPage() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-10 text-white/40">Cargando productos...</TableCell>
+                <TableCell colSpan={8} className="py-12 text-center text-white/40">
+                  <div className="flex flex-col items-center justify-center gap-3">
+                    <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#AA6F3B] border-t-transparent" />
+                    <span className="text-sm">Cargando productos...</span>
+                  </div>
+                </TableCell>
               </TableRow>
             ) : filteredItems.length === 0 ? (
               <TableRow>
