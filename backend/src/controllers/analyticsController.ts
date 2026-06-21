@@ -84,7 +84,7 @@ export async function getBiAnalytics(req: Request, res: Response) {
     // ==========================================
     const paymentStatus = await sequelize.query(
       `SELECT 
-                status, 
+                pagos.status as status, 
                 COUNT(*) as count
              FROM pagos
              JOIN pedidos p ON p.id = pagos.id_pedido
