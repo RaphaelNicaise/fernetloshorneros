@@ -134,7 +134,7 @@ export default function AdminPedidosPage() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   const [lotes, setLotes] = useState<any[]>([]);
-  const [filterLote, setFilterLote] = useState<string>('all');
+  const [filterLote, setFilterLote] = useState<string>('');
 
   // Estados para modo de selección (Etiquetas en lote)
   const [selectionMode, setSelectionMode] = useState(false);
