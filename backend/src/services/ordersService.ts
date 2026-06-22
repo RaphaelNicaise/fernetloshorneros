@@ -197,7 +197,7 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
  */
 export async function getOrderByReference(external_reference: string): Promise<Order | null> {
     const orders = await sequelize.query<Order>(
-        `SELECT id, total, status, fecha, external_reference FROM pedidos WHERE external_reference = :external_reference`,
+        `SELECT * FROM pedidos WHERE external_reference = :external_reference`,
         {
             replacements: { external_reference },
             type: QueryTypes.SELECT,
@@ -212,7 +212,7 @@ export async function getOrderByReference(external_reference: string): Promise<O
  */
 export async function getOrderById(id: number): Promise<Order | null> {
     const orders = await sequelize.query<Order>(
-        `SELECT id, total, status, fecha, external_reference FROM pedidos WHERE id = :id`,
+        `SELECT * FROM pedidos WHERE id = :id`,
         {
             replacements: { id },
             type: QueryTypes.SELECT,
