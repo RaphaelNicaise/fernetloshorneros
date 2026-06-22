@@ -5,7 +5,7 @@ import { useWaitlist, type WaitlistUser } from "@/hooks/use-waitlist"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, Download } from "lucide-react"
+import { Search, Download, RefreshCw } from "lucide-react"
 import * as XLSX from "xlsx"
 
 type SortKey = keyof Pick<WaitlistUser, "id" | "nombre" | "email" | "provincia" | "fecha_registro">
@@ -103,7 +103,15 @@ export default function AdminListaEsperaPage() {
             <Download className="w-4 h-4" />
             Exportar Excel
           </Button>
-          <Button variant="secondary" className="h-10 bg-[#AA6F3B]/20 text-[#AA6F3B] hover:bg-[#AA6F3B]/30 border border-[#AA6F3B]/30" onClick={refetch}>Recargar</Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/80 shadow-sm transition-colors hover:bg-white/10 hover:text-white"
+            onClick={refetch}
+            disabled={loading}
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          </Button>
         </div>
       </div>
  
