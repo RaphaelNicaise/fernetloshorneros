@@ -5,7 +5,7 @@ WORKDIR /app
 RUN npm install -g pnpm
 
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --shamefully-hoist
+RUN pnpm install --shamefully-hoist --no-frozen-lockfile
 
 # Copiamos todo el código, aunque se va a usar volumen
 COPY . .
