@@ -62,12 +62,12 @@ export function ProductCard({ product }: ProductCardProps) {
   }
 
   return (
-    <div className="group flex h-full flex-col overflow-hidden rounded-[1.6rem] border border-black/10 bg-white shadow-sm transition-transform duration-300 transform-gpu hover:-translate-y-1 hover:shadow-md">
+    <div className="group flex h-full flex-col overflow-hidden rounded-[1.6rem] border border-black/10 bg-white shadow-sm hover:shadow-md transition-shadow duration-200">
       <div className="relative h-72 overflow-hidden bg-[#0b0a07]">
         <img
           src={getImageSrc(product.image) || "/placeholder.svg"}
           alt={product.name}
-          className="h-full w-full object-cover transition-transform duration-500 transform-gpu group-hover:scale-105"
+          className="h-full w-full object-cover"
           loading="lazy"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-[#0b0a07]/80 via-transparent to-transparent" />
