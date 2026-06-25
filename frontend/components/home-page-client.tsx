@@ -347,8 +347,8 @@ export default function HomePageContent() {
               {loading ? (
                 <p className="col-span-full text-center text-black/50">Cargando…</p>
               ) : (
-                (items.length > 0 ? items : FALLBACK_PRODUCTS).map((product) => (
-                  <div key={product.id} className="animate-in fade-in slide-in-from-bottom-4 duration-700 fill-mode-both" style={{ animationDelay: '150ms' }}>
+                (items.length > 0 ? items : FALLBACK_PRODUCTS).map((product, index) => (
+                  <div key={product.id} className="animate-in fade-in slide-in-from-bottom-4 duration-700 fill-mode-both" style={{ animationDelay: `${index * 100}ms` }}>
                     <ProductCard product={product} />
                   </div>
                 ))

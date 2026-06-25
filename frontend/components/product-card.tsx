@@ -7,6 +7,8 @@ import { Check } from "lucide-react"
 import { getImageSrc } from "@/lib/api"
 import { toast } from "@/hooks/use-toast"
 
+import Image from "next/image"
+
 interface Product {
   id: string
   name: string
@@ -62,13 +64,14 @@ export function ProductCard({ product }: ProductCardProps) {
   }
 
   return (
-    <div className="group flex h-full flex-col overflow-hidden rounded-[1.6rem] border border-black/10 bg-white shadow-sm hover:shadow-md transition-shadow duration-200">
+    <div className="flex h-full flex-col overflow-hidden rounded-[1.6rem] border border-black/10 bg-white shadow-sm transition-shadow duration-200 hover:shadow-md">
       <div className="relative h-72 overflow-hidden bg-[#0b0a07]">
-        <img
+        <Image
           src={getImageSrc(product.image) || "/placeholder.svg"}
           alt={product.name}
-          className="h-full w-full object-cover"
-          loading="lazy"
+          fill
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          className="object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-[#0b0a07]/80 via-transparent to-transparent" />
         <div className="absolute left-4 right-4 top-4 flex items-center justify-between gap-3">
