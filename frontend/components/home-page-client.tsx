@@ -68,6 +68,7 @@ export default function HomePageContent() {
   const [loading, setLoading] = useState(true);
   const [expanded1, setExpanded1] = useState(false);
   const [expanded2, setExpanded2] = useState(false);
+
   const heroRef = useRef<HTMLElement>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -117,17 +118,17 @@ export default function HomePageContent() {
 
   return (
     <LazyMotion features={domAnimation}>
-      <div className="relative min-h-screen overflow-x-hidden bg-white">
+      <div className="relative min-h-screen overflow-x-hidden bg-[#0b0a07]">
         <div className="relative z-10">
           <Navigation />
 
-          {/* Hero: h-screen with no sticky — useScroll drives animation as it exits viewport */}
+          {/* Hero */}
           <section
             id="inicio"
             ref={heroRef}
             className="relative h-screen overflow-hidden bg-[#0b0a07]"
           >
-            <div className="absolute inset-0 z-0">
+              <div className="absolute inset-0 z-0">
               <m.div
                 className="absolute inset-0 will-change-transform"
                 style={{ scale: heroScale, y: heroImageY }}
@@ -145,7 +146,7 @@ export default function HomePageContent() {
               {/* MEJORADO: Gradiente adaptado para que en mobile haya más oscuridad arriba (texto) y se vea la botella abajo */}
               <div className="absolute inset-0 z-[1] bg-gradient-to-b from-black/90 via-black/60 to-transparent sm:bg-[linear-gradient(90deg,rgba(8,7,5,0.92)_0%,rgba(8,7,5,0.7)_36%,rgba(8,7,5,0.18)_64%,rgba(8,7,5,0.5)_100%),linear-gradient(0deg,rgba(8,7,5,0.85)_0%,transparent_32%,transparent_70%,rgba(8,7,5,0.55)_100%)]" />
               <m.div
-                className="pointer-events-none absolute inset-0 z-[2] hidden bg-[radial-gradient(120%_120%_at_50%_46%,transparent_38%,rgba(6,5,3,0.92)_100%)] sm:block"
+                className="pointer-events-none absolute inset-0 z-[2] hidden sm:block bg-[radial-gradient(120%_120%_at_50%_46%,transparent_38%,rgba(6,5,3,0.92)_100%)]"
                 style={{ opacity: heroCloseOpacity }}
               />
             </div>
@@ -312,7 +313,7 @@ export default function HomePageContent() {
             </div>
           </section>
 
-          <section className="bg-white px-4 pt-28 pb-16 sm:pt-32 sm:pb-24">
+          <section className="relative z-10 rounded-t-3xl rounded-b-3xl bg-white px-4 pt-28 pb-16 shadow-[0_-40px_60px_rgba(0,0,0,0.3)] sm:pt-32 sm:pb-24">
             <div className="container mx-auto max-w-6xl">
               <m.div
                 className="mb-14 text-center"
@@ -600,7 +601,7 @@ export default function HomePageContent() {
 
           <section
             id="productos"
-            className="relative scroll-mt-20 overflow-hidden bg-white px-4 pt-20 pb-16 sm:pt-24 sm:pb-24"
+            className="relative scroll-mt-20 overflow-hidden rounded-t-3xl rounded-b-3xl bg-white px-4 pt-20 pb-16 sm:pt-24 sm:pb-24"
           >
             <div className="container mx-auto max-w-6xl">
               <m.div
