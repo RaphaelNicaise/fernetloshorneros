@@ -2,7 +2,6 @@
 
 import dynamic from "next/dynamic"
 import Image from "next/image"
-import { ReactLenis } from "@studio-freight/react-lenis"
 
 const HomePageContent = dynamic(() => import("@/components/home-page-client"), {
   ssr: false,
@@ -24,9 +23,5 @@ const HomePageContent = dynamic(() => import("@/components/home-page-client"), {
 })
 
 export default function HomePage() {
-  return (
-    <ReactLenis root options={{ lerp: 0.04, duration: 1.2, smoothWheel: true }}>
-      <HomePageContent />
-    </ReactLenis>
-  )
+  return <HomePageContent />
 }

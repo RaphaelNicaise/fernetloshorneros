@@ -53,7 +53,7 @@ export function Navigation() {
 
   return (
     <header
-      className={`fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-[#0b0a07]/80 backdrop-blur-xl transition-all duration-400 ${
+      className={`fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-[#0b0a07]/90 backdrop-blur-sm transition-all duration-400 ${
         scrolled
           ? "py-2 shadow-[0_14px_40px_rgba(0,0,0,0.22)]"
           : "py-4"

@@ -64,7 +64,7 @@ export function ProductCard({ product }: ProductCardProps) {
   };
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-[1.6rem] border border-black/10 bg-white shadow-sm transition-shadow duration-200 hover:shadow-md">
+    <div className="group flex h-full flex-col overflow-hidden rounded-[1.6rem] border border-black/10 bg-white shadow-sm transition-transform duration-300 transform-gpu hover:-translate-y-1 hover:shadow-md">
       <div className="relative h-72 overflow-hidden bg-[#0b0a07]">
         <Image
           src={getImageSrc(product.image) || '/placeholder.svg'}
@@ -72,7 +72,7 @@ export function ProductCard({ product }: ProductCardProps) {
           fill
           unoptimized
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-          className="object-cover"
+          className="object-cover transition-transform duration-500 transform-gpu group-hover:scale-105"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-[#0b0a07]/80 via-transparent to-transparent" />
         <div className="absolute top-4 right-4 left-4 flex items-center justify-between gap-3">
