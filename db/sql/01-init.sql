@@ -27,7 +27,9 @@ CREATE TABLE IF NOT EXISTS pedidos (
     fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     external_reference VARCHAR(100), -- Aquí guardaremos un UUID o referencia única si quieres
     cupon_codigo VARCHAR(50) DEFAULT NULL,
-    cupon_descuento DECIMAL(10, 2) DEFAULT 0
+    cupon_descuento DECIMAL(10, 2) DEFAULT 0,
+    stock_reserved BOOLEAN DEFAULT FALSE,
+    stock_reserved_at TIMESTAMP NULL DEFAULT NULL
 );
 
 CREATE TABLE IF NOT EXISTS pedido_items (
