@@ -343,17 +343,17 @@ export default function HomePageContent() {
               <h2 className="mb-4 font-serif text-3xl font-bold text-[#0b0a07] sm:text-4xl">Nuestros Productos</h2>
               <p className="text-lg text-black/60">Fernet artesanal y cristalería seleccionada para disfrutar cada momento.</p>
             </m.div>
-            <m.div className="mx-auto grid max-w-5xl gap-7 md:grid-cols-2 lg:grid-cols-3" initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.1 }} variants={stagger}>
+            <div className="mx-auto grid max-w-5xl gap-7 md:grid-cols-2 lg:grid-cols-3">
               {loading ? (
                 <p className="col-span-full text-center text-black/50">Cargando…</p>
               ) : (
                 (items.length > 0 ? items : FALLBACK_PRODUCTS).map((product) => (
-                  <m.div key={product.id} variants={fadeUp}>
+                  <div key={product.id} className="animate-in fade-in slide-in-from-bottom-4 duration-700 fill-mode-both" style={{ animationDelay: '150ms' }}>
                     <ProductCard product={product} />
-                  </m.div>
+                  </div>
                 ))
               )}
-            </m.div>
+            </div>
             <m.div className="mt-12 text-center" initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}>
               <Link
                 href="/productos"

@@ -80,12 +80,12 @@ export function ProductCard({ product }: ProductCardProps) {
             {statusLabel}
           </div>
           {product.roastLevel && (
-            <div className="rounded-full border border-white/12 bg-white/8 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-white/75 backdrop-blur-md">
+            <div className="rounded-full border border-white/12 bg-black/40 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-white/75">
               {product.roastLevel}
             </div>
           )}
         </div>
-        <div className="absolute bottom-4 left-4 rounded-full border border-white/12 bg-white/8 px-3 py-1 text-sm font-medium text-white backdrop-blur-md">
+        <div className="absolute bottom-4 left-4 rounded-full border border-white/12 bg-black/40 px-3 py-1 text-sm font-medium text-white">
           Edición artesanal
         </div>
       </div>
