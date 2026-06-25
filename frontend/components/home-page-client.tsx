@@ -112,6 +112,7 @@ export default function HomePageContent() {
   }, [])
 
   return (
+    <LazyMotion features={domAnimation}>
     <div className="relative min-h-screen overflow-x-hidden bg-white">
       <div className="relative z-10">
         <Navigation />
