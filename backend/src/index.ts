@@ -16,6 +16,7 @@ import settingsRouter from '@/routes/settings';
 import emailTemplatesRouter from '@/routes/emailTemplates';
 import couponsRouter from '@/routes/coupons';
 import lotesRouter from '@/routes/lotes';
+import produccionRouter from '@/routes/produccion';
 import { cleanupExpiredOrders } from '@/controllers/paymentsController';
 
 dotenv.config();
@@ -44,6 +45,7 @@ app.use('/settings', settingsRouter);
 app.use('/email-templates', emailTemplatesRouter);
 app.use('/coupons', couponsRouter);
 app.use('/lotes', lotesRouter);
+app.use('/produccion', produccionRouter);
 
 
 const startServer = async () => {
