@@ -20,11 +20,13 @@ import {
   X,
   Mail,
   Ticket,
+  Barrel,
 } from "lucide-react"
 
 const NAV_ITEMS = [
   { href: "/admin/productos", label: "Productos", icon: Package },
   { href: "/admin/pedidos", label: "Pedidos", icon: ShoppingBag },
+  { href: "/admin/produccion", label: "Producción", icon: Barrel },
   { href: "/admin/lista-espera", label: "Lista de Espera", icon: Users },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/cupones", label: "Cupones", icon: Ticket },

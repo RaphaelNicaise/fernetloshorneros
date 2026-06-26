@@ -220,7 +220,23 @@
   }
 }
 
-/* Scrollbars personalizadas para paneles de analíticas */
+/* Scrollbars globales */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(170, 111, 59, 0.3); /* #AA6F3B con opacidad */
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(170, 111, 59, 0.6);
+}
+
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
   height: 6px;
