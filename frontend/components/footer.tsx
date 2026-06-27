@@ -84,8 +84,11 @@ export function Footer() {
             </div>
           </div>
         </div>
-        <div className="border-t border-white/10 pt-8 text-center text-sm text-white/45">
-          <p>&copy; 2026 Fernet Los Horneros. Todos los derechos reservados. Prohibida la venta a menores de 18 años. </p>
+        <div className="border-t border-white/10 pt-8 flex flex-col items-center justify-between gap-4 sm:flex-row text-center sm:text-left text-sm text-white/45">
+          <p>&copy; 2026 Fernet Los Horneros. Todos los derechos reservados. Prohibida la venta a menores de 18 años.</p>
+          <Link href="/terminos" className="transition-colors hover:text-[#AA6F3B]">
+            Términos y Condiciones
+          </Link>
         </div>
       </div>
 
