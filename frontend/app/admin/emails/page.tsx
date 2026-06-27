@@ -74,10 +74,12 @@ export default function AdminEmailsPage() {
   const [showSendModal, setShowSendModal] = useState(false)
   const [isCreatingNew, setIsCreatingNew] = useState(false)
   const [newTemplateName, setNewTemplateName] = useState("")
+  const [templateToDelete, setTemplateToDelete] = useState<string | null>(null)
   
   // Test email state
   const [testEmail, setTestEmail] = useState("")
-  const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop')
+  const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('mobile')
+  const [showDesktopModal, setShowDesktopModal] = useState(false)
 
   const loadTemplates = async () => {
     setLoading(true)
@@ -170,22 +172,41 @@ export default function AdminEmailsPage() {
     }
   }
 
-  const handleCreateNew = () => {
+  const handleCreateNew = async () => {
     if (!newTemplateName.trim()) return
     const key = `custom_${newTemplateName.toLowerCase().replace(/[^a-z0-9]+/g, '_')}_${Date.now()}`
     setActiveTab(key)
-    handleSave(true, key, newTemplateName, '<html><body>\n  <h1>Hola {{nombre}}</h1>\n  <p>Escribe tu mensaje aquí...</p>\n</body></html>')
+    
+    let defaultHtml = '<html><body>\n  <h1>Hola {{nombre}}</h1>\n  <p>Escribe tu mensaje aquí...</p>\n</body></html>';
+    try {
+      const token = localStorage.getItem("admin_token")
+      const res = await fetch(`${API_BASE_URL}/email-templates/wrapper`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.wrapper) defaultHtml = data.wrapper
+      }
+    } catch (e) {
+      console.error("Failed to load wrapper template", e)
+    }
+
+    handleSave(true, key, newTemplateName, defaultHtml)
   }
 
-  const handleRestore = async () => {
-    if (!confirm("¿Seguro que querés restaurar o eliminar esta plantilla?")) return
+  const handleRestore = () => {
+    setTemplateToDelete(activeTab)
+  }
+
+  const confirmDelete = async () => {
+    if (!templateToDelete) return
     
     setSaving(true)
     setError(null)
     setSuccessMsg(null)
     try {
       const token = localStorage.getItem("admin_token")
-      const res = await fetch(`${API_BASE_URL}/email-templates/${activeTab}`, {
+      const res = await fetch(`${API_BASE_URL}/email-templates/${templateToDelete}`, {
         method: "DELETE",
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       })
@@ -197,6 +218,7 @@ export default function AdminEmailsPage() {
       setError(e.message)
     } finally {
       setSaving(false)
+      setTemplateToDelete(null)
     }
   }
 
@@ -390,14 +412,14 @@ export default function AdminEmailsPage() {
                     </div>
                     <div className="flex bg-white/5 rounded-lg p-1">
                       <button 
-                        onClick={() => setPreviewMode('desktop')}
+                        onClick={() => { setPreviewMode('desktop'); setShowDesktopModal(true); }}
                         className={`p-1.5 rounded-md transition-colors ${previewMode === 'desktop' ? 'bg-[#AA6F3B]/20 text-[#AA6F3B]' : 'text-white/40 hover:text-white/80'}`}
-                        title="Vista Desktop"
+                        title="Vista Desktop (Pantalla Completa)"
                       >
                         <Monitor className="w-4 h-4" />
                       </button>
                       <button 
-                        onClick={() => setPreviewMode('mobile')}
+                        onClick={() => { setPreviewMode('mobile'); setShowDesktopModal(false); }}
                         className={`p-1.5 rounded-md transition-colors ${previewMode === 'mobile' ? 'bg-[#AA6F3B]/20 text-[#AA6F3B]' : 'text-white/40 hover:text-white/80'}`}
                         title="Vista Mobile"
                       >
@@ -442,6 +464,59 @@ export default function AdminEmailsPage() {
       
       {showSendModal && (
         <SendBlastModal templateKey={activeTab} onClose={() => setShowSendModal(false)} />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {templateToDelete && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-[#14120f] border border-white/10 rounded-xl max-w-sm w-full p-6 text-center">
+            <h3 className="text-xl font-bold text-white mb-2">Eliminar Plantilla</h3>
+            <p className="text-white/60 mb-6 text-sm">
+              ¿Estás seguro que deseas eliminar o restaurar la plantilla "{TEMPLATE_NAMES[templateToDelete] || templateToDelete}"? Esta acción no se puede deshacer.
+            </p>
+            <div className="flex gap-3">
+              <Button onClick={() => setTemplateToDelete(null)} variant="outline" className="flex-1 border-white/10 text-white hover:bg-white/10">Cancelar</Button>
+              <Button onClick={confirmDelete} disabled={saving} variant="destructive" className="flex-1 bg-red-500 hover:bg-red-600 text-white border-none">
+                {saving ? "Procesando..." : "Eliminar"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Fullscreen Preview Modal */}
+      {showDesktopModal && (
+        <div className="fixed inset-0 z-[60] flex flex-col bg-black/90 backdrop-blur-sm p-4 md:p-8">
+          <div className="flex justify-between items-center mb-4 w-full max-w-[1200px] mx-auto">
+            <h2 className="text-white font-bold text-xl">Vista Previa Extendida</h2>
+            <div className="flex gap-4 items-center">
+              <div className="flex bg-white/5 rounded-lg p-1">
+                <button 
+                  onClick={() => setPreviewMode('desktop')}
+                  className={`p-1.5 rounded-md transition-colors ${previewMode === 'desktop' ? 'bg-[#AA6F3B]/20 text-[#AA6F3B]' : 'text-white/40 hover:text-white/80'}`}
+                  title="Vista Desktop"
+                >
+                  <Monitor className="w-4 h-4" />
+                </button>
+                <button 
+                  onClick={() => setPreviewMode('mobile')}
+                  className={`p-1.5 rounded-md transition-colors ${previewMode === 'mobile' ? 'bg-[#AA6F3B]/20 text-[#AA6F3B]' : 'text-white/40 hover:text-white/80'}`}
+                  title="Vista Mobile"
+                >
+                  <Smartphone className="w-4 h-4" />
+                </button>
+              </div>
+              <button onClick={() => setShowDesktopModal(false)} className="text-white/60 hover:text-white p-2">Cerrar ✕</button>
+            </div>
+          </div>
+          <div className="flex-1 w-full max-w-[1200px] mx-auto overflow-hidden bg-white/5 rounded-xl border border-white/10 flex justify-center items-start pt-8">
+            <iframe
+              srcDoc={previewHtml}
+              className={`h-[90%] border-0 bg-white transition-all duration-300 shadow-2xl ${previewMode === 'mobile' ? 'w-[375px] rounded-[2rem] border-8 border-gray-900' : 'w-full rounded-md'}`}
+              title="Vista previa completa"
+            />
+          </div>
+        </div>
       )}
     </div>
   )

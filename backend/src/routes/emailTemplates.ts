@@ -2,12 +2,17 @@ import { Router, Request, Response } from 'express';
 import { adminAuth } from '../middleware/adminAuth';
 import { emailTemplateService } from '../services/emailTemplateService';
 import { transporter } from '../config/mail';
-import { getDefaultTemplate } from '../services/mailService';
+import { getDefaultTemplate, getEmailWrapper } from '../services/mailService';
 
 const router = Router();
 
 // Todos los endpoints protegidos por auth de admin
 router.use(adminAuth);
+
+router.get('/wrapper', (req: Request, res: Response) => {
+  const wrapper = getEmailWrapper('Nuevo Email', '<div style="color: #ffffff; text-align: center; padding: 20px;">[Contenido del Email aquí]</div>');
+  res.send({ wrapper });
+});
 
 const DEFAULT_TEMPLATES = ['compra_confirmacion', 'envio_tracking', 'notif_vendedor'];
 
@@ -203,13 +208,12 @@ router.post('/:key/send-blast', async (req: Request, res: Response) => {
 
     if (audiences?.includes('buyers')) {
       let q = `
-        SELECT DISTINCT e.email_cliente as email, e.nombre_cliente as nombre 
-        FROM envios e
-        JOIN pedidos p ON e.id_pedido = p.id
-        WHERE p.status IN ('paid', 'pending')
+        SELECT DISTINCT email_cliente as email, nombre_cliente as nombre 
+        FROM envios
+        WHERE status = 'shipped'
       `;
       if (provinces && provinces.length > 0) {
-        q += ` AND e.provincia IN (?)`;
+        q += ` AND provincia IN (?)`;
         replacements.push(provinces);
       }
       queries.push(q);

@@ -5,7 +5,7 @@ import { emailTemplateService } from './emailTemplateService';
 /**
  * Genera el contenedor HTML común para mantener una estética unificada de marca (premium dark mode)
  */
-function getEmailWrapper(title: string, contentHtml: string): string {
+export function getEmailWrapper(title: string, contentHtml: string): string {
   return `
     <!DOCTYPE html>
     <html>

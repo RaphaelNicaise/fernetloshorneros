@@ -47,13 +47,12 @@ router.post('/count', async (req: Request, res: Response) => {
 
     if (audiences?.includes('buyers')) {
       let q = `
-        SELECT DISTINCT e.email_cliente as email, e.nombre_cliente as nombre 
-        FROM envios e
-        JOIN pedidos p ON e.id_pedido = p.id
-        WHERE p.status IN ('paid', 'pending')
+        SELECT DISTINCT email_cliente as email, nombre_cliente as nombre 
+        FROM envios
+        WHERE status = 'shipped'
       `;
       if (provinces && provinces.length > 0) {
-        q += ` AND e.provincia IN (?)`;
+        q += ` AND provincia IN (?)`;
         replacements.push(provinces);
       }
       queries.push(q);
