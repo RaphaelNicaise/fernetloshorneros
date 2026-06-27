@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { API_BASE_URL } from "@/lib/api"
-import { Mail, Send, RotateCcw, Save, Copy, Check, Eye, Plus, Trash2 } from "lucide-react"
+import { Mail, Send, RotateCcw, Save, Copy, Check, Eye, Plus, Trash2, Monitor, Smartphone } from "lucide-react"
 import { SendBlastModal } from "./components/SendBlastModal"
 
 type EmailTemplateType = string
@@ -77,6 +77,7 @@ export default function AdminEmailsPage() {
   
   // Test email state
   const [testEmail, setTestEmail] = useState("")
+  const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop')
 
   const loadTemplates = async () => {
     setLoading(true)
@@ -382,15 +383,33 @@ export default function AdminEmailsPage() {
 
                 {/* Lado Derecho: Preview */}
                 <div className="space-y-4 flex flex-col">
-                  <div className="flex items-center gap-2">
-                    <Eye className="w-4 h-4 text-[#AA6F3B]" />
-                    <label className="text-sm text-white/60 font-medium">Vista Previa en Vivo</label>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Eye className="w-4 h-4 text-[#AA6F3B]" />
+                      <label className="text-sm text-white/60 font-medium">Vista Previa en Vivo</label>
+                    </div>
+                    <div className="flex bg-white/5 rounded-lg p-1">
+                      <button 
+                        onClick={() => setPreviewMode('desktop')}
+                        className={`p-1.5 rounded-md transition-colors ${previewMode === 'desktop' ? 'bg-[#AA6F3B]/20 text-[#AA6F3B]' : 'text-white/40 hover:text-white/80'}`}
+                        title="Vista Desktop"
+                      >
+                        <Monitor className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={() => setPreviewMode('mobile')}
+                        className={`p-1.5 rounded-md transition-colors ${previewMode === 'mobile' ? 'bg-[#AA6F3B]/20 text-[#AA6F3B]' : 'text-white/40 hover:text-white/80'}`}
+                        title="Vista Mobile"
+                      >
+                        <Smartphone className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                   
-                  <div className="flex-1 bg-white rounded-lg overflow-hidden border border-white/10 relative min-h-[500px]">
+                  <div className="flex-1 bg-white/5 rounded-lg overflow-hidden border border-white/10 relative min-h-[500px] flex justify-center items-start">
                     <iframe
                       srcDoc={previewHtml}
-                      className="w-full h-[600px] border-0 bg-white"
+                      className={`h-[600px] border-0 bg-white transition-all duration-300 shadow-2xl ${previewMode === 'mobile' ? 'w-[375px] rounded-[2rem] border-8 border-gray-900 mt-4' : 'w-full'}`}
                       title="Vista previa"
                     />
                   </div>
