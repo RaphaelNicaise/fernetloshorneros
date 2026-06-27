@@ -57,7 +57,7 @@ app.use('/backups', backupsRouter);
 const startServer = async () => {
   try {
     await connectDB({ sync: false });
-    app.listen(port, () => {
+    app.listen(port, '0.0.0.0', () => {
       console.log(`Servidor escuchando en el puerto ${port}`);
       
       // Tarea en segundo plano para limpiar carritos abandonados
