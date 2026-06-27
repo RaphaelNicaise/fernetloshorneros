@@ -37,7 +37,8 @@ const NAV_ITEMS = [
 const EXTERNAL_ITEMS = [
   { href: "/phpmyadmin", label: "phpMyAdmin", icon: Database },
   { href: "/portainer", label: "Portainer", icon: Server },
-  { href: "/umami", label: "umami", icon: BarChart3 },
+  { href: "/umami", label: "umami (not working)", icon: BarChart3 },
+  { href: "https://resend.com/emails", label: "Resend", icon: Mail },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

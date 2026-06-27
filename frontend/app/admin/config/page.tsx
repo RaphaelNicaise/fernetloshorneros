@@ -214,7 +214,7 @@ export default function ConfigPage() {
                       Fijar como Actual
                     </Button>
                   )}
-                  <Button size="sm" variant="destructive" className="bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white" onClick={() => handleDeleteLote(lote.id)}>
+                  <Button size="sm" variant="destructive" className="bg-red-500/20 text-white hover:bg-red-500" onClick={() => handleDeleteLote(lote.id)}>
                     Eliminar
                   </Button>
                 </div>
