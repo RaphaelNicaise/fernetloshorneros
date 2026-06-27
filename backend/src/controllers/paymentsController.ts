@@ -19,6 +19,8 @@ import { getProductById, decreaseStock, increaseStock } from "@/services/product
 import { enviarMailConfirmacionCompra } from "@/services/mailService";
 import { couponService } from "@/services/couponService";
 import { lotesService } from "@/services/lotesService";
+import sequelize from "@/config/database";
+import { QueryTypes } from "sequelize";
 // import { createShipment } from "@/services/enviosService"; // Legacy
 
 export async function cleanupExpiredOrders() {
@@ -340,13 +342,22 @@ export async function handleWebhook(req: Request, res: Response) {
                     // Enviar mail de confirmación de compra
                     try {
                         const items = await getOrderItems(order.id);
+                        
+                        let loteNombre: string | undefined;
+                        if (order.lote_id) {
+                            const [loteData] = await sequelize.query('SELECT nombre FROM lotes WHERE id = ?', { replacements: [order.lote_id], type: QueryTypes.SELECT });
+                            loteNombre = loteData ? (loteData as any).nombre : undefined;
+                        }
+
                         await enviarMailConfirmacionCompra(
                             envio.email_cliente,
                             envio.nombre_cliente,
                             String(order.id),
                             items,
                             Number(order.total),
-                            Number(envio.costo)
+                            Number(envio.costo),
+                            Number(order.cupon_descuento || 0),
+                            loteNombre
                         );
                         console.log(`Mail de confirmación de compra enviado para orden ${order.id}`);
                     } catch (mailError) {

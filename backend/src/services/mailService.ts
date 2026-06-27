@@ -12,14 +12,19 @@ function getEmailWrapper(title: string, contentHtml: string): string {
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="color-scheme" content="light dark">
+      <meta name="supported-color-schemes" content="light dark">
       <title>${title}</title>
       <style>
+        :root {
+          color-scheme: light dark;
+        }
         body {
           margin: 0;
           padding: 0;
-          background-color: #0b0a07;
+          background-color: #0b0a07 !important;
           font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-          color: #ffffff;
+          color: #ffffff !important;
           -webkit-font-smoothing: antialiased;
         }
         table {
@@ -29,20 +34,20 @@ function getEmailWrapper(title: string, contentHtml: string): string {
         .container {
           max-width: 600px;
           margin: 0 auto;
-          background-color: #14120f;
+          background-color: #14120f !important;
           border-radius: 12px;
           overflow: hidden;
           border: 1px solid #ffffff15;
           box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
         }
         .header {
-          background-color: #0b0a07;
+          background-color: #0b0a07 !important;
           padding: 40px 20px;
           text-align: center;
           border-bottom: 1px solid #AA6F3B;
         }
         .header h1 {
-          color: #ffffff;
+          color: #ffffff !important;
           font-family: 'Georgia', serif;
           margin: 0;
           font-size: 28px;
@@ -50,7 +55,7 @@ function getEmailWrapper(title: string, contentHtml: string): string {
           text-transform: uppercase;
         }
         .header p {
-          color: #AA6F3B;
+          color: #AA6F3B !important;
           margin: 8px 0 0 0;
           font-size: 12px;
           letter-spacing: 4px;
@@ -62,7 +67,7 @@ function getEmailWrapper(title: string, contentHtml: string): string {
           text-align: left;
         }
         .content h2 {
-          color: #ffffff;
+          color: #ffffff !important;
           font-family: 'Georgia', serif;
           font-size: 22px;
           margin-top: 0;
@@ -70,7 +75,7 @@ function getEmailWrapper(title: string, contentHtml: string): string {
         }
         .content p {
           line-height: 1.6;
-          color: #cccccc;
+          color: #cccccc !important;
           font-size: 15px;
           margin-top: 0;
           margin-bottom: 20px;
@@ -80,7 +85,7 @@ function getEmailWrapper(title: string, contentHtml: string): string {
           margin: 35px 0;
         }
         .btn {
-          background-color: #AA6F3B;
+          background-color: #AA6F3B !important;
           color: #ffffff !important;
           padding: 14px 32px;
           text-decoration: none;
@@ -99,7 +104,7 @@ function getEmailWrapper(title: string, contentHtml: string): string {
         .order-table th {
           text-align: left;
           padding: 15px 8px;
-          color: #AA6F3B;
+          color: #AA6F3B !important;
           font-size: 12px;
           text-transform: uppercase;
           letter-spacing: 1px;
@@ -109,7 +114,7 @@ function getEmailWrapper(title: string, contentHtml: string): string {
           padding: 15px 8px;
           font-size: 14px;
           border-bottom: 1px solid #ffffff0a;
-          color: #eeeeee;
+          color: #eeeeee !important;
         }
         .order-table tr:last-child td {
           border-bottom: none;
@@ -121,15 +126,15 @@ function getEmailWrapper(title: string, contentHtml: string): string {
           font-size: 15px;
         }
         .summary-row .label {
-          color: #aaaaaa;
+          color: #aaaaaa !important;
           text-align: right;
         }
         .summary-row .value {
-          color: #ffffff;
+          color: #ffffff !important;
           text-align: right;
         }
         .tracking-box {
-          background-color: #0b0a07;
+          background-color: #0b0a07 !important;
           border: 1px dashed #AA6F3B;
           padding: 20px;
           border-radius: 8px;
@@ -139,38 +144,46 @@ function getEmailWrapper(title: string, contentHtml: string): string {
         .tracking-box code {
           font-family: 'Courier New', Courier, monospace;
           font-size: 22px;
-          color: #AA6F3B;
+          color: #AA6F3B !important;
           font-weight: bold;
           letter-spacing: 2px;
         }
         .footer {
-          background-color: #0b0a07;
+          background-color: #0b0a07 !important;
           padding: 30px;
           text-align: center;
           border-top: 1px solid #ffffff15;
           font-size: 12px;
-          color: #666666;
+          color: #666666 !important;
         }
         .footer p {
           margin: 5px 0;
         }
+        
+        /* DARK MODE MEDIA QUERY FORCING */
+        @media (prefers-color-scheme: dark) {
+          body, .header, .footer, .tracking-box, table[role="presentation"] { background-color: #0b0a07 !important; }
+          .container { background-color: #14120f !important; }
+          body, .content h2, .summary-row .value { color: #ffffff !important; }
+          .content p, .order-table td { color: #cccccc !important; }
+        }
       </style>
     </head>
-    <body>
-      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #0b0a07; padding: 40px 0; margin: 0;">
+    <body bgcolor="#0b0a07" style="background-color: #0b0a07;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#0b0a07" style="background-color: #0b0a07; padding: 40px 0; margin: 0;">
         <tr>
           <td align="center">
-            <div class="container">
-              <div class="header" style="padding: 0; overflow: hidden;">
+            <div class="container" bgcolor="#14120f" style="background-color: #14120f;">
+              <div class="header" bgcolor="#0b0a07" style="background-color: #0b0a07; padding: 0; overflow: hidden;">
                 <!-- Hero Banner -->
                 <div style="width: 100%; max-height: 120px; overflow: hidden; background-color: #1a1713;">
-                  <img src="${process.env.FRONTEND_URL || 'https://fernetloshorneros.com'}/fernet1.webp" alt="Botella Los Horneros" style="width: 100%; min-height: 120px; object-fit: cover; object-position: 58% 42%; display: block; opacity: 0.8;" />
+                  <img src="${process.env.FRONTEND_URL || 'https://fernetloshorneros.com'}/small-dark-fernet-bottle-minimalist.jpg" alt="Botella Los Horneros" style="width: 100%; min-height: 120px; object-fit: cover; object-position: 58% 42%; display: block; opacity: 0.8;" />
                 </div>
                 <!-- Logos -->
                 <div style="padding: 30px 20px 0 20px;">
                   <div style="text-align: center; margin-bottom: 5px;">
-                    <img src="${process.env.FRONTEND_URL || 'https://fernetloshorneros.com'}/logonuevo.webp" alt="Pájaro" style="height: 40px; width: auto; display: inline-block; vertical-align: middle; margin-right: 10px; filter: invert(1); opacity: 0.9;" />
-                    <img src="${process.env.FRONTEND_URL || 'https://fernetloshorneros.com'}/logo-fernet.webp" alt="Los Horneros" style="height: 40px; width: auto; display: inline-block; vertical-align: middle; filter: invert(1); opacity: 0.9;" />
+                    <img src="${process.env.FRONTEND_URL || 'https://fernetloshorneros.com'}/logonuevo.png" alt="Pájaro" style="height: 40px; width: auto; display: inline-block; vertical-align: middle; margin-right: 10px; filter: invert(1); opacity: 0.9;" />
+                    <img src="${process.env.FRONTEND_URL || 'https://fernetloshorneros.com'}/logo-fernet.png" alt="Los Horneros" style="height: 40px; width: auto; display: inline-block; vertical-align: middle; filter: invert(1); opacity: 0.9;" />
                   </div>
                   <p>Fernet de Autor</p>
                 </div>
@@ -281,7 +294,9 @@ export async function enviarMailConfirmacionCompra(
   pedidoId: string,
   items: OrderItem[],
   total: number,
-  costoEnvio: number
+  costoEnvio: number,
+  cuponDescuento?: number,
+  loteNombre?: string
 ) {
   const itemsHtml = items
     .map(
@@ -295,7 +310,27 @@ export async function enviarMailConfirmacionCompra(
     )
     .join('');
 
-  const subtotal = total - costoEnvio;
+  // El subtotal de los productos sin incluir envío
+  const subtotalProductos = items.reduce((acc, item) => acc + (item.precio_unitario * item.cantidad), 0);
+
+  let discountHtml = '';
+  if (cuponDescuento && cuponDescuento > 0) {
+    discountHtml = `
+      <tr class="summary-row">
+        <td colspan="2" class="label" style="padding-top: 5px; padding-bottom: 5px; color: #ff6b6b !important;">Descuento:</td>
+        <td class="value" style="padding-top: 5px; padding-bottom: 5px; color: #ff6b6b !important;">-$${Number(cuponDescuento).toFixed(2)}</td>
+      </tr>
+    `;
+  }
+
+  let loteHtml = '';
+  if (loteNombre) {
+    loteHtml = `
+      <p style="text-align: center; font-size: 12px; color: #AA6F3B !important; margin-top: 15px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">
+        PARTIDA ASIGNADA: LOTE ${loteNombre}
+      </p>
+    `;
+  }
 
   const orderTableHtml = `
     <table class="order-table" cellspacing="0" cellpadding="0">
@@ -310,18 +345,20 @@ export async function enviarMailConfirmacionCompra(
         ${itemsHtml}
         <tr class="summary-row">
           <td colspan="2" class="label">Subtotal:</td>
-          <td class="value">$${Number(subtotal).toFixed(2)}</td>
+          <td class="value">$${Number(subtotalProductos).toFixed(2)}</td>
         </tr>
         <tr class="summary-row">
           <td colspan="2" class="label" style="padding-top: 5px; padding-bottom: 5px;">Envío:</td>
           <td class="value" style="padding-top: 5px; padding-bottom: 5px;">$${Number(costoEnvio).toFixed(2)}</td>
         </tr>
+        ${discountHtml}
         <tr class="summary-row" style="border-top: 1px solid #3d2f29;">
-          <td colspan="2" class="label" style="font-size: 18px; color: #f5f0eb;">Total:</td>
-          <td class="value" style="font-size: 18px; color: #dfa84a;">$${Number(total).toFixed(2)}</td>
+          <td colspan="2" class="label" style="font-size: 18px; color: #f5f0eb !important;">Total:</td>
+          <td class="value" style="font-size: 18px; color: #dfa84a !important;">$${Number(total).toFixed(2)}</td>
         </tr>
       </tbody>
     </table>
+    ${loteHtml}
   `;
 
   const templateData = {
