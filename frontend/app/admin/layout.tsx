@@ -37,6 +37,7 @@ const NAV_ITEMS = [
 const EXTERNAL_ITEMS = [
   { href: "/phpmyadmin", label: "phpMyAdmin", icon: Database },
   { href: "/portainer", label: "Portainer", icon: Server },
+  { href: "/umami", label: "umami", icon: BarChart3 },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

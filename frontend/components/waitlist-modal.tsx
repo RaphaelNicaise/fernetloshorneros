@@ -187,20 +187,24 @@ export function WaitlistModal() {
 						initial="hidden"
 						animate="visible"
 						exit="exit"
-						className="relative w-full rounded-2xl border border-[#aa825e]/30 bg-[#1a1208] shadow-2xl sm:max-w-md sm:rounded-2xl my-0 sm:my-auto"
+						className="relative w-full overflow-hidden rounded-2xl border border-[#aa825e]/30 bg-[#1a1208] shadow-2xl sm:max-w-md sm:rounded-2xl my-0 sm:my-auto"
 						role="dialog"
 						aria-modal="true"
 						aria-label="Lista de espera"
 					>
 						<div className="pointer-events-none absolute left-1/2 top-0 h-32 w-64 -translate-x-1/2 bg-[#aa825e]/15 blur-3xl" />
 
-						<div className="relative border-b border-[#aa825e]/20 px-6 pb-4 pt-6">
+						<div className="bg-gradient-to-r from-[#aa825e] via-[#c99f7a] to-[#aa825e] px-4 py-2.5 text-center text-sm font-semibold text-[#1a1208] shadow-sm">
+							Recibí descuentos exclusivos anotándote en la lista de espera!
+						</div>
+
+						<div className="relative border-b border-[#aa825e]/20 px-6 pb-4 pt-5">
 							<div className="flex items-start justify-between gap-4">
 								<div>
 									<p className="mb-1 text-xs font-semibold uppercase tracking-[0.25em] text-[#aa825e]">Preventa · Lote 2</p>
 									<h2 className="font-serif text-2xl font-bold text-[#f5f0e6]">Lista de Espera</h2>
 									<p className="mt-1 text-sm leading-snug text-[#f5f0e6]/60">
-										Solo 17.500 botellas. Te avisamos 24hs antes del lanzamiento.
+										Solo 17.500 botellas.
 									</p>
 								</div>
 								<button
@@ -309,7 +313,7 @@ export function WaitlistModal() {
 												disabled={isSubmitting}
 												className="inline-flex w-full items-center justify-center rounded-full bg-[#aa825e] px-6 py-3.5 text-sm font-semibold text-white transition-all duration-200 hover:bg-[#b78d68] disabled:cursor-not-allowed disabled:opacity-60"
 											>
-												{isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Asegurar mi lugar"}
+												{isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Unirme a la lista de espera"}
 											</button>
 										</motion.div>
 									</motion.form>
