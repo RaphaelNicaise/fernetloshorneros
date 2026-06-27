@@ -290,8 +290,8 @@ export default function ConfigPage() {
               Descarga una copia completa de la base de datos. El sistema genera un backup automático todos los días a las 3:00 AM.
             </p>
           </div>
-          <div className="flex items-center gap-4">
-            <Button onClick={handleDownloadManualBackup} disabled={isManualBackupLoading} variant="secondary" className="bg-[#AA6F3B] hover:bg-[#8a5a2f] text-white border-none flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+            <Button onClick={handleDownloadManualBackup} disabled={isManualBackupLoading} variant="secondary" className="bg-[#AA6F3B] hover:bg-[#8a5a2f] text-white border-none flex items-center justify-center gap-2">
               {isManualBackupLoading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
@@ -299,7 +299,7 @@ export default function ConfigPage() {
               )}
               Generar y Descargar Backup Manual
             </Button>
-            <Button onClick={handleDownloadAutoBackup} disabled={isAutoBackupLoading} variant="secondary" className="bg-[#AA6F3B] hover:bg-[#8a5a2f] text-white border-none flex items-center gap-2">
+            <Button onClick={handleDownloadAutoBackup} disabled={isAutoBackupLoading} variant="secondary" className="bg-[#AA6F3B] hover:bg-[#8a5a2f] text-white border-none flex items-center justify-center gap-2">
               {isAutoBackupLoading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
