@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { api } from '@/lib/api';
+import { api, API_BASE_URL } from '@/lib/api';
 
 export default function ConfigPage() {
   const [minPurchaseAmount, setMinPurchaseAmount] = useState('');
@@ -126,8 +126,7 @@ export default function ConfigPage() {
   const handleDownloadManualBackup = async () => {
     try {
       const token = localStorage.getItem('admin_token');
-      // @ts-ignore
-      const baseURL = api.defaults.baseURL || 'http://localhost:3001';
+      const baseURL = API_BASE_URL || 'http://localhost:3001';
       const res = await fetch(`${baseURL}/backups/manual`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -149,8 +148,7 @@ export default function ConfigPage() {
   const handleDownloadAutoBackup = async () => {
     try {
       const token = localStorage.getItem('admin_token');
-      // @ts-ignore
-      const baseURL = api.defaults.baseURL || 'http://localhost:3001';
+      const baseURL = API_BASE_URL || 'http://localhost:3001';
       const res = await fetch(`${baseURL}/backups/auto`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
