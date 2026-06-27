@@ -23,7 +23,7 @@ router.get('/', async (req: Request, res: Response) => {
     const customTemplates = await emailTemplateService.getAllTemplates();
     const customMap = new Map(customTemplates.map(t => [t.template_key, t]));
 
-    const response = DEFAULT_TEMPLATES.map(key => {
+    const response: any[] = DEFAULT_TEMPLATES.map(key => {
       const custom = customMap.get(key);
       if (custom) {
         return {
@@ -42,6 +42,19 @@ router.get('/', async (req: Request, res: Response) => {
         isCustom: false
       };
     });
+
+    // Añadir plantillas customizadas que no sean default
+    for (const t of customTemplates) {
+      if (!DEFAULT_TEMPLATES.includes(t.template_key)) {
+        response.push({
+          key: t.template_key,
+          subject: t.subject,
+          html_content: t.html_content,
+          isCustom: true,
+          updated_at: t.updated_at
+        });
+      }
+    }
 
     res.json(response);
   } catch (error: any) {
@@ -156,6 +169,101 @@ router.post('/:key/preview', async (req: Request, res: Response) => {
     res.json({ message: 'Correo de prueba enviado con éxito a ' + test_email });
   } catch (error: any) {
     console.error('Error sending preview email:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Enviar blast masivo
+router.post('/:key/send-blast', async (req: Request, res: Response) => {
+  try {
+    const { key } = req.params;
+    const { audiences, provinces } = req.body;
+
+    const template = await emailTemplateService.getTemplate(key);
+    if (!template) {
+      return res.status(404).json({ error: 'Template no encontrado' });
+    }
+
+    if (!audiences || audiences.length === 0) {
+      return res.status(400).json({ error: 'Debes seleccionar al menos una audiencia.' });
+    }
+
+    const queries: string[] = [];
+    const replacements: any[] = [];
+
+    if (audiences.includes('waitlist')) {
+      let q = `SELECT email, nombre FROM usuario_lista_espera`;
+      if (provinces && provinces.length > 0) {
+        q += ` WHERE provincia IN (?)`;
+        replacements.push(provinces);
+      }
+      queries.push(q);
+    }
+
+    if (audiences.includes('buyers')) {
+      let q = `
+        SELECT DISTINCT e.email_cliente as email, e.nombre_cliente as nombre 
+        FROM envios e
+        JOIN pedidos p ON e.id_pedido = p.id
+        WHERE p.status IN ('paid', 'pending')
+      `;
+      if (provinces && provinces.length > 0) {
+        q += ` AND e.provincia IN (?)`;
+        replacements.push(provinces);
+      }
+      queries.push(q);
+    }
+
+    const finalQuery = queries.join(' UNION ');
+    const recipients = await emailTemplateService.getAllTemplates().then(async () => {
+      // Usando sequelize desde cualquier lado o importado aquí
+      const { QueryTypes } = require('sequelize');
+      const sequelize = require('../config/database').default;
+      return await sequelize.query(finalQuery, {
+        replacements,
+        type: QueryTypes.SELECT
+      });
+    }) as { email: string, nombre: string }[];
+
+    if (recipients.length === 0) {
+      return res.status(400).json({ error: 'No hay destinatarios que coincidan con los filtros.' });
+    }
+
+    // Despachar en background para no bloquear la request (idealmente usaría una cola como BullMQ, pero lo hacemos asíncrono aquí)
+    let enviosExitosos = 0;
+    
+    // Función asíncrona que envía uno por uno (o en lotes)
+    const sendBatch = async () => {
+      for (const recipient of recipients) {
+        try {
+          let processedSubject = template.subject;
+          let processedHtml = template.html_content;
+
+          // Reemplazar variables comunes
+          processedSubject = processedSubject.replace(/{{nombre}}/g, recipient.nombre || 'Cliente');
+          processedHtml = processedHtml.replace(/{{nombre}}/g, recipient.nombre || 'Cliente');
+          processedSubject = processedSubject.replace(/{{email}}/g, recipient.email);
+          processedHtml = processedHtml.replace(/{{email}}/g, recipient.email);
+
+          await transporter.sendMail({
+            from: `"Fernet Los Horneros" <${process.env.SMTP_USER}>`,
+            to: recipient.email,
+            subject: processedSubject,
+            html: processedHtml
+          });
+          enviosExitosos++;
+        } catch (err) {
+          console.error(`Error enviando a ${recipient.email}:`, err);
+        }
+      }
+      console.log(`Blast completado: ${enviosExitosos}/${recipients.length} enviados con éxito.`);
+    };
+
+    sendBatch(); // Lo ejecutamos sin await para que devuelva la response rapido
+
+    res.json({ message: 'Envío masivo iniciado.', total: recipients.length });
+  } catch (error: any) {
+    console.error('Error initiating email blast:', error);
     res.status(500).json({ error: error.message });
   }
 });

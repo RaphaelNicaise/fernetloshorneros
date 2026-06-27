@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { API_BASE_URL } from "@/lib/api"
-import { Mail, Send, RotateCcw, Save, Copy, Check, Eye } from "lucide-react"
+import { Mail, Send, RotateCcw, Save, Copy, Check, Eye, Plus, Trash2 } from "lucide-react"
+import { SendBlastModal } from "./components/SendBlastModal"
 
-type EmailTemplateType = "compra_confirmacion" | "envio_tracking" | "notif_vendedor"
+type EmailTemplateType = string
 
 interface EmailTemplate {
   key: string
@@ -23,7 +24,7 @@ const TEMPLATE_NAMES: Record<string, string> = {
   notif_vendedor: "Notificación al Vendedor",
 }
 
-const TEMPLATE_VARS: Record<string, string[]> = {
+const DEFAULT_TEMPLATE_VARS: Record<string, string[]> = {
   compra_confirmacion: ["nombre", "pedidoId", "items", "total", "costoEnvio"],
   envio_tracking: ["nombre", "pedidoId", "trackingCode", "trackingUrl"],
   notif_vendedor: ["pedidoId", "detalles"],
@@ -31,6 +32,7 @@ const TEMPLATE_VARS: Record<string, string[]> = {
 
 const DUMMY_DATA: Record<string, string> = {
   nombre: 'Juan Pérez',
+  email: 'juan@gmail.com',
   pedidoId: '12345',
   total: '$ 15,000',
   items: `
@@ -69,11 +71,12 @@ export default function AdminEmailsPage() {
   const [error, setError] = useState<string | null>(null)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
   const [copiedVar, setCopiedVar] = useState<string | null>(null)
+  const [showSendModal, setShowSendModal] = useState(false)
+  const [isCreatingNew, setIsCreatingNew] = useState(false)
+  const [newTemplateName, setNewTemplateName] = useState("")
   
   // Test email state
   const [testEmail, setTestEmail] = useState("")
-
-  const iframeRef = useRef<HTMLIFrameElement>(null)
 
   const loadTemplates = async () => {
     setLoading(true)
@@ -91,6 +94,11 @@ export default function AdminEmailsPage() {
         newTemplates[t.key] = t
       })
       setTemplates(newTemplates)
+      
+      // If the currently active tab was deleted, fallback to the first one
+      if (!newTemplates[activeTab]) {
+        setActiveTab("compra_confirmacion")
+      }
     } catch (e: any) {
       setError(e.message)
     } finally {
@@ -132,28 +140,28 @@ export default function AdminEmailsPage() {
     }))
   }
 
-  const handleSave = async () => {
-    if (!currentTemplate) return
+  const handleSave = async (isNew = false, keyToSave = activeTab, subject = currentTemplate?.subject, html = currentTemplate?.html_content) => {
     setSaving(true)
     setError(null)
     setSuccessMsg(null)
     try {
       const token = localStorage.getItem("admin_token")
-      const res = await fetch(`${API_BASE_URL}/email-templates/${activeTab}`, {
+      const res = await fetch(`${API_BASE_URL}/email-templates/${keyToSave}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {})
         },
-        body: JSON.stringify({
-          subject: currentTemplate.subject,
-          html_content: currentTemplate.html_content
-        })
+        body: JSON.stringify({ subject, html_content: html })
       })
       if (!res.ok) throw new Error("Error al guardar plantilla")
       setSuccessMsg("Plantilla guardada correctamente")
       setTimeout(() => setSuccessMsg(null), 3000)
-      await loadTemplates() // recargar para actualizar isCustom
+      await loadTemplates()
+      if (isNew) {
+        setIsCreatingNew(false)
+        setNewTemplateName("")
+      }
     } catch (e: any) {
       setError(e.message)
     } finally {
@@ -161,8 +169,15 @@ export default function AdminEmailsPage() {
     }
   }
 
+  const handleCreateNew = () => {
+    if (!newTemplateName.trim()) return
+    const key = `custom_${newTemplateName.toLowerCase().replace(/[^a-z0-9]+/g, '_')}_${Date.now()}`
+    setActiveTab(key)
+    handleSave(true, key, newTemplateName, '<html><body>\n  <h1>Hola {{nombre}}</h1>\n  <p>Escribe tu mensaje aquí...</p>\n</body></html>')
+  }
+
   const handleRestore = async () => {
-    if (!confirm("¿Seguro que querés restaurar la plantilla por defecto? Se perderán tus cambios.")) return
+    if (!confirm("¿Seguro que querés restaurar o eliminar esta plantilla?")) return
     
     setSaving(true)
     setError(null)
@@ -173,8 +188,8 @@ export default function AdminEmailsPage() {
         method: "DELETE",
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       })
-      if (!res.ok) throw new Error("Error al restaurar plantilla")
-      setSuccessMsg("Plantilla restaurada a valor por defecto")
+      if (!res.ok) throw new Error("Error al eliminar plantilla")
+      setSuccessMsg("Plantilla eliminada/restaurada")
       setTimeout(() => setSuccessMsg(null), 3000)
       await loadTemplates()
     } catch (e: any) {
@@ -219,7 +234,7 @@ export default function AdminEmailsPage() {
     }
   }
 
-  if (loading) return (
+  if (loading && Object.keys(templates).length === 0) return (
     <div className="flex min-h-screen items-center justify-center p-8">
       <div className="flex flex-col items-center justify-center gap-3">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#AA6F3B] border-t-transparent" />
@@ -227,6 +242,8 @@ export default function AdminEmailsPage() {
       </div>
     </div>
   );
+
+  const availableVars = DEFAULT_TEMPLATE_VARS[activeTab] || ["nombre", "email"];
 
   return (
     <div className="space-y-6">
@@ -248,17 +265,17 @@ export default function AdminEmailsPage() {
       <div className="grid lg:grid-cols-[250px_1fr] gap-6">
         {/* Tabs Sidebar */}
         <div className="flex flex-col gap-2">
-          {(Object.keys(TEMPLATE_NAMES) as EmailTemplateType[]).map(key => (
+          {Object.keys(templates).map(key => (
             <button
               key={key}
-              onClick={() => { setActiveTab(key); setError(null); setSuccessMsg(null); }}
+              onClick={() => { setActiveTab(key); setError(null); setSuccessMsg(null); setIsCreatingNew(false); }}
               className={`p-4 rounded-xl text-left transition-all border ${
-                activeTab === key 
+                activeTab === key && !isCreatingNew
                   ? "bg-[#AA6F3B]/10 border-[#AA6F3B] text-white" 
                   : "bg-[#0b0a07] border-white/5 text-white/60 hover:bg-white/5 hover:text-white"
               }`}
             >
-              <div className="font-medium">{TEMPLATE_NAMES[key]}</div>
+              <div className="font-medium truncate">{TEMPLATE_NAMES[key] || templates[key].subject || key}</div>
               {templates[key]?.isCustom ? (
                 <span className="text-xs text-[#AA6F3B] mt-1 block">Personalizado</span>
               ) : (
@@ -266,22 +283,55 @@ export default function AdminEmailsPage() {
               )}
             </button>
           ))}
+
+          {/* Create New Button */}
+          {isCreatingNew ? (
+            <div className="p-4 rounded-xl border border-[#AA6F3B] bg-[#AA6F3B]/5 space-y-3">
+              <Input 
+                autoFocus
+                placeholder="Nombre del mail..." 
+                value={newTemplateName}
+                onChange={e => setNewTemplateName(e.target.value)}
+                className="bg-white/5 border-white/10 text-white h-8 text-sm"
+              />
+              <div className="flex gap-2">
+                <Button size="sm" variant="ghost" onClick={() => setIsCreatingNew(false)} className="text-white/60 flex-1 h-8">Cancelar</Button>
+                <Button size="sm" onClick={handleCreateNew} className="bg-[#AA6F3B] text-white hover:bg-[#AA6F3B]/90 flex-1 h-8">Crear</Button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setIsCreatingNew(true)}
+              className="p-4 rounded-xl text-left transition-all border border-dashed border-white/20 bg-transparent text-white/60 hover:bg-white/5 hover:text-white hover:border-white/40 flex items-center justify-center gap-2 mt-2"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Nueva Plantilla</span>
+            </button>
+          )}
         </div>
 
         {/* Editor Area */}
         <div className="bg-[#0b0a07] border border-white/8 rounded-xl p-6">
-          {currentTemplate && (
+          {currentTemplate && !isCreatingNew && (
             <div className="space-y-6">
               
               {/* Header Actions */}
-              <div className="flex justify-between items-center pb-4 border-b border-white/10">
-                <h2 className="text-xl font-serif text-white">{TEMPLATE_NAMES[activeTab]}</h2>
-                <div className="flex gap-2">
-                  <Button variant="outline" className="border-white/10 hover:bg-white/10 text-white" onClick={handleRestore} disabled={saving || !currentTemplate.isCustom}>
-                    <RotateCcw className="w-4 h-4 mr-2" />
-                    Restaurar Default
+              <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 pb-4 border-b border-white/10">
+                <h2 className="text-xl font-serif text-white truncate max-w-md">
+                  {TEMPLATE_NAMES[activeTab] || 'Plantilla Personalizada'}
+                </h2>
+                <div className="flex flex-wrap gap-2 w-full xl:w-auto">
+                  {!TEMPLATE_NAMES[activeTab] && (
+                    <Button className="bg-emerald-600 hover:bg-emerald-500 text-white border-0 flex-1 xl:flex-none" onClick={() => setShowSendModal(true)}>
+                      <Send className="w-4 h-4 mr-2" />
+                      Enviar Mails
+                    </Button>
+                  )}
+                  <Button variant="outline" className="border-white/10 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20 text-white flex-1 xl:flex-none" onClick={handleRestore} disabled={saving || !currentTemplate.isCustom}>
+                    {TEMPLATE_NAMES[activeTab] ? <RotateCcw className="w-4 h-4 mr-2" /> : <Trash2 className="w-4 h-4 mr-2" />}
+                    {TEMPLATE_NAMES[activeTab] ? 'Restaurar Default' : 'Eliminar Plantilla'}
                   </Button>
-                  <Button className="bg-[#AA6F3B] hover:bg-[#AA6F3B]/90 text-white border-0" onClick={handleSave} disabled={saving}>
+                  <Button className="bg-[#AA6F3B] hover:bg-[#AA6F3B]/90 text-white border-0 flex-1 xl:flex-none" onClick={() => handleSave(false, activeTab, currentTemplate.subject, currentTemplate.html_content)} disabled={saving}>
                     <Save className="w-4 h-4 mr-2" />
                     Guardar Cambios
                   </Button>
@@ -316,7 +366,7 @@ export default function AdminEmailsPage() {
                   <div className="bg-[#14120f] border border-white/10 rounded-lg p-4">
                     <p className="text-sm text-white/60 mb-2 font-medium">Variables disponibles (Click para copiar)</p>
                     <div className="flex flex-wrap gap-2">
-                      {TEMPLATE_VARS[activeTab].map(v => (
+                      {availableVars.map(v => (
                         <button
                           key={v}
                           onClick={() => handleCopyVar(v)}
@@ -370,6 +420,10 @@ export default function AdminEmailsPage() {
           )}
         </div>
       </div>
+      
+      {showSendModal && (
+        <SendBlastModal templateKey={activeTab} onClose={() => setShowSendModal(false)} />
+      )}
     </div>
   )
 }
