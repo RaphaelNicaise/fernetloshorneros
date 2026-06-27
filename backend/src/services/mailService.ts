@@ -345,8 +345,9 @@ export async function enviarMailConfirmacionCompra(
     finalHtml = replaceVariables(defaultTemplate.html, templateData);
   }
 
+  const fromEmail = process.env.MAIL_FROM || process.env.MAIL_USER;
   await transporter.sendMail({
-    from: `"Fernet Los Horneros" <${process.env.MAIL_USER}>`,
+    from: `"Fernet Los Horneros" <${fromEmail}>`,
     to: email,
     subject,
     html: finalHtml,
@@ -383,8 +384,9 @@ export async function enviarMailComprador(
     finalHtml = replaceVariables(defaultTemplate.html, templateData);
   }
 
+  const fromEmail = process.env.MAIL_FROM || process.env.MAIL_USER;
   await transporter.sendMail({
-    from: `"Fernet Los Horneros" <${process.env.MAIL_USER}>`,
+    from: `"Fernet Los Horneros" <${fromEmail}>`,
     to: email,
     subject,
     html: finalHtml,
@@ -417,8 +419,9 @@ export async function enviarMailVendedor(
     finalHtml = replaceVariables(defaultTemplate.html, templateData);
   }
 
+  const fromEmail = process.env.MAIL_FROM || process.env.MAIL_USER;
   await transporter.sendMail({
-    from: `"Fernet Los Horneros" <${process.env.MAIL_USER}>`,
+    from: `"Fernet Los Horneros" <${fromEmail}>`,
     to: emailVendedor,
     subject,
     html: finalHtml,

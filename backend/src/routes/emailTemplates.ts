@@ -159,8 +159,9 @@ router.post('/:key/preview', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Por favor provee un email de prueba (test_email) en el body.' });
     }
 
+    const fromEmail = process.env.MAIL_FROM || process.env.SMTP_USER || process.env.MAIL_USER;
     await transporter.sendMail({
-      from: `"Fernet Los Horneros" <${process.env.SMTP_USER}>`,
+      from: `"Fernet Los Horneros" <${fromEmail}>`,
       to: test_email,
       subject: `[PRUEBA] ${processedSubject}`,
       html: processedHtml
@@ -245,8 +246,9 @@ router.post('/:key/send-blast', async (req: Request, res: Response) => {
           processedSubject = processedSubject.replace(/{{email}}/g, recipient.email);
           processedHtml = processedHtml.replace(/{{email}}/g, recipient.email);
 
+          const fromEmail = process.env.MAIL_FROM || process.env.SMTP_USER || process.env.MAIL_USER;
           await transporter.sendMail({
-            from: `"Fernet Los Horneros" <${process.env.SMTP_USER}>`,
+            from: `"Fernet Los Horneros" <${fromEmail}>`,
             to: recipient.email,
             subject: processedSubject,
             html: processedHtml
