@@ -17,6 +17,10 @@ import emailTemplatesRouter from '@/routes/emailTemplates';
 import couponsRouter from '@/routes/coupons';
 import lotesRouter from '@/routes/lotes';
 import produccionRouter from '@/routes/produccion';
+import audiencesRouter from '@/routes/audiences';
+import backupsRouter from '@/routes/backups';
+import cron from 'node-cron';
+import { createAutoBackup } from '@/services/backupService';
 import { cleanupExpiredOrders } from '@/controllers/paymentsController';
 
 dotenv.config();
@@ -46,6 +50,8 @@ app.use('/email-templates', emailTemplatesRouter);
 app.use('/coupons', couponsRouter);
 app.use('/lotes', lotesRouter);
 app.use('/produccion', produccionRouter);
+app.use('/audiences', audiencesRouter);
+app.use('/backups', backupsRouter);
 
 
 const startServer = async () => {
@@ -58,6 +64,17 @@ const startServer = async () => {
       setInterval(() => {
         cleanupExpiredOrders().catch(err => console.error("Error en cron de limpieza:", err));
       }, 60000); // 1 minuto
+      
+      // Cron job diario para backups a las 3 AM
+      cron.schedule('0 3 * * *', async () => {
+        try {
+          console.log('Iniciando backup automático diario...');
+          await createAutoBackup();
+          console.log('Backup automático finalizado con éxito.');
+        } catch (error) {
+          console.error('Error al generar backup automático:', error);
+        }
+      });
     });
   } catch (error) {
     process.exit(1);
