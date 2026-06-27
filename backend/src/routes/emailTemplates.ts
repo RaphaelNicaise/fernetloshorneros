@@ -301,12 +301,12 @@ router.post('/:key/send-blast', async (req: Request, res: Response) => {
           console.error(`Error enviando a ${recipient.email}:`, err);
         }
       }
-      console.log(`Blast completado: ${enviosExitosos}/${recipients.length} enviados con éxito.`);
+      console.log(`Blast completado: ${enviosExitosos}/${finalRecipients.length} enviados con éxito.`);
     };
 
     sendBatch(); // Lo ejecutamos sin await para que devuelva la response rapido
 
-    res.json({ message: 'Envío masivo iniciado.', total: recipients.length });
+    res.json({ message: 'Envío masivo iniciado.', total: finalRecipients.length });
   } catch (error: any) {
     console.error('Error initiating email blast:', error);
     res.status(500).json({ error: error.message });
