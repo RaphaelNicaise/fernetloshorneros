@@ -9,20 +9,34 @@ router.use(adminAuth);
 interface FilterBody {
   audiences: string[]; // 'buyers', 'waitlist'
   provinces: string[];
+  manualList?: string;
+}
+
+function parseManualList(text?: string): { email: string, nombre: string }[] {
+  if (!text) return [];
+  const lines = text.split('\n');
+  const results: { email: string, nombre: string }[] = [];
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    const parts = trimmed.split(',');
+    const email = parts[0].trim().toLowerCase();
+    const nombre = parts.length > 1 ? parts[1].trim() : 'Amigo/a';
+    if (email.includes('@')) {
+      results.push({ email, nombre });
+    }
+  }
+  return results;
 }
 
 router.post('/count', async (req: Request, res: Response) => {
   try {
-    const { audiences, provinces } = req.body as FilterBody;
-
-    if (!audiences || audiences.length === 0) {
-      return res.json({ count: 0 });
-    }
+    const { audiences, provinces, manualList } = req.body as FilterBody;
 
     const queries: string[] = [];
     const replacements: any[] = [];
 
-    if (audiences.includes('waitlist')) {
+    if (audiences?.includes('waitlist')) {
       let q = `SELECT email, nombre FROM usuario_lista_espera`;
       if (provinces && provinces.length > 0) {
         q += ` WHERE provincia IN (?)`;
@@ -31,8 +45,7 @@ router.post('/count', async (req: Request, res: Response) => {
       queries.push(q);
     }
 
-    if (audiences.includes('buyers')) {
-      // Tomamos de los envíos que tienen correos válidos y pedidos no fallidos/cancelados
+    if (audiences?.includes('buyers')) {
       let q = `
         SELECT DISTINCT e.email_cliente as email, e.nombre_cliente as nombre 
         FROM envios e
@@ -46,17 +59,30 @@ router.post('/count', async (req: Request, res: Response) => {
       queries.push(q);
     }
 
-    if (queries.length === 0) {
-      return res.json({ count: 0 });
+    let results: {email: string, nombre: string}[] = [];
+    if (queries.length > 0) {
+      const finalQuery = queries.join(' UNION ');
+      results = await sequelize.query<{email: string, nombre: string}>(finalQuery, {
+        replacements,
+        type: QueryTypes.SELECT
+      });
     }
 
-    const finalQuery = queries.join(' UNION ');
-    const results = await sequelize.query<{email: string, nombre: string}>(finalQuery, {
-      replacements,
-      type: QueryTypes.SELECT
+    const manualParsed = parseManualList(manualList);
+    
+    // Deduplicar en memoria
+    const uniqueEmails = new Set<string>();
+    results.forEach(r => uniqueEmails.add(r.email.toLowerCase()));
+    
+    let addedFromManual = 0;
+    manualParsed.forEach(m => {
+      if (!uniqueEmails.has(m.email)) {
+        uniqueEmails.add(m.email);
+        addedFromManual++;
+      }
     });
 
-    res.json({ count: results.length });
+    res.json({ count: results.length + addedFromManual });
   } catch (error: any) {
     console.error('Error counting audience:', error);
     res.status(500).json({ error: error.message });

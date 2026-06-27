@@ -178,21 +178,21 @@ router.post('/:key/preview', async (req: Request, res: Response) => {
 router.post('/:key/send-blast', async (req: Request, res: Response) => {
   try {
     const { key } = req.params;
-    const { audiences, provinces } = req.body;
+    const { audiences, provinces, manualList } = req.body;
 
     const template = await emailTemplateService.getTemplate(key);
     if (!template) {
       return res.status(404).json({ error: 'Template no encontrado' });
     }
 
-    if (!audiences || audiences.length === 0) {
-      return res.status(400).json({ error: 'Debes seleccionar al menos una audiencia.' });
+    if ((!audiences || audiences.length === 0) && !manualList) {
+      return res.status(400).json({ error: 'Debes seleccionar al menos una audiencia o ingresar una lista manual.' });
     }
 
     const queries: string[] = [];
     const replacements: any[] = [];
 
-    if (audiences.includes('waitlist')) {
+    if (audiences?.includes('waitlist')) {
       let q = `SELECT email, nombre FROM usuario_lista_espera`;
       if (provinces && provinces.length > 0) {
         q += ` WHERE provincia IN (?)`;
@@ -201,7 +201,7 @@ router.post('/:key/send-blast', async (req: Request, res: Response) => {
       queries.push(q);
     }
 
-    if (audiences.includes('buyers')) {
+    if (audiences?.includes('buyers')) {
       let q = `
         SELECT DISTINCT e.email_cliente as email, e.nombre_cliente as nombre 
         FROM envios e
@@ -215,27 +215,70 @@ router.post('/:key/send-blast', async (req: Request, res: Response) => {
       queries.push(q);
     }
 
-    const finalQuery = queries.join(' UNION ');
-    const recipients = await emailTemplateService.getAllTemplates().then(async () => {
-      // Usando sequelize desde cualquier lado o importado aquí
-      const { QueryTypes } = require('sequelize');
-      const sequelize = require('../config/database').default;
-      return await sequelize.query(finalQuery, {
-        replacements,
-        type: QueryTypes.SELECT
-      });
-    }) as { email: string, nombre: string }[];
-
-    if (recipients.length === 0) {
-      return res.status(400).json({ error: 'No hay destinatarios que coincidan con los filtros.' });
+    let dbRecipients: { email: string, nombre: string }[] = [];
+    if (queries.length > 0) {
+      const finalQuery = queries.join(' UNION ');
+      dbRecipients = await emailTemplateService.getAllTemplates().then(async () => {
+        // Usando sequelize desde cualquier lado o importado aquí
+        const { QueryTypes } = require('sequelize');
+        const sequelize = require('../config/database').default;
+        return await sequelize.query(finalQuery, {
+          replacements,
+          type: QueryTypes.SELECT
+        });
+      }) as { email: string, nombre: string }[];
     }
 
-    // Despachar en background para no bloquear la request (idealmente usaría una cola como BullMQ, pero lo hacemos asíncrono aquí)
+    // Procesar lista manual
+    const parseManualList = (text?: string) => {
+      if (!text) return [];
+      const lines = text.split('\n');
+      const results: { email: string, nombre: string }[] = [];
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        const parts = trimmed.split(',');
+        const email = parts[0].trim().toLowerCase();
+        const nombre = parts.length > 1 ? parts[1].trim() : 'Amigo/a';
+        if (email.includes('@')) {
+          results.push({ email, nombre });
+        }
+      }
+      return results;
+    };
+
+    const manualParsed = parseManualList(manualList);
+
+    // Deduplicar
+    const finalRecipients: { email: string, nombre: string }[] = [];
+    const uniqueEmails = new Set<string>();
+
+    for (const r of dbRecipients) {
+      const e = r.email.toLowerCase();
+      if (!uniqueEmails.has(e)) {
+        uniqueEmails.add(e);
+        finalRecipients.push({ email: e, nombre: r.nombre });
+      }
+    }
+
+    for (const m of manualParsed) {
+      const e = m.email;
+      if (!uniqueEmails.has(e)) {
+        uniqueEmails.add(e);
+        finalRecipients.push({ email: e, nombre: m.nombre });
+      }
+    }
+
+    if (finalRecipients.length === 0) {
+      return res.status(400).json({ error: 'No hay destinatarios que coincidan con los filtros o la lista provista.' });
+    }
+
+    // Despachar en background para no bloquear la request
     let enviosExitosos = 0;
     
     // Función asíncrona que envía uno por uno (o en lotes)
     const sendBatch = async () => {
-      for (const recipient of recipients) {
+      for (const recipient of finalRecipients) {
         try {
           let processedSubject = template.subject;
           let processedHtml = template.html_content;
