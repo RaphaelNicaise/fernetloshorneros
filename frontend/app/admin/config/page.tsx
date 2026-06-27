@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { api, API_BASE_URL } from '@/lib/api';
+import { Download, Loader2 } from 'lucide-react';
 
 export default function ConfigPage() {
   const [minPurchaseAmount, setMinPurchaseAmount] = useState('');
@@ -15,6 +16,9 @@ export default function ConfigPage() {
   const [lotes, setLotes] = useState<any[]>([]);
   const [newLoteName, setNewLoteName] = useState('');
   
+  const [isManualBackupLoading, setIsManualBackupLoading] = useState(false);
+  const [isAutoBackupLoading, setIsAutoBackupLoading] = useState(false);
+
   const { toast } = useToast();
 
   useEffect(() => {
@@ -124,6 +128,7 @@ export default function ConfigPage() {
   };
 
   const handleDownloadManualBackup = async () => {
+    setIsManualBackupLoading(true);
     try {
       const token = localStorage.getItem('admin_token');
       const baseURL = API_BASE_URL || 'http://localhost:3001';
@@ -142,10 +147,13 @@ export default function ConfigPage() {
       window.URL.revokeObjectURL(url);
     } catch {
       toast({ title: 'Error', description: 'No se pudo generar el backup manual.', variant: 'destructive' });
+    } finally {
+      setIsManualBackupLoading(false);
     }
   };
 
   const handleDownloadAutoBackup = async () => {
+    setIsAutoBackupLoading(true);
     try {
       const token = localStorage.getItem('admin_token');
       const baseURL = API_BASE_URL || 'http://localhost:3001';
@@ -167,6 +175,8 @@ export default function ConfigPage() {
       window.URL.revokeObjectURL(url);
     } catch (e: any) {
       toast({ title: 'Error', description: e.message, variant: 'destructive' });
+    } finally {
+      setIsAutoBackupLoading(false);
     }
   };
 
@@ -281,10 +291,20 @@ export default function ConfigPage() {
             </p>
           </div>
           <div className="flex items-center gap-4">
-            <Button onClick={handleDownloadManualBackup} variant="secondary" className="bg-[#AA6F3B] hover:bg-[#8a5a2f] text-white border-none">
+            <Button onClick={handleDownloadManualBackup} disabled={isManualBackupLoading} variant="secondary" className="bg-[#AA6F3B] hover:bg-[#8a5a2f] text-white border-none flex items-center gap-2">
+              {isManualBackupLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
               Generar y Descargar Backup Manual
             </Button>
-            <Button onClick={handleDownloadAutoBackup} variant="secondary" className="bg-[#AA6F3B] hover:bg-[#8a5a2f] text-white border-none">
+            <Button onClick={handleDownloadAutoBackup} disabled={isAutoBackupLoading} variant="secondary" className="bg-[#AA6F3B] hover:bg-[#8a5a2f] text-white border-none flex items-center gap-2">
+              {isAutoBackupLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
               Descargar Último Backup Automático
             </Button>
           </div>
