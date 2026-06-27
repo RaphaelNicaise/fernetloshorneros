@@ -160,4 +160,16 @@ router.post('/:id/registros', async (req: Request, res: Response) => {
   }
 });
 
+// DELETE /produccion/:id/registros/:registroId — Delete registro from barrel
+router.delete('/:id/registros/:registroId', async (req: Request, res: Response) => {
+  try {
+    const barrilId = Number(req.params.id);
+    const registroId = Number(req.params.registroId);
+    await produccionService.deleteRegistro(barrilId, registroId);
+    res.json({ message: 'Registro eliminado y cambios revertidos' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;

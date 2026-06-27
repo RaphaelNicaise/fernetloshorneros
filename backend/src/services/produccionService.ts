@@ -235,7 +235,100 @@ export const produccionService = {
       throw error;
     }
   },
+  async deleteRegistro(barrilId: number, registroId: number): Promise<void> {
+    const transaction = await sequelize.transaction();
+    try {
+      // Find the record
+      const regRows = await sequelize.query<BarrilRegistro>(
+        `SELECT * FROM barril_registros WHERE id = ? AND barril_id = ?`,
+        { replacements: [registroId, barrilId], type: QueryTypes.SELECT, transaction }
+      );
+      if (regRows.length === 0) throw new Error('Registro no encontrado');
+      const reg = regRows[0];
 
+      // Find the barrel
+      const barrilRows = await sequelize.query<{ litros_actuales: number; capacidad_litros: number; estado: string }>(
+        `SELECT litros_actuales, capacidad_litros, estado FROM barriles WHERE id = ?`,
+        { replacements: [barrilId], type: QueryTypes.SELECT, transaction }
+      );
+      if (barrilRows.length === 0) throw new Error('Barril no encontrado');
+      
+      const currentLitros = Number(barrilRows[0].litros_actuales);
+      const capacidad = Number(barrilRows[0].capacidad_litros);
+
+      // Revert liters
+      if (reg.cantidad_litros && reg.cantidad_litros !== 0) {
+        const revertLitros = -Number(reg.cantidad_litros);
+        const newTotal = currentLitros + revertLitros;
+        
+        if (newTotal < 0) {
+          throw new Error(`No se puede deshacer esta acción. Resultaría en litros negativos (${newTotal.toFixed(1)}L).`);
+        }
+        if (newTotal > capacidad) {
+          throw new Error(`No se puede deshacer la extracción. El barril superaría su capacidad (tendría ${newTotal.toFixed(1)}L de ${capacidad.toFixed(0)}L).`);
+        }
+
+        await sequelize.query(
+          `UPDATE barriles SET litros_actuales = ? WHERE id = ?`,
+          { replacements: [newTotal, barrilId], type: QueryTypes.UPDATE, transaction }
+        );
+      }
+
+      // Delete the record
+      await sequelize.query(
+        `DELETE FROM barril_registros WHERE id = ?`,
+        { replacements: [registroId], type: QueryTypes.DELETE, transaction }
+      );
+
+      // Revert mezcla date if needed
+      if (reg.tipo === 'mezcla') {
+        const prevMezclaRows = await sequelize.query<{ fecha: string }>(
+          `SELECT fecha FROM barril_registros WHERE barril_id = ? AND tipo = 'mezcla' ORDER BY fecha DESC LIMIT 1`,
+          { replacements: [barrilId], type: QueryTypes.SELECT, transaction }
+        );
+        
+        if (prevMezclaRows.length > 0) {
+          await sequelize.query(
+            `UPDATE barriles SET ultima_mezcla = ? WHERE id = ?`,
+            { replacements: [prevMezclaRows[0].fecha, barrilId], type: QueryTypes.UPDATE, transaction }
+          );
+        } else {
+          await sequelize.query(
+            `UPDATE barriles SET ultima_mezcla = NULL WHERE id = ?`,
+            { replacements: [barrilId], type: QueryTypes.UPDATE, transaction }
+          );
+        }
+      }
+
+      // Re-evaluate state based on new liters
+      const updatedBarrilRows = await sequelize.query<{ litros_actuales: number; estado: string }>(
+        `SELECT litros_actuales, estado FROM barriles WHERE id = ?`,
+        { replacements: [barrilId], type: QueryTypes.SELECT, transaction }
+      );
+      
+      if (updatedBarrilRows.length > 0) {
+        const litros = Number(updatedBarrilRows[0].litros_actuales);
+        const estadoActual = updatedBarrilRows[0].estado;
+        
+        if (litros <= 0 && estadoActual !== 'vacio') {
+          await sequelize.query(
+            `UPDATE barriles SET estado = 'vacio', litros_actuales = 0 WHERE id = ?`,
+            { replacements: [barrilId], type: QueryTypes.UPDATE, transaction }
+          );
+        } else if (litros > 0 && estadoActual === 'vacio') {
+          await sequelize.query(
+            `UPDATE barriles SET estado = 'en_proceso' WHERE id = ?`,
+            { replacements: [barrilId], type: QueryTypes.UPDATE, transaction }
+          );
+        }
+      }
+
+      await transaction.commit();
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
+  },
   async getAlertasMezcla(): Promise<Barril[]> {
     return sequelize.query<Barril>(
       `SELECT b.*

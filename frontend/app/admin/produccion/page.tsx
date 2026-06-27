@@ -142,6 +142,7 @@ export default function ProduccionPage() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [editingBarril, setEditingBarril] = useState<Barril | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<Barril | null>(null);
+  const [undoConfirm, setUndoConfirm] = useState<{ barrilId: number; registroId: number } | null>(null);
 
   // Action modals per barrel
   const [ingredienteModal, setIngredienteModal] = useState<Barril | null>(null);
@@ -149,16 +150,17 @@ export default function ProduccionPage() {
   const [extraccionModal, setExtraccionModal] = useState<Barril | null>(null);
   const [notaModal, setNotaModal] = useState<Barril | null>(null);
 
-  const fetchBarriles = useCallback(async () => {
+  const fetchBarriles = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await fetch(`${API_BASE_URL}/produccion`, { headers: getAuthHeaders() });
       if (!res.ok) throw new Error('Error');
       setBarriles(await res.json());
     } catch (err) { console.error(err); }
-    finally { setLoading(false); }
+    finally { if (!silent) setLoading(false); }
   }, []);
 
-  const fetchIngredientes = useCallback(async () => {
+  const fetchIngredientes = useCallback(async (silent = false) => {
     try {
       const res = await fetch(`${API_BASE_URL}/produccion/ingredientes`, { headers: getAuthHeaders() });
       if (!res.ok) throw new Error('Error');
@@ -166,14 +168,28 @@ export default function ProduccionPage() {
     } catch (err) { console.error(err); }
   }, []);
 
-  useEffect(() => { fetchBarriles(); fetchIngredientes(); }, [fetchBarriles, fetchIngredientes]);
+  // Initial fetch and Auto-refresh (polling)
+  useEffect(() => { 
+    fetchBarriles(); 
+    fetchIngredientes(); 
+    
+    const interval = setInterval(() => {
+      fetchBarriles(true);
+      fetchIngredientes(true);
+      // We do not auto-refresh selectedBarril detail to avoid un-syncing modal state.
+      // E.g., if we fetch and the user is doing something, it might flash. 
+      // Actually, if we refresh silently, it's fine.
+    }, 10000);
+    
+    return () => clearInterval(interval);
+  }, [fetchBarriles, fetchIngredientes]);
 
   const [filterNeedsMix, setFilterNeedsMix] = useState(false);
 
-  const refresh = () => { fetchBarriles(); fetchIngredientes(); };
+  const refresh = () => { fetchBarriles(true); fetchIngredientes(true); };
 
-  const refreshDetail = async (barrilId: number) => {
-    setDetailLoading(true);
+  const refreshDetail = async (barrilId: number, silent = false) => {
+    if (!silent) setDetailLoading(true);
     try {
       const res = await fetch(`${API_BASE_URL}/produccion/${barrilId}`, { headers: getAuthHeaders() });
       if (res.ok) {
@@ -182,7 +198,39 @@ export default function ProduccionPage() {
         setDetailRegistros(data.registros);
       }
     } catch (err) { console.error(err); }
-    finally { setDetailLoading(false); }
+    finally { if (!silent) setDetailLoading(false); }
+  };
+  
+  // Real-time polling for selected barrel detail
+  useEffect(() => {
+    if (!selectedBarril) return;
+    const interval = setInterval(() => {
+      refreshDetail(selectedBarril.id, true);
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [selectedBarril]);
+
+  const confirmUndo = (barrilId: number, registroId: number) => {
+    setUndoConfirm({ barrilId, registroId });
+  };
+
+  const executeUndo = async () => {
+    if (!undoConfirm) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/produccion/${undoConfirm.barrilId}/registros/${undoConfirm.registroId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Error al deshacer registro');
+      }
+      refresh();
+      if (selectedBarril?.id === undoConfirm.barrilId) refreshDetail(undoConfirm.barrilId);
+      setUndoConfirm(null);
+    } catch (error: any) {
+      alert(error.message);
+    }
   };
 
   const openBarrilDetail = async (barril: Barril) => {
@@ -372,6 +420,7 @@ export default function ProduccionPage() {
       <NewBarrilModal open={showNewBarril} onClose={() => setShowNewBarril(false)} onCreated={() => { setShowNewBarril(false); refresh(); }} />
       <IngredientesManagerModal open={showIngredientes} onClose={() => setShowIngredientes(false)} ingredientes={ingredientes} onRefresh={fetchIngredientes} />
       <BarrilDetailPanel barril={selectedBarril} registros={detailRegistros} loading={detailLoading}
+        onUndoRegistro={confirmUndo}
         onClose={() => { setSelectedBarril(null); setDetailRegistros([]); }}
         onRefresh={() => refreshDetail(selectedBarril!.id)}
         onRefreshGlobal={refresh}
@@ -388,6 +437,7 @@ export default function ProduccionPage() {
       <NotaModal barril={notaModal} onClose={() => setNotaModal(null)} onAdded={() => { setNotaModal(null); refresh(); if (selectedBarril?.id === notaModal?.id) refreshDetail(selectedBarril.id); }} />
       <EditBarrilModal barril={editingBarril} onClose={() => setEditingBarril(null)} onSaved={() => { setEditingBarril(null); if (selectedBarril) refreshDetail(selectedBarril.id); refresh(); }} />
       <DeleteConfirmDialog barril={deleteConfirm} onClose={() => setDeleteConfirm(null)} onDeleted={() => { setDeleteConfirm(null); setSelectedBarril(null); refresh(); }} />
+      <UndoConfirmDialog undoData={undoConfirm} onClose={() => setUndoConfirm(null)} onConfirm={executeUndo} />
     </div>
   );
 }
@@ -576,11 +626,12 @@ function BarrilCard({ barril, index, onDetail, onRefresh, onIngrediente, onExtra
 
 // ─── Barril Detail Panel ──────────────────────────────────────────
 
-function BarrilDetailPanel({ barril, registros, loading, onClose, onRefresh, onRefreshGlobal, onEdit, onDelete, onIngrediente, onExtraccion, onNota }: {
+function BarrilDetailPanel({ barril, registros, loading, onClose, onRefresh, onRefreshGlobal, onEdit, onDelete, onIngrediente, onExtraccion, onNota, onUndoRegistro }: {
   barril: Barril | null; registros: BarrilRegistro[]; loading: boolean;
   onClose: () => void; onRefresh: () => void; onRefreshGlobal: () => void;
   onEdit: (b: Barril) => void; onDelete: (b: Barril) => void;
   onIngrediente: (b: Barril, initialName?: string) => void; onExtraccion: (b: Barril) => void; onNota: (b: Barril) => void;
+  onUndoRegistro?: (barrilId: number, registroId: number) => void;
 }) {
   const [showFullHistory, setShowFullHistory] = useState(false);
   const [showCompositionModal, setShowCompositionModal] = useState(false);
@@ -652,21 +703,34 @@ function BarrilDetailPanel({ barril, registros, loading, onClose, onRefresh, onR
                 <span className="text-[11px] text-white/50 font-medium">— {reg.ingrediente_nombre}</span>
               )}
             </div>
-            <span className="text-[10px] text-white/30 whitespace-nowrap">{formatDateTime(reg.fecha)}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-white/30 whitespace-nowrap">{formatDateTime(reg.fecha)}</span>
+              {onUndoRegistro && (
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onUndoRegistro(barril.id, reg.id); }}
+                  className="text-white/30 hover:text-red-400 transition-colors"
+                  title="Deshacer registro"
+                >
+                  <Trash2 size={12} />
+                </button>
+              )}
+            </div>
           </div>
           
-          <div className="flex flex-wrap gap-2 items-center">
-            {reg.cantidad_litros !== null && reg.cantidad_litros !== 0 && (
-              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${Number(reg.cantidad_litros) > 0 ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'}`}>
-                {Number(reg.cantidad_litros) > 0 ? '+' : ''}{Number(reg.cantidad_litros).toFixed(1)}L
-              </span>
-            )}
-            {reg.cantidad_gramos !== null && reg.cantidad_gramos > 0 && (
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-400">
-                {Number(reg.cantidad_gramos).toFixed(0)}g
-              </span>
-            )}
-          </div>
+          {(reg.cantidad_litros !== null && reg.cantidad_litros !== 0) || (reg.cantidad_gramos !== null && reg.cantidad_gramos > 0) ? (
+            <div className="flex flex-wrap gap-2 items-center mt-1.5">
+              {reg.cantidad_litros !== null && reg.cantidad_litros !== 0 && (
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${Number(reg.cantidad_litros) > 0 ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'}`}>
+                  {Number(reg.cantidad_litros) > 0 ? '+' : ''}{Number(reg.cantidad_litros).toFixed(1)}L
+                </span>
+              )}
+              {reg.cantidad_gramos !== null && reg.cantidad_gramos > 0 && (
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-400">
+                  {Number(reg.cantidad_gramos).toFixed(0)}g
+                </span>
+              )}
+            </div>
+          ) : null}
 
           {reg.descripcion && <p className="text-[11px] text-white/50 mt-1.5 leading-relaxed">{reg.descripcion}</p>}
         </div>
@@ -678,7 +742,7 @@ function BarrilDetailPanel({ barril, registros, loading, onClose, onRefresh, onR
     <>
       <Dialog open={!!barril} onOpenChange={() => onClose()}>
         <DialogContent className="max-w-2xl w-[95vw] sm:w-full max-h-[90vh] flex flex-col bg-[#0f0d0a] border-white/10 text-white p-0 overflow-hidden">
-          
+          <DialogTitle className="sr-only">Detalles del barril {barril.identificador}</DialogTitle>
           {/* Header - Fixed */}
           <div className="bg-[#0f0d0a] border-b border-white/8 p-4 sm:p-5 pb-4 shrink-0 z-10 shadow-md">
             <div className="flex items-start justify-between pr-6 sm:pr-0">
@@ -949,9 +1013,9 @@ function IngredienteModal({ barril, ingredientes, initialIngredientName, onClose
       
       // Fetch registros to show current composition
       setLoadingRegistros(true);
-      fetch(`${API_BASE_URL}/produccion/${barril.id}/registros`, { headers: getAuthHeaders() })
+      fetch(`${API_BASE_URL}/produccion/${barril.id}`, { headers: getAuthHeaders() })
         .then(res => res.json())
-        .then(data => setRegistros(data))
+        .then(data => setRegistros(data.registros || []))
         .catch(err => console.error(err))
         .finally(() => setLoadingRegistros(false));
     }
@@ -1578,6 +1642,43 @@ function DeleteConfirmDialog({ barril, onClose, onDeleted }: {
           <Button variant="outline" onClick={onClose} className="border-white/10 text-white/60 hover:text-white h-9 text-xs">Cancelar</Button>
           <Button onClick={handleDelete} disabled={deleting} className="bg-red-600 hover:bg-red-700 text-white gap-1.5 h-9 text-xs">
             {deleting && <RefreshCw size={12} className="animate-spin" />} Eliminar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Undo Confirm ─────────────────────────────────────────────────
+
+function UndoConfirmDialog({ undoData, onClose, onConfirm }: {
+  undoData: { barrilId: number; registroId: number } | null;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  const [undoing, setUndoing] = useState(false);
+
+  const handleUndo = async () => {
+    setUndoing(true);
+    await onConfirm();
+    setUndoing(false);
+  };
+
+  return (
+    <Dialog open={!!undoData} onOpenChange={() => onClose()}>
+      <DialogContent className="bg-[#0f0d0a] border-white/10 text-white max-w-xs">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-red-400 text-base">
+            <Trash2 size={16} /> Deshacer Acción
+          </DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-white/60">
+          ¿Seguro que querés deshacer esta acción? Esto revertirá los litros del barril a como estaban antes.
+        </p>
+        <DialogFooter className="mt-4">
+          <Button variant="outline" onClick={onClose} className="border-white/10 text-white/60 hover:text-white h-9 text-xs">Cancelar</Button>
+          <Button onClick={handleUndo} disabled={undoing} className="bg-red-600 hover:bg-red-700 text-white gap-1.5 h-9 text-xs">
+            {undoing && <RefreshCw size={12} className="animate-spin" />} Deshacer
           </Button>
         </DialogFooter>
       </DialogContent>
