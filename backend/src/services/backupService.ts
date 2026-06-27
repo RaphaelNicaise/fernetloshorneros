@@ -19,39 +19,59 @@ if (!fs.existsSync(BACKUPS_DIR)) {
 }
 
 export async function createManualBackup(): Promise<string> {
+    console.log("[BackupService] Iniciando backup manual...");
     if (!DB_NAME || !DB_USER) {
+        console.error("[BackupService] Error: Faltan variables de base de datos. DB_NAME:", DB_NAME, "DB_USER:", DB_USER);
         throw new Error("Database configuration is missing");
     }
     const tempFilePath = path.join(BACKUPS_DIR, `backup_manual_${Date.now()}.sql`);
-    await mysqldump({
-        connection: {
-            host: DB_HOST,
-            port: Number(DB_PORT),
-            user: DB_USER,
-            password: DB_PASSWORD || '',
-            database: DB_NAME,
-        },
-        dumpToFile: tempFilePath,
-    });
-    return tempFilePath;
+    
+    console.log(`[BackupService] Conectando a mysql -> Host: ${DB_HOST}, Port: ${DB_PORT}, User: ${DB_USER}, DB: ${DB_NAME}`);
+    try {
+        await mysqldump({
+            connection: {
+                host: DB_HOST,
+                port: Number(DB_PORT),
+                user: DB_USER,
+                password: DB_PASSWORD || '',
+                database: DB_NAME,
+            },
+            dumpToFile: tempFilePath,
+        });
+        console.log(`[BackupService] Backup manual creado exitosamente en ${tempFilePath}`);
+        return tempFilePath;
+    } catch (err) {
+        console.error("[BackupService] Error crítico al ejecutar mysqldump (manual):", err);
+        throw err;
+    }
 }
 
 export async function createAutoBackup(): Promise<string> {
+    console.log("[BackupService] Iniciando backup automático...");
     if (!DB_NAME || !DB_USER) {
+        console.error("[BackupService] Error: Faltan variables de base de datos. DB_NAME:", DB_NAME, "DB_USER:", DB_USER);
         throw new Error("Database configuration is missing");
     }
     const autoFilePath = path.join(BACKUPS_DIR, 'daily_backup.sql');
-    await mysqldump({
-        connection: {
-            host: DB_HOST,
-            port: Number(DB_PORT),
-            user: DB_USER,
-            password: DB_PASSWORD || '',
-            database: DB_NAME,
-        },
-        dumpToFile: autoFilePath,
-    });
-    return autoFilePath;
+    
+    console.log(`[BackupService] Conectando a mysql -> Host: ${DB_HOST}, Port: ${DB_PORT}, User: ${DB_USER}, DB: ${DB_NAME}`);
+    try {
+        await mysqldump({
+            connection: {
+                host: DB_HOST,
+                port: Number(DB_PORT),
+                user: DB_USER,
+                password: DB_PASSWORD || '',
+                database: DB_NAME,
+            },
+            dumpToFile: autoFilePath,
+        });
+        console.log(`[BackupService] Backup automático creado exitosamente en ${autoFilePath}`);
+        return autoFilePath;
+    } catch (err) {
+        console.error("[BackupService] Error crítico al ejecutar mysqldump (auto):", err);
+        throw err;
+    }
 }
 
 export function getAutoBackupPath(): string | null {
