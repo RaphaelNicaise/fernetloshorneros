@@ -152,6 +152,7 @@ services:
       DATABASE_TYPE: postgresql
       APP_SECRET: ${UMAMI_APP_SECRET}
       PORT: 3002
+      BASE_PATH: /umami
     depends_on:
       umami_db:
         condition: service_healthy

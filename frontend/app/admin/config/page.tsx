@@ -123,6 +123,56 @@ export default function ConfigPage() {
     }
   };
 
+  const handleDownloadManualBackup = async () => {
+    try {
+      const token = localStorage.getItem('admin_token');
+      // @ts-ignore
+      const baseURL = api.defaults.baseURL || 'http://localhost:3001';
+      const res = await fetch(`${baseURL}/backups/manual`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Error al generar backup');
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `backup_manual_${new Date().toISOString().split('T')[0]}.sql`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      toast({ title: 'Error', description: 'No se pudo generar el backup manual.', variant: 'destructive' });
+    }
+  };
+
+  const handleDownloadAutoBackup = async () => {
+    try {
+      const token = localStorage.getItem('admin_token');
+      // @ts-ignore
+      const baseURL = api.defaults.baseURL || 'http://localhost:3001';
+      const res = await fetch(`${baseURL}/backups/auto`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) {
+        if (res.status === 404) throw new Error('No hay backup automático disponible aún');
+        throw new Error('Error al descargar backup automático');
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'daily_backup.sql';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (e: any) {
+      toast({ title: 'Error', description: e.message, variant: 'destructive' });
+    }
+  };
+
+
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-6 text-white">Configuración</h1>
@@ -221,6 +271,24 @@ export default function ConfigPage() {
             <span className={`text-sm font-medium ${maintenanceMode ? 'text-red-300' : 'text-white/70'}`}>
               {maintenanceMode ? 'Activo — sitio en mantenimiento' : 'Desactivado — sitio normal'}
             </span>
+          </div>
+        </div>
+
+        {/* Backups de Base de Datos */}
+        <div className="bg-white/10 rounded-xl p-5">
+          <div className="flex flex-col gap-2 mb-4">
+            <h2 className="text-white font-semibold">Copias de Seguridad (Base de Datos)</h2>
+            <p className="text-white/60 text-sm">
+              Descarga una copia completa de la base de datos. El sistema genera un backup automático todos los días a las 3:00 AM.
+            </p>
+          </div>
+          <div className="flex items-center gap-4">
+            <Button onClick={handleDownloadManualBackup} variant="secondary" className="bg-[#AA6F3B] hover:bg-[#8a5a2f] text-white border-none">
+              Generar y Descargar Backup Manual
+            </Button>
+            <Button onClick={handleDownloadAutoBackup} variant="secondary" className="bg-[#AA6F3B] hover:bg-[#8a5a2f] text-white border-none">
+              Descargar Último Backup Automático
+            </Button>
           </div>
         </div>
 
