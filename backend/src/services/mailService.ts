@@ -182,8 +182,8 @@ export function getEmailWrapper(title: string, contentHtml: string): string {
                 <!-- Logos -->
                 <div style="padding: 30px 20px 0 20px;">
                   <div style="text-align: center; margin-bottom: 5px;">
-                    <img src="${process.env.FRONTEND_URL || 'https://fernetloshorneros.com'}//logonuevo.png" alt="Pájaro" style="height: 40px; width: auto; display: inline-block; vertical-align: middle; margin-right: 10px; filter: invert(1); opacity: 0.9;" />
-                    <img src="${process.env.FRONTEND_URL || 'https://fernetloshorneros.com'}/logo-fernet.png" alt="Los Horneros" style="height: 40px; width: auto; display: inline-block; vertical-align: middle; filter: invert(1); opacity: 0.9;" />
+                    <img src="${process.env.FRONTEND_URL || 'https://fernetloshorneros.com'}/logonuevo.png" alt="Pájaro" style="height: 40px; width: auto; display: inline-block; vertical-align: middle; margin-right: 10px; opacity: 0.9;" />
+                    <img src="${process.env.FRONTEND_URL || 'https://fernetloshorneros.com'}/logo-fernet.png" alt="Los Horneros" style="height: 40px; width: auto; display: inline-block; vertical-align: middle; opacity: 0.9;" />
                   </div>
                   <p>Fernet de Autor</p>
                 </div>
