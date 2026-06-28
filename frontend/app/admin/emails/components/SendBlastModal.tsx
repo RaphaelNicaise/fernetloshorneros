@@ -22,6 +22,7 @@ export function SendBlastModal({ templateKey, onClose }: SendBlastModalProps) {
   const [sending, setSending] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
 
   useEffect(() => {
     const fetchProvinces = async () => {
@@ -86,10 +87,13 @@ export function SendBlastModal({ templateKey, onClose }: SendBlastModalProps) {
     setSelectedProvinces(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val])
   }
 
-  const handleSend = async () => {
+  const handleSendRequest = () => {
     if ((audiences.length === 0 && !manualList.trim()) || recipientCount === 0) return
-    if (!confirm(`¿Seguro que quieres enviar este correo a ${recipientCount} personas?`)) return
-    
+    setShowConfirmModal(true)
+  }
+
+  const executeSend = async () => {
+    setShowConfirmModal(false)
     setSending(true)
     setError(null)
     try {
@@ -212,16 +216,32 @@ export function SendBlastModal({ templateKey, onClose }: SendBlastModalProps) {
             <Button variant="outline" onClick={onClose} disabled={sending} className="border-white/10 text-white hover:bg-white/10">Cancelar</Button>
             <Button 
               className="bg-[#AA6F3B] hover:bg-[#AA6F3B]/90 text-white" 
-              onClick={handleSend}
+              onClick={handleSendRequest}
               disabled={sending || (audiences.length === 0 && !manualList.trim()) || recipientCount === 0}
             >
               {sending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-              Confirmar Envío
+              Revisar Envío
             </Button>
           </div>
         </div>
-
       </div>
+
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-[#14120f] border border-white/10 rounded-xl max-w-sm w-full p-6 text-center shadow-2xl">
+            <h3 className="text-xl font-bold text-white mb-2">Confirmar Envío Masivo</h3>
+            <p className="text-white/60 mb-6 text-sm">
+              ¿Estás seguro que quieres enviar este correo a <strong>{recipientCount}</strong> personas? Esta acción no se puede deshacer.
+            </p>
+            <div className="flex gap-3">
+              <Button onClick={() => setShowConfirmModal(false)} variant="outline" className="flex-1 border-white/10 text-white hover:bg-white/10">Cancelar</Button>
+              <Button onClick={executeSend} disabled={sending} className="flex-1 bg-[#AA6F3B] hover:bg-[#AA6F3B]/90 text-white border-none">
+                {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Sí, Enviar"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
