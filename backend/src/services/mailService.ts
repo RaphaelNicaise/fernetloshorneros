@@ -327,7 +327,7 @@ export async function enviarMailConfirmacionCompra(
   if (loteNombre) {
     loteHtml = `
       <p style="text-align: center; font-size: 12px; color: #AA6F3B !important; margin-top: 15px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">
-        PARTIDA ASIGNADA: LOTE ${loteNombre}
+        PARTIDA ASIGNADA: ${loteNombre}
       </p>
     `;
   }
