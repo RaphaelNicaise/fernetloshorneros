@@ -464,3 +464,34 @@ export async function enviarMailVendedor(
     html: finalHtml,
   });
 }
+
+/**
+ * Envia correo de confirmación al sumarse a la lista de espera
+ */
+export async function enviarMailListaEspera(
+  email: string,
+  nombre: string
+) {
+  const templateData = { nombre };
+
+  const customTemplate = await emailTemplateService.getTemplate('lista_espera_confirmacion');
+
+  let subject = '';
+  let finalHtml = '';
+  if (customTemplate) {
+    subject = replaceVariables(customTemplate.subject, templateData);
+    finalHtml = replaceVariables(customTemplate.html_content, templateData);
+  } else {
+    const defaultTemplate = getDefaultTemplate('lista_espera_confirmacion');
+    subject = replaceVariables(defaultTemplate.subject, templateData);
+    finalHtml = replaceVariables(defaultTemplate.html, templateData);
+  }
+
+  const fromEmail = process.env.MAIL_FROM || process.env.MAIL_USER;
+  await transporter.sendMail({
+    from: `"Fernet Los Horneros" <${fromEmail}>`,
+    to: email,
+    subject,
+    html: finalHtml,
+  });
+}
