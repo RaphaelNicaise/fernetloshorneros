@@ -271,6 +271,19 @@ export function getDefaultTemplate(key: string, title?: string): { subject: stri
         html: getEmailWrapper(title || 'Nuevo Pedido #{{pedidoId}}', contentHtml),
       };
     }
+    case 'lista_espera_confirmacion': {
+      const contentHtml = `
+<div style="color: #ffffff; text-align: center; padding: 20px;">
+  <strong>CONFIRMADO! Ya estás oficialmente en nuestra lista de espera.</strong>
+  <p>Estamos trabajando en los detalles finales de nuestra próxima producción y valoramos mucho tu interés por ser de los primeros en conocer nuestra propuesta artesanal. </p>
+  <p>Mantente atento a tu correo, ya que próximamente te enviaremos novedades exclusivas. Quienes integran esta lista tendrán prioridad absoluta para asegurar su botella en la PRE-VENTA.</p>
+</div>
+      `;
+      return {
+        subject: '¡Bienvenido a la lista de espera de Fernet Los Horneros!',
+        html: getEmailWrapper(title || 'Confirmación de Lista de Espera', contentHtml),
+      };
+    }
     default:
       return { subject: '', html: '' };
   }
