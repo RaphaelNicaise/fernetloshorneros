@@ -125,10 +125,7 @@ CREATE TABLE IF NOT EXISTS lotes (
 -- Modificar tabla pedidos para asociarla a un lote
 ALTER TABLE pedidos 
   ADD COLUMN lote_id INT DEFAULT NULL;
-
--- --------------------------------------------------------
--- Tablas de Producción (integradas desde 02-produccion.sql)
--- --------------------------------------------------------
+----------------------------------------
 
 -- Tabla de ingredientes para producción
 CREATE TABLE IF NOT EXISTS ingredientes (
