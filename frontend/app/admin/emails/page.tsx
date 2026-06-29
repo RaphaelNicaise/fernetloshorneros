@@ -22,12 +22,14 @@ const TEMPLATE_NAMES: Record<string, string> = {
   compra_confirmacion: "Confirmación de Compra",
   envio_tracking: "Notificación de Envío",
   notif_vendedor: "Notificación al Vendedor",
+  lista_espera_confirmacion: "Confirmación Lista de Espera",
 }
 
 const DEFAULT_TEMPLATE_VARS: Record<string, string[]> = {
   compra_confirmacion: ["nombre", "pedidoId", "items", "total", "costoEnvio"],
   envio_tracking: ["nombre", "pedidoId", "trackingCode", "trackingUrl"],
   notif_vendedor: ["pedidoId", "detalles"],
+  lista_espera_confirmacion: ["nombre"],
 }
 
 const DUMMY_DATA: Record<string, string> = {

@@ -1,5 +1,6 @@
 import sequelize from '@/config/database';
 import { QueryTypes } from 'sequelize';
+import { enviarMailListaEspera } from './mailService';
 
 export type WaitlistInput = {
   nombre: string;
@@ -62,6 +63,13 @@ export async function addToWaitlist({ nombre, email, provincia }: WaitlistInput)
         type: QueryTypes.INSERT,
       }
     );
+
+    // Enviar correo de confirmación
+    try {
+      await enviarMailListaEspera(email, nombre);
+    } catch (mailError) {
+      console.error('Error enviando mail de confirmación de lista de espera:', mailError);
+    }
   } catch (err: any) {
     if (err?.original?.code === 'ER_DUP_ENTRY') {
       throw new Error('El email ya se encuentra registrado');

@@ -14,12 +14,13 @@ router.get('/wrapper', (req: Request, res: Response) => {
   res.send({ wrapper });
 });
 
-const DEFAULT_TEMPLATES = ['compra_confirmacion', 'envio_tracking', 'notif_vendedor'];
+const DEFAULT_TEMPLATES = ['compra_confirmacion', 'envio_tracking', 'notif_vendedor', 'lista_espera_confirmacion'];
 
 const DEFAULT_SUBJECTS: Record<string, string> = {
   compra_confirmacion: 'Confirmación de tu compra',
   envio_tracking: 'Tu pedido está en camino',
   notif_vendedor: 'Nuevo pedido recibido',
+  lista_espera_confirmacion: '¡Bienvenido a la lista de espera de Fernet Los Horneros!',
 };
 
 // Obtener todas las plantillas (incluyendo defaults vacías)
