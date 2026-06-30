@@ -25,10 +25,10 @@ export const getSetting = async (key: string): Promise<Setting | null> => {
 
 export const updateSetting = async (key: string, value: string): Promise<Setting | null> => {
     await sequelize.query(
-        'UPDATE settings SET value = ? WHERE key_name = ?',
+        'INSERT INTO settings (key_name, value, created_at, updated_at) VALUES (?, ?, NOW(), NOW()) ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = NOW()',
         {
-            replacements: [value, key],
-            type: QueryTypes.UPDATE
+            replacements: [key, value],
+            type: QueryTypes.INSERT
         }
     );
     return getSetting(key);
