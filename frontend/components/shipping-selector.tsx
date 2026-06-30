@@ -160,18 +160,8 @@ export function ShippingSelector({ items, productsTotal, onSelectionComplete, on
     load()
   }, [provincia])
 
-  // Filtrar opciones: la más barata de cada tipo (solo standard_delivery ahora)
-  const { deliveryOption } = useMemo(() => {
-    const deliveryOptions = allOptions.filter(o => o.service_type === 'standard_delivery')
-    
-    const delivery = deliveryOptions.length > 0 
-      ? deliveryOptions.reduce((min, curr) => 
-          curr.amounts.price_incl_tax < min.amounts.price_incl_tax ? curr : min
-        )
-      : null
-    
-    return { deliveryOption: delivery }
-  }, [allOptions])
+  // Ya no filtramos una sola opcion por defecto
+  // const { deliveryOption } = useMemo(() => ...
 
 
   const canQuote = codigoPostal.trim().length >= 4 && provincia.trim() !== "" && ciudad.trim() !== ""
@@ -207,11 +197,14 @@ export function ShippingSelector({ items, productsTotal, onSelectionComplete, on
         })
         if (result.success && result.all_results) {
           setAllOptions(result.all_results)
-          // Auto-seleccionar standard_delivery si hay opciones
-          setSelectedType('standard_delivery')
+          if (result.all_results.length > 0) {
+            setSelectedType(result.all_results[0].service_type as any)
+            setSelectedOption(result.all_results[0])
+          }
         } else {
           setAllOptions([])
           setSelectedType(null)
+          setSelectedOption(null)
         }
         setQuoteFetched(true)
         setLastQuotedValues(currentQuoteKey)
@@ -236,20 +229,10 @@ export function ShippingSelector({ items, productsTotal, onSelectionComplete, on
     }
   }, [selectedOption, productsTotal, onTotalChange])
 
-  // Sincronizar automáticamente selectedOption cuando se auto-selecciona standard_delivery
-  useEffect(() => {
-    if (selectedType === 'standard_delivery' && deliveryOption) {
-      setSelectedOption(deliveryOption)
-      setSelectedPickupPoint(null)
-    }
-  }, [selectedType, deliveryOption])
-
-  const handleSelectType = (type: 'standard_delivery' | 'pickup_point') => {
-    setSelectedType(type)
-    if (type === 'standard_delivery' && deliveryOption) {
-      setSelectedOption(deliveryOption)
-      setSelectedPickupPoint(null)
-    }
+  const handleSelectType = (option: ShippingOption) => {
+    setSelectedType(option.service_type as any)
+    setSelectedOption(option)
+    setSelectedPickupPoint(null)
   }
 
   const isDeliveryFormComplete = 
@@ -261,13 +244,20 @@ export function ShippingSelector({ items, productsTotal, onSelectionComplete, on
     dni.trim() !== "" &&
     telefono.trim() !== ""
 
-  const isFormComplete = isDeliveryFormComplete
+  const isPickupFormComplete = 
+    selectedType === 'pickup_point' &&
+    nombre.trim() !== "" &&
+    email.trim() !== "" &&
+    dni.trim() !== "" &&
+    telefono.trim() !== ""
+
+  const isFormComplete = isDeliveryFormComplete || isPickupFormComplete
 
   useEffect(() => {
     if (isFormComplete && selectedOption) {
       const selection: ShippingSelection = {
         rate_id: selectedOption.rate_id,
-        service_type: 'standard_delivery',
+        service_type: selectedOption.service_type as any,
         logistic_type: null,
         carrier_id: null,
         point_id: null,
@@ -276,13 +266,15 @@ export function ShippingSelector({ items, productsTotal, onSelectionComplete, on
         contact: { nombre, email, dni, telefono },
       }
 
-      selection.address = {
-        provincia,
-        ciudad,
-        codigoPostal,
-        direccion,
-        numero,
-        extra,
+      if (selectedType === 'standard_delivery') {
+        selection.address = {
+          provincia,
+          ciudad,
+          codigoPostal,
+          direccion,
+          numero,
+          extra,
+        }
       }
 
       onSelectionComplete(selection)
@@ -433,38 +425,40 @@ export function ShippingSelector({ items, productsTotal, onSelectionComplete, on
       </div>
 
       {/* Paso 2: Selección de método de envío */}
-      {quoteFetched && !loadingOptions && deliveryOption && (
+      {quoteFetched && !loadingOptions && allOptions.length > 0 && (
         <div className="rounded-2xl border border-black/8 bg-white p-6 shadow-[0_18px_38px_rgba(11,10,7,0.05)]">
           <h2 className="mb-4 font-serif text-xl font-bold text-[#0b0a07]">Tu envío</h2>
           
           <div className="grid md:grid-cols-1 gap-4">
-            {/* Opción Domicilio */}
-            <div className="relative rounded-2xl border border-[#aa825e]/45 bg-[#aa825e]/8 shadow-[0_14px_28px_rgba(170,130,94,0.12)] p-5 text-left transition-all">
-              <div className="flex items-start gap-4">
-                <div className="rounded-xl p-2.5 bg-[#aa825e] text-white">
-                  <HomeIcon />
-                </div>
-                
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-semibold text-[#0b0a07]">Envío a domicilio</h3>
-                    <span className="text-[#aa825e]"><CheckIcon /></span>
+            {allOptions.map(option => (
+              <button
+                key={option.rate_id}
+                onClick={() => handleSelectType(option)}
+                className={`relative rounded-2xl border p-5 text-left transition-all ${selectedOption?.rate_id === option.rate_id ? 'border-[#aa825e]/45 bg-[#aa825e]/8 shadow-[0_14px_28px_rgba(170,130,94,0.12)]' : 'border-black/10 hover:border-[#aa825e]/30'}`}
+              >
+                <div className="flex items-start gap-4">
+                  <div className={`rounded-xl p-2.5 ${selectedOption?.rate_id === option.rate_id ? 'bg-[#aa825e] text-white' : 'bg-black/5 text-black/40'}`}>
+                    {option.service_type === 'standard_delivery' ? <HomeIcon /> : <LocationIcon />}
                   </div>
-                  <p className="mt-0.5 text-sm text-black/55">
-                    {deliveryOption.carrier_name}
-                  </p>
-                  <p className="mt-1 text-sm text-black/55">
-                    {formatDeliveryDate(
-                      deliveryOption.estimated_delivery.min_days,
-                      deliveryOption.estimated_delivery.max_days
-                    )}
-                  </p>
-                  <p className="mt-2 text-lg font-bold text-[#0b0a07]">
-                    ${deliveryOption.amounts.price_incl_tax.toLocaleString('es-AR')}
-                  </p>
+                  
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-[#0b0a07]">{option.carrier_name}</h3>
+                      {selectedOption?.rate_id === option.rate_id && <span className="text-[#aa825e]"><CheckIcon /></span>}
+                    </div>
+                    <p className="mt-0.5 text-sm text-black/55">
+                      {option.service_type === 'standard_delivery' ? 'Envío a domicilio' : 'Retiro en punto de entrega'}
+                    </p>
+                    <p className="mt-1 text-sm text-black/55">
+                      {formatDeliveryDate(option.estimated_delivery.min_days, option.estimated_delivery.max_days)}
+                    </p>
+                    <p className="mt-2 text-lg font-bold text-[#0b0a07]">
+                      ${option.amounts.price_incl_tax.toLocaleString('es-AR')}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </div>
+              </button>
+            ))}
           </div>
         </div>
       )}
@@ -565,7 +559,7 @@ export function ShippingSelector({ items, productsTotal, onSelectionComplete, on
       )}
 
       {/* Mensaje cuando no hay opciones */}
-      {quoteFetched && !loadingOptions && !deliveryOption && (
+      {quoteFetched && !loadingOptions && allOptions.length === 0 && (
         <div className="rounded-2xl border border-[#aa825e]/30 bg-[#f5ede5] p-6 text-center">
           <p className="text-[#6B5743]">
             No encontramos opciones de envío para tu zona. Verificá el código postal e intentá nuevamente.

@@ -19,6 +19,14 @@ export default function ConfigPage() {
   const [isManualBackupLoading, setIsManualBackupLoading] = useState(false);
   const [isAutoBackupLoading, setIsAutoBackupLoading] = useState(false);
 
+  const [provinceCosts, setProvinceCosts] = useState<Record<string, string>>({});
+  const PROVINCIAS = [
+    "Buenos Aires", "Capital Federal", "Catamarca", "Chaco", "Chubut", "Córdoba", "Corrientes",
+    "Entre Ríos", "Formosa", "Jujuy", "La Pampa", "La Rioja", "Mendoza", "Misiones", "Neuquén",
+    "Río Negro", "Salta", "San Juan", "San Luis", "Santa Cruz", "Santa Fe", "Santiago del Estero",
+    "Tierra del Fuego", "Tucumán", "Uruguay"
+  ];
+
   const { toast } = useToast();
 
   useEffect(() => {
@@ -33,15 +41,23 @@ export default function ConfigPage() {
           }
         };
 
-        const [min, shipping, maint] = await Promise.all([
+        const [min, shipping, maint, provCosts] = await Promise.all([
           fetchSetting('min_purchase_amount'),
           fetchSetting('fixed_shipping_cost'),
           fetchSetting('maintenance_mode'),
+          fetchSetting('province_shipping_costs'),
         ]);
         
         setMinPurchaseAmount(min || '');
         setFixedShippingCost(shipping || '5000');
         setMaintenanceMode(maint === 'true');
+        if (provCosts) {
+          try {
+            setProvinceCosts(JSON.parse(provCosts));
+          } catch (e) {
+            console.error(e);
+          }
+        }
       } catch {
         toast({
           title: 'Error',
@@ -70,6 +86,19 @@ export default function ConfigPage() {
       toast({ title: 'Éxito', description: `${name} actualizado.` });
     } catch {
       toast({ title: 'Error', description: `No se pudo actualizar ${name}.`, variant: 'destructive' });
+    }
+  };
+
+  const handleProvinceCostChange = (prov: string, val: string) => {
+    setProvinceCosts(prev => ({ ...prev, [prov]: val }));
+  };
+
+  const handleSaveProvinceCosts = async () => {
+    try {
+      await api.put('/settings/province_shipping_costs', { value: JSON.stringify(provinceCosts) });
+      toast({ title: 'Éxito', description: 'Costos por provincia actualizados.' });
+    } catch {
+      toast({ title: 'Error', description: 'No se pudo actualizar los costos por provincia.', variant: 'destructive' });
     }
   };
 
@@ -251,6 +280,31 @@ export default function ConfigPage() {
               className="w-48"
             />
             <Button onClick={() => handleSave('fixed_shipping_cost', fixedShippingCost, 'Costo de envío')}>Guardar</Button>
+          </div>
+        </div>
+
+        {/* Costos por Provincia */}
+        <div className="bg-white/10 rounded-xl p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-white font-semibold">Costos de envío por Provincia</h2>
+              <p className="text-white/60 text-sm">Si se deja vacío, se utilizará el costo de envío fijo por defecto.</p>
+            </div>
+            <Button onClick={handleSaveProvinceCosts}>Guardar Costos</Button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {PROVINCIAS.map(prov => (
+              <div key={prov} className="flex flex-col gap-1">
+                <label className="text-xs text-white/80 font-medium truncate">{prov}</label>
+                <Input
+                  type="number"
+                  placeholder={fixedShippingCost}
+                  value={provinceCosts[prov] || ''}
+                  onChange={(e) => handleProvinceCostChange(prov, e.target.value)}
+                  className="bg-black/20 border-white/10 text-white"
+                />
+              </div>
+            ))}
           </div>
         </div>
 
