@@ -44,7 +44,9 @@ export default function AdminLoginPage() {
       localStorage.setItem("admin_token", token)
       try {
         const maxAge = 12 * 60 * 60
-        document.cookie = `admin_token=${encodeURIComponent(token)}; Max-Age=${maxAge}; Path=/; SameSite=Lax; Secure`
+        const hostname = window.location.hostname
+        const domainStr = hostname === "localhost" ? "" : `domain=.${hostname.replace(/^www\./, '')}; `
+        document.cookie = `admin_token=${encodeURIComponent(token)}; Max-Age=${maxAge}; Path=/; ${domainStr}SameSite=Lax; Secure`
       } catch {}
       const urlParams = new URLSearchParams(window.location.search)
       const nextUrl = urlParams.get("next")
