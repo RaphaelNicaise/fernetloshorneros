@@ -103,7 +103,7 @@ export default function RootLayout({
         <script
           defer
           src="https://umami.fernetloshorneros.com/script.js"
-          data-website-id="8c2a3f89-8d67-4632-a567-bd1c0d45362a" 
+          data-website-id="a0377baa-7149-482e-b4a5-3d19cfb08a15" 
         ></script>
       </body>
     </html>
