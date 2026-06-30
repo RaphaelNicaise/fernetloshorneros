@@ -46,7 +46,17 @@ export default function AdminLoginPage() {
         const maxAge = 12 * 60 * 60
         document.cookie = `admin_token=${encodeURIComponent(token)}; Max-Age=${maxAge}; Path=/; SameSite=Lax; Secure`
       } catch {}
-      router.replace("/admin/productos")
+      const urlParams = new URLSearchParams(window.location.search)
+      const nextUrl = urlParams.get("next")
+      if (nextUrl) {
+        if (nextUrl.startsWith("http")) {
+          window.location.href = nextUrl
+        } else {
+          router.replace(nextUrl)
+        }
+      } else {
+        router.replace("/admin/productos")
+      }
     } catch (err: any) {
       setError(err?.message || "Error al iniciar sesión")
     } finally {
