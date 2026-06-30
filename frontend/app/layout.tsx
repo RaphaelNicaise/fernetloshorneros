@@ -102,7 +102,7 @@ export default function RootLayout({
         {/* Umami Analytics (proxied via Nginx) */}
         <script
           defer
-          src="/stats/script.js"
+          src="https://umami.fernetloshorneros.com/script.js"
           data-website-id="8c2a3f89-8d67-4632-a567-bd1c0d45362a" 
         ></script>
       </body>
