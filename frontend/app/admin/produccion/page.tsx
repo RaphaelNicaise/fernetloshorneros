@@ -432,9 +432,9 @@ export default function ProduccionPage() {
       <IngredienteModal barril={ingredienteModal} ingredientes={ingredientes} 
         initialIngredientName={ingredientePreseleccionado}
         onClose={() => { setIngredienteModal(null); setIngredientePreseleccionado(null); }} 
-        onAdded={() => { setIngredienteModal(null); setIngredientePreseleccionado(null); refresh(); if (selectedBarril?.id === ingredienteModal?.id) refreshDetail(selectedBarril.id); }} />
-      <ExtraccionModal barril={extraccionModal} onClose={() => setExtraccionModal(null)} onAdded={() => { setExtraccionModal(null); refresh(); if (selectedBarril?.id === extraccionModal?.id) refreshDetail(selectedBarril.id); }} />
-      <NotaModal barril={notaModal} onClose={() => setNotaModal(null)} onAdded={() => { setNotaModal(null); refresh(); if (selectedBarril?.id === notaModal?.id) refreshDetail(selectedBarril.id); }} />
+        onAdded={() => { setIngredienteModal(null); setIngredientePreseleccionado(null); refresh(); if (selectedBarril && ingredienteModal && selectedBarril.id === ingredienteModal.id) refreshDetail(selectedBarril.id); }} />
+      <ExtraccionModal barril={extraccionModal} onClose={() => setExtraccionModal(null)} onAdded={() => { setExtraccionModal(null); refresh(); if (selectedBarril && extraccionModal && selectedBarril.id === extraccionModal.id) refreshDetail(selectedBarril.id); }} />
+      <NotaModal barril={notaModal} onClose={() => setNotaModal(null)} onAdded={() => { setNotaModal(null); refresh(); if (selectedBarril && notaModal && selectedBarril.id === notaModal.id) refreshDetail(selectedBarril.id); }} />
       <EditBarrilModal barril={editingBarril} onClose={() => setEditingBarril(null)} onSaved={() => { setEditingBarril(null); if (selectedBarril) refreshDetail(selectedBarril.id); refresh(); }} />
       <DeleteConfirmDialog barril={deleteConfirm} onClose={() => setDeleteConfirm(null)} onDeleted={() => { setDeleteConfirm(null); setSelectedBarril(null); refresh(); }} />
       <UndoConfirmDialog undoData={undoConfirm} onClose={() => setUndoConfirm(null)} onConfirm={executeUndo} />
