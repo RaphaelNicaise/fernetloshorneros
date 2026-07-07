@@ -8,15 +8,8 @@ on:
       - 'frontend/**'
       - 'db/**'
       - 'nginx/**'
-      - '.github/workflows/**'
-  pull_request:
-    branches: [ main ]
-    paths:
-      - 'backend/**'
-      - 'frontend/**'
-      - 'db/**'
-      - 'nginx/**'
-      - '.github/workflows/**'
+      - '.github/workflows/deploy.yml'
+      - 'docker-compose.prod.yml'
 
 jobs:
   deploy:
