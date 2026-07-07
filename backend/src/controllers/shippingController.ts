@@ -3,6 +3,53 @@ import { quoteShipment, quoteShipmentFull } from "@/services/enviosService";
 import { getProductById } from "@/services/productService";
 import { getSetting } from "@/services/settingsService";
 
+const LOCAL_CITIES = [
+    "bahía blanca", "bahia blanca", "ingeniero white", "punta alta"
+];
+
+function isLocalCity(city: string): boolean {
+    return LOCAL_CITIES.includes(city.toLowerCase().trim());
+}
+
+interface ShippingCostsConfig {
+    default: number;
+    local: number;
+    provinces: Record<string, number>;
+}
+
+async function getShippingConfig(): Promise<ShippingCostsConfig> {
+    const configSetting = await getSetting('shipping_costs_by_province');
+    if (configSetting?.value) {
+        try {
+            return JSON.parse(configSetting.value);
+        } catch (e) {
+            console.error('Error parsing shipping_costs_by_province:', e);
+        }
+    }
+    // Fallback to fixed_shipping_cost
+    const fixedCostSetting = await getSetting('fixed_shipping_cost');
+    const fixedCost = fixedCostSetting ? Number(fixedCostSetting.value) : 5000;
+    return { default: fixedCost, local: fixedCost, provinces: {} };
+}
+
+function getShippingCost(config: ShippingCostsConfig, city: string, state: string): { cost: number; carrier: string; serviceType: string; isLocal: boolean } {
+    if (isLocalCity(city)) {
+        return {
+            cost: config.local,
+            carrier: "Transportista Propio",
+            serviceType: "local_delivery",
+            isLocal: true,
+        };
+    }
+    const provinceCost = config.provinces[state];
+    return {
+        cost: provinceCost !== undefined ? provinceCost : config.default,
+        carrier: "Correo Argentino",
+        serviceType: "standard_delivery",
+        isLocal: false,
+    };
+}
+
 /**
  * Construye los items de Zipnova a partir de los items del request,
  * expandiendo por cantidad (1 item por unidad).
@@ -37,55 +84,27 @@ export async function quote(req: Request, res: Response) {
     try {
         const { destination, items } = req.body;
 
-        if (!destination || !destination.city || !destination.state || !destination.zipcode) {
-            return res.status(400).json({ success: false, error: "Destino incompleto. Se requiere city, state y zipcode" });
+        if (!destination || !destination.state || !destination.zipcode) {
+            return res.status(400).json({ success: false, error: "Destino incompleto. Se requiere state y zipcode" });
         }
 
         if (!items || !Array.isArray(items) || items.length === 0) {
             return res.status(400).json({ success: false, error: "Items requeridos" });
         }
 
-        const { declaredValue, zipnovaItems } = await buildZipnovaItems(items);
-
-        // Fetch settings
-        const fixedCostSetting = await getSetting('fixed_shipping_cost');
-        const defaultCost = fixedCostSetting ? Number(fixedCostSetting.value) : 5000;
-        
-        let shippingCost = defaultCost;
-        const provinceCostsSetting = await getSetting('province_shipping_costs');
-        if (provinceCostsSetting && provinceCostsSetting.value) {
-            try {
-                const costs = JSON.parse(provinceCostsSetting.value);
-                if (costs[destination.state] !== undefined) {
-                    shippingCost = Number(costs[destination.state]);
-                }
-            } catch (e) {
-                console.error("Error parsing province_shipping_costs", e);
-            }
-        }
-
-        const normalizedCity = destination.city.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-        const isLocalCity = ["bahia blanca", "ingeniero white", "punta alta"].includes(normalizedCity);
-
-        if (isLocalCity) {
-            res.json({
-                success: true,
-                shipping_cost: 0,
-                carrier: "Retiro en Local (Los Horneros)",
-                delivery_time: "Inmediato",
-                products_total: declaredValue,
-                total: declaredValue,
-            });
-            return;
-        }
+        const { declaredValue } = await buildZipnovaItems(items);
+        const config = await getShippingConfig();
+        const shippingInfo = getShippingCost(config, destination.city || '', destination.state);
 
         res.json({
             success: true,
-            shipping_cost: shippingCost,
-            carrier: "Correo Argentino",
-            delivery_time: "3-7 días",
+            shipping_cost: shippingInfo.cost,
+            carrier: shippingInfo.carrier,
+            service_type: shippingInfo.serviceType,
+            is_local: shippingInfo.isLocal,
+            delivery_time: shippingInfo.isLocal ? "1-2 días" : "3-7 días",
             products_total: declaredValue,
-            total: declaredValue + shippingCost,
+            total: declaredValue + shippingInfo.cost,
         });
     } catch (error: any) {
         if (error.status) {
@@ -112,88 +131,28 @@ export async function quoteOptions(req: Request, res: Response) {
             return res.status(400).json({ success: false, error: "Items requeridos" });
         }
 
-        const { declaredValue, zipnovaItems } = await buildZipnovaItems(items);
-
-        // Fetch settings
-        const fixedCostSetting = await getSetting('fixed_shipping_cost');
-        const defaultCost = fixedCostSetting ? Number(fixedCostSetting.value) : 5000;
-        
-        let shippingCost = defaultCost;
-        const provinceCostsSetting = await getSetting('province_shipping_costs');
-        if (provinceCostsSetting && provinceCostsSetting.value) {
-            try {
-                const costs = JSON.parse(provinceCostsSetting.value);
-                if (costs[destination.state] !== undefined && costs[destination.state] !== "") {
-                    shippingCost = Number(costs[destination.state]);
-                }
-            } catch (e) {
-                console.error("Error parsing province_shipping_costs", e);
-            }
-        }
-
-        let all_results: any[] = [];
-        const normalizedCity = (destination.city || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-        const isLocalCity = ["bahia blanca", "ingeniero white", "punta alta"].includes(normalizedCity);
-
-        if (isLocalCity) {
-            all_results = [
-                {
-                    rate_id: "local-delivery",
-                    carrier_name: "Envío a Domicilio (Transportista Propio)",
-                    carrier_id: 2,
-                    service_type: "standard_delivery",
-                    logistic_type: "manual",
-                    amounts: {
-                        price: shippingCost,
-                        price_incl_tax: shippingCost,
-                    },
-                    estimated_delivery: {
-                        min_days: 1,
-                        max_days: 2,
-                    },
-                    tags: []
-                },
-                {
-                    rate_id: "local-pickup",
-                    carrier_name: "Retiro en el local (Los Horneros)",
-                    carrier_id: 3,
-                    service_type: "pickup_point",
-                    logistic_type: "manual",
-                    amounts: {
-                        price: 0,
-                        price_incl_tax: 0,
-                    },
-                    estimated_delivery: {
-                        min_days: 0,
-                        max_days: 1,
-                    },
-                    tags: []
-                }
-            ];
-        } else {
-            all_results = [
-                {
-                    rate_id: "correo-argentino-fijo",
-                    carrier_name: "Correo Argentino",
-                    carrier_id: 1,
-                    service_type: "standard_delivery",
-                    logistic_type: "manual",
-                    amounts: {
-                        price: shippingCost,
-                        price_incl_tax: shippingCost,
-                    },
-                    estimated_delivery: {
-                        min_days: 3,
-                        max_days: 7,
-                    },
-                    tags: []
-                }
-            ];
-        }
+        const { declaredValue } = await buildZipnovaItems(items);
+        const config = await getShippingConfig();
+        const shippingInfo = getShippingCost(config, destination.city || '', destination.state);
 
         res.json({
             success: true,
-            all_results,
+            all_results: [{
+                rate_id: shippingInfo.isLocal ? "transportista-propio" : "correo-argentino-fijo",
+                carrier_name: shippingInfo.carrier,
+                carrier_id: shippingInfo.isLocal ? 0 : 1,
+                service_type: shippingInfo.serviceType,
+                logistic_type: shippingInfo.isLocal ? "local" : "manual",
+                amounts: {
+                    price: shippingInfo.cost,
+                    price_incl_tax: shippingInfo.cost,
+                },
+                estimated_delivery: {
+                    min_days: shippingInfo.isLocal ? 1 : 3,
+                    max_days: shippingInfo.isLocal ? 2 : 7,
+                },
+                tags: shippingInfo.isLocal ? ["local"] : [],
+            }],
             products_total: declaredValue,
         });
     } catch (error: any) {

@@ -45,7 +45,7 @@ export default function ConfigPage() {
           fetchSetting('min_purchase_amount'),
           fetchSetting('fixed_shipping_cost'),
           fetchSetting('maintenance_mode'),
-          fetchSetting('province_shipping_costs'),
+          fetchSetting('shipping_costs_by_province'),
         ]);
         
         setMinPurchaseAmount(min || '');
@@ -53,7 +53,8 @@ export default function ConfigPage() {
         setMaintenanceMode(maint === 'true');
         if (provCosts) {
           try {
-            setProvinceCosts(JSON.parse(provCosts));
+            const parsed = JSON.parse(provCosts);
+            setProvinceCosts(parsed.provinces || {});
           } catch (e) {
             console.error(e);
           }
@@ -95,7 +96,16 @@ export default function ConfigPage() {
 
   const handleSaveProvinceCosts = async () => {
     try {
-      await api.put('/settings/province_shipping_costs', { value: JSON.stringify(provinceCosts) });
+      const config = {
+        default: Number(fixedShippingCost || 5000),
+        local: 3000, // Costo local default
+        provinces: Object.fromEntries(
+          Object.entries(provinceCosts)
+            .filter(([_, v]) => v !== '' && v !== null)
+            .map(([k, v]) => [k, Number(v)])
+        )
+      };
+      await api.put('/settings/shipping_costs_by_province', { value: JSON.stringify(config) });
       toast({ title: 'Éxito', description: 'Costos por provincia actualizados.' });
     } catch {
       toast({ title: 'Error', description: 'No se pudo actualizar los costos por provincia.', variant: 'destructive' });

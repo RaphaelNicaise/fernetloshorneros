@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { v4 as uuidv4 } from "uuid";
-import { preferenceClient } from "@/config/mercadopago";
+import { preferenceClient, paymentClient } from "@/config/mercadopago";
 import {
     createOrder,
     getOrderByReference,
@@ -449,5 +449,265 @@ export async function cancelOrderManually(req: Request, res: Response) {
     } catch (error: any) {
         console.error("Error cancelando orden manualmente:", error);
         res.status(500).json({ error: error?.message || "Error interno cancelando orden" });
+    }
+}
+
+/**
+ * POST /payments/process
+ * Processes payment from MercadoPago Payment Brick
+ */
+export async function processPayment(req: Request, res: Response) {
+    try {
+        const { formData, orderData } = req.body;
+
+        if (!formData || !orderData) {
+            return res.status(400).json({ error: "formData y orderData son requeridos" });
+        }
+
+        const { items, shipping, couponCode } = orderData;
+
+        // Limpiar reservas expiradas
+        await cleanupExpiredOrders();
+
+        if (!items || !Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ error: "Items requeridos" });
+        }
+
+        if (!shipping || shipping.cost === undefined || shipping.cost === null || Number(shipping.cost) < 0) {
+            return res.status(400).json({ error: "Datos de envío requeridos" });
+        }
+
+        // Validar items y obtener info del producto
+        const validatedItems = [];
+        let total = 0;
+
+        for (const item of items) {
+            const product = await getProductById(item.id);
+
+            if (!product) {
+                return res.status(400).json({ error: `Producto ${item.id} no encontrado` });
+            }
+
+            if (product.status !== "disponible") {
+                return res.status(400).json({ error: `Producto ${product.name} no está disponible` });
+            }
+
+            const quantity = Number(item.quantity) || 1;
+
+            if (product.limite > 0 && quantity > product.limite) {
+                return res.status(400).json({
+                    error: `Cantidad excede el límite para ${product.name} (máximo: ${product.limite})`
+                });
+            }
+
+            if (product.stock < quantity) {
+                if (product.stock === 0) {
+                    return res.status(400).json({ error: `${product.name} está agotado` });
+                }
+                return res.status(400).json({
+                    error: `Stock insuficiente para ${product.name} (disponible: ${product.stock})`
+                });
+            }
+
+            const itemTotal = Number(product.price) * quantity;
+            total += itemTotal;
+
+            validatedItems.push({
+                id_producto: product.id,
+                title: product.name,
+                cantidad: quantity,
+                precio_unitario: Number(product.price),
+            });
+        }
+
+        // Cupones
+        let discountAmount = 0;
+        let validCoupon = null;
+
+        if (couponCode) {
+            validCoupon = await couponService.getCouponByCode(couponCode);
+            if (validCoupon) {
+                const validation = couponService.validateCoupon(validCoupon);
+                if (validation.valid) {
+                    if (validCoupon.tipo_descuento === 'porcentaje') {
+                        discountAmount = (total * validCoupon.valor) / 100;
+                    } else if (validCoupon.tipo_descuento === 'fijo') {
+                        discountAmount = validCoupon.valor;
+                    }
+                    if (discountAmount > total && validCoupon.tipo_descuento !== 'envio_gratis') {
+                        discountAmount = total;
+                    }
+                } else {
+                    validCoupon = null;
+                }
+            }
+        }
+
+        let shippingCost = Number(shipping.cost);
+        if (validCoupon?.tipo_descuento === 'envio_gratis') {
+            discountAmount = shippingCost;
+            shippingCost = 0;
+        }
+
+        const totalWithShipping = total + shippingCost - (validCoupon?.tipo_descuento === 'envio_gratis' ? 0 : discountAmount);
+
+        const external_reference = uuidv4();
+        const loteActual = await lotesService.getLoteActual();
+
+        const order = await createOrder({
+            items: validatedItems.map(item => ({
+                id_producto: item.id_producto,
+                title: item.title,
+                cantidad: item.cantidad,
+                precio_unitario: item.precio_unitario,
+            })),
+            total: totalWithShipping,
+            external_reference,
+            cupon_codigo: validCoupon ? validCoupon.codigo : null,
+            cupon_descuento: discountAmount,
+            lote_id: loteActual?.id || null,
+            shipping_info: {
+                cost: Number(shipping.cost),
+                rate_id: shipping.rate_id,
+                service_type: shipping.service_type,
+                logistic_type: shipping.logistic_type || null,
+                carrier_id: shipping.carrier_id || null,
+                point_id: shipping.point_id || null,
+                address: shipping.address || null,
+                contact: shipping.contact,
+            },
+        });
+
+        // Reservar stock
+        try {
+            for (const item of validatedItems) {
+                await decreaseStock(item.id_producto, item.cantidad);
+                console.log(`Stock reservado: ${item.cantidad} x ${item.id_producto} para orden ${order.id}`);
+            }
+            await markOrderStockReserved(order.id);
+        } catch (stockError: any) {
+            console.error("Error reservando stock:", stockError);
+            await updateOrderStatus(order.id, "cancelled");
+            return res.status(400).json({ error: stockError.message || "Error reservando stock" });
+        }
+
+        // Procesar pago con MercadoPago Payment API
+        try {
+            const paymentResult = await paymentClient.create({
+                body: {
+                    token: formData.token,
+                    issuer_id: formData.issuer_id,
+                    payment_method_id: formData.payment_method_id,
+                    transaction_amount: Number(totalWithShipping),
+                    installments: Number(formData.installments),
+                    payer: {
+                        email: formData.payer.email,
+                        identification: formData.payer.identification,
+                    },
+                    external_reference: external_reference,
+                    notification_url: process.env.NODE_ENV === 'development'
+                        ? 'https://zpxtnmn7-3001.brs.devtunnels.ms/payments/webhook'
+                        : `${process.env.PUBLIC_BASE_URL}/api/payments/webhook`,
+                },
+                requestOptions: {
+                    idempotencyKey: uuidv4(),
+                },
+            });
+
+            // Registrar el pago
+            await createPayment({
+                id_pedido: order.id,
+                mp_payment_id: String(paymentResult.id),
+                status: paymentResult.status || "unknown",
+                payment_method: paymentResult.payment_method_id || null,
+                total: paymentResult.transaction_amount || 0,
+            });
+
+            if (paymentResult.status === "approved") {
+                await updateOrderStatus(order.id, "paid");
+                await markOrderStockReleased(order.id);
+                console.log(`Orden ${order.id} pagada via Brick, stock confirmado`);
+
+                if (validCoupon) {
+                    try {
+                        await couponService.incrementUsage(validCoupon.codigo);
+                    } catch (err) {
+                        console.error(`Error incrementando uso de cupón:`, err);
+                    }
+                }
+
+                const envio = await getEnvioByOrderId(order.id);
+                if (envio) {
+                    if (envio.status === 'pending') {
+                        try {
+                            await updateEnvioStatus(envio.id, 'to_ship');
+                        } catch (shipError: any) {
+                            console.error("Error actualizando envío:", shipError);
+                        }
+                    }
+
+                    try {
+                        const orderItems = await getOrderItems(order.id);
+                        let loteNombre: string | undefined;
+                        if (order.lote_id) {
+                            const [loteData] = await sequelize.query('SELECT nombre FROM lotes WHERE id = ?', { replacements: [order.lote_id], type: QueryTypes.SELECT });
+                            loteNombre = loteData ? (loteData as any).nombre : undefined;
+                        }
+                        await enviarMailConfirmacionCompra(
+                            envio.email_cliente,
+                            envio.nombre_cliente,
+                            String(order.id),
+                            orderItems,
+                            Number(order.total),
+                            Number(envio.costo),
+                            Number(order.cupon_descuento || 0),
+                            loteNombre
+                        );
+                    } catch (mailError) {
+                        console.error("Error enviando mail de confirmación:", mailError);
+                    }
+                }
+            } else if (paymentResult.status === "rejected") {
+                await updateOrderStatus(order.id, "failed");
+                try {
+                    if (await isOrderStockReserved(order.id)) {
+                        const orderItems = await getOrderItems(order.id);
+                        for (const item of orderItems) {
+                            await increaseStock(item.id_producto, item.cantidad);
+                        }
+                        await markOrderStockReleased(order.id);
+                    }
+                } catch (stockError: any) {
+                    console.error("Error restaurando stock:", stockError);
+                }
+            }
+            // For 'pending' or 'in_process', the webhook will handle it
+
+            res.json({
+                status: paymentResult.status,
+                status_detail: paymentResult.status_detail,
+                order_id: order.id,
+                payment_id: paymentResult.id,
+            });
+        } catch (mpError: any) {
+            console.error("Error procesando pago MP:", mpError);
+            // Liberar stock si falla el pago
+            try {
+                if (await isOrderStockReserved(order.id)) {
+                    const orderItems = await getOrderItems(order.id);
+                    for (const item of orderItems) {
+                        await increaseStock(item.id_producto, item.cantidad);
+                    }
+                    await markOrderStockReleased(order.id);
+                }
+                await updateOrderStatus(order.id, "failed");
+            } catch (releaseError) {
+                console.error("Error liberando stock tras fallo:", releaseError);
+            }
+            return res.status(500).json({ error: mpError?.message || "Error procesando pago" });
+        }
+    } catch (error: any) {
+        console.error("Error en processPayment:", error);
+        res.status(500).json({ error: error?.message || "Error interno del servidor" });
     }
 }
