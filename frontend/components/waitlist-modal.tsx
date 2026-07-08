@@ -169,7 +169,7 @@ export function WaitlistModal() {
 
 	return (
 		<AnimatePresence>
-			{isOpen && (
+			{isOpen ? (
 				<div className="fixed inset-0 z-[100] flex items-start justify-center p-4 pt-20 overflow-y-auto sm:items-center sm:p-4">
 					<motion.div
 						key="backdrop"
@@ -301,11 +301,11 @@ export function WaitlistModal() {
 											</div>
 										</motion.div>
 
-										{error && (
+										{error ? (
 											<motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
 												{error}
 											</motion.div>
-										)}
+										) : null}
 
 										<motion.div custom={3} variants={fieldVariants} initial="hidden" animate="visible" className="pt-2">
 											<button
@@ -366,7 +366,7 @@ export function WaitlistModal() {
 							)
 						: null}
 				</div>
-			)}
+			) : null}
 		</AnimatePresence>
 	)
 }

@@ -1,5 +1,6 @@
 import type React from "react"
 import type { Metadata } from "next"
+import Script from "next/script"
 import { Cinzel_Decorative, Montserrat } from "next/font/google"
 import "./globals.css"
 import { Providers } from "@/app/providers"
@@ -100,11 +101,11 @@ export default function RootLayout({
         </Providers>
         
         {/* Umami Analytics (proxied via Nginx) */}
-        <script
-          defer
+        <Script
           src="https://umami.fernetloshorneros.com/script.js"
           data-website-id="a0377baa-7149-482e-b4a5-3d19cfb08a15" 
-        ></script>
+          strategy="lazyOnload"
+        />
       </body>
     </html>
   )

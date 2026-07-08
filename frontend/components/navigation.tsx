@@ -126,7 +126,7 @@ export function Navigation() {
                 <ShoppingCart className="h-5 w-5 text-white" />
               </motion.span>
               <AnimatePresence>
-                {itemCount > 0 && (
+                {itemCount > 0 ? (
                   <motion.span
                     key="badge"
                     initial={{ scale: 0, opacity: 0 }}
@@ -136,7 +136,7 @@ export function Navigation() {
                   >
                     {itemCount}
                   </motion.span>
-                )}
+                ) : null}
               </AnimatePresence>
             </Link>
           </motion.div>
@@ -165,7 +165,7 @@ export function Navigation() {
 
       {/* Mobile menu */}
       <AnimatePresence>
-        {mobileOpen && (
+        {mobileOpen ? (
           <>
             {/* Backdrop */}
             <motion.div
@@ -221,7 +221,7 @@ export function Navigation() {
               </nav>
             </motion.div>
           </>
-        )}
+        ) : null}
       </AnimatePresence>
     </header>
   )
