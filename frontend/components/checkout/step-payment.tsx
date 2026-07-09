@@ -141,6 +141,30 @@ export function StepPayment({ items, shipping, coupon, total, onBack }: StepPaym
     onBack()
   }
 
+  // Polling para detectar pagos por billetera de Mercado Pago (popup)
+  useEffect(() => {
+    if (!externalReference) return;
+    
+    let isMounted = true;
+    const interval = setInterval(async () => {
+      try {
+        const res = await api.get(`/payments/order/${externalReference}`);
+        if (isMounted && res.data && res.data.status === 'paid') {
+          console.log("[PaymentBrick] Pago detectado por Webhook. Redirigiendo a success...");
+          clearInterval(interval);
+          router.push("/payment/success");
+        }
+      } catch (err) {
+        // Ignorar errores de red en el polling
+      }
+    }, 3000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [externalReference, router]);
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
       <div className="flex items-center gap-3 rounded-2xl bg-green-50/50 p-4 border border-green-100">

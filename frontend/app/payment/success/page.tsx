@@ -10,6 +10,19 @@ export default function PaymentSuccessPage() {
   const { clearCart } = useCart()
 
   useEffect(() => {
+    // Si esta ventana fue abierta como un popup (por la billetera de Mercado Pago)
+    if (window.opener && !window.opener.closed) {
+      try {
+        // Redirigir a la ventana principal a la página de éxito
+        window.opener.location.href = window.location.href;
+        // Cerrar este popup
+        window.close();
+        return;
+      } catch (e) {
+        console.error("No se pudo redirigir la ventana padre:", e);
+      }
+    }
+
     // Limpiar el carrito cuando el pago es exitoso
     clearCart()
     // eslint-disable-next-line react-hooks/exhaustive-deps
