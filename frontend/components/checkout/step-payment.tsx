@@ -10,9 +10,14 @@ import type { CouponData } from "./step-coupon-summary"
 import type { CartItem } from "@/lib/cart-context"
 
 // Inicializar MP
-const MP_PUBLIC_KEY = process.env.NEXT_PUBLIC_MP_PUBLIC_KEY || "APP_USR-6caa59ec-7cdf-4901-abee-a3d549ca8ccb"
-console.log("[PaymentBrick] Inicializando SDK con Public Key:", MP_PUBLIC_KEY.substring(0, 12))
-initMercadoPago(MP_PUBLIC_KEY, { locale: "es-AR" })
+const MP_PUBLIC_KEY = process.env.NEXT_PUBLIC_MP_PUBLIC_KEY
+if (!MP_PUBLIC_KEY) {
+  console.error("[PaymentBrick] ERROR: NEXT_PUBLIC_MP_PUBLIC_KEY no está definida. Verificá las variables de entorno.")
+}
+console.log("[PaymentBrick] Inicializando SDK con Public Key:", MP_PUBLIC_KEY?.substring(0, 12))
+if (MP_PUBLIC_KEY) {
+  initMercadoPago(MP_PUBLIC_KEY, { locale: "es-AR" })
+}
 
 interface StepPaymentProps {
   items: CartItem[]

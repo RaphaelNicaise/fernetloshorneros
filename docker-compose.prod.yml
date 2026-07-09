@@ -47,6 +47,7 @@ services:
       args:
         NEXT_PUBLIC_API_URL: "/api"
         NEXT_INTERNAL_API_URL: "http://backend:3001"
+        NEXT_PUBLIC_MP_PUBLIC_KEY: ${MP_PUBLIC_KEY}
     image: fernetloshorneros_frontend:latest
     container_name: frontend_prod
     restart: unless-stopped
@@ -55,6 +56,7 @@ services:
       NEXT_PUBLIC_API_URL: "/api"
       NEXT_INTERNAL_API_URL: "http://backend:3001"
       INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      NEXT_PUBLIC_MP_PUBLIC_KEY: ${MP_PUBLIC_KEY}
       MAINTENANCE_ALLOWED_IPS: ${MAINTENANCE_ALLOWED_IPS:-}
     networks:
       - app_network
