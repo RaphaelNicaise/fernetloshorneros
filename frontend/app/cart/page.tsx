@@ -32,7 +32,11 @@ export default function CartPage() {
 
   // Scrollear hacia arriba al cambiar de paso
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    // Usamos un pequeño delay para asegurar que el DOM del nuevo paso ya se renderizó (ideal para mobile)
+    const timer = setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }, 150)
+    return () => clearTimeout(timer)
   }, [currentStep])
 
   useCartValidation()

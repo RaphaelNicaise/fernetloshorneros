@@ -11,6 +11,7 @@ import type { CartItem } from "@/lib/cart-context"
 
 // Inicializar MP
 const MP_PUBLIC_KEY = process.env.NEXT_PUBLIC_MP_PUBLIC_KEY || "APP_USR-6caa59ec-7cdf-4901-abee-a3d549ca8ccb"
+console.log("[PaymentBrick] Inicializando SDK con Public Key que empieza en:", MP_PUBLIC_KEY.substring(0, 12))
 initMercadoPago(MP_PUBLIC_KEY)
 
 interface StepPaymentProps {
@@ -35,6 +36,7 @@ export function StepPayment({ items, shipping, coupon, total, onBack }: StepPaym
   }
 
   const onSubmit = async ({ formData }: any) => {
+    console.log("[PaymentBrick] onSubmit ejecutado. Datos recibidos del Brick:", formData)
     setIsProcessing(true)
     setError(null)
     
@@ -76,8 +78,13 @@ export function StepPayment({ items, shipping, coupon, total, onBack }: StepPaym
   }
 
   const onError = (error: any) => {
-    console.error("Payment Brick Error:", error)
-    setError("Ocurrió un error al cargar el formulario de pago.")
+    console.error("[PaymentBrick] Error interno del Brick (onError):", error)
+    if (error && typeof error === 'object') {
+      try {
+        console.error("[PaymentBrick] Detalles del error:", JSON.stringify(error, null, 2))
+      } catch (e) {}
+    }
+    setError("Ocurrió un error al cargar el formulario de pago. Revisá la consola para más detalles.")
   }
 
   return (
