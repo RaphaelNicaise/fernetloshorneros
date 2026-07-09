@@ -59,7 +59,15 @@ export function StepCouponSummary({ cartTotal, shippingCost, onContinue, onBack,
 
       setCouponState({ ...data, amountApplied })
     } catch (err: any) {
-      setError(err.message || "Cupón inválido o expirado")
+      const serverError = err.response?.data?.error || err.message;
+      
+      if (err.response?.status === 404 || serverError === 'Cupón no encontrado') {
+        setError("Este código de descuento no existe.");
+      } else if (serverError === 'El cupón ha expirado.' || serverError === 'El cupón no está activo.') {
+        setError("Este cupón ya expiró o alcanzó su límite de usos.");
+      } else {
+        setError(serverError || "Cupón inválido");
+      }
       setCouponState(null)
     } finally {
       setLoading(false)
