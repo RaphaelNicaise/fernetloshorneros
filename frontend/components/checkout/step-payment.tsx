@@ -86,8 +86,9 @@ export function StepPayment({ items, shipping, coupon, total, onBack }: StepPaym
     return () => { cancelled = true }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const initialization = orderId ? {
+  const initialization = preferenceId && orderId ? {
     amount: total,
+    preferenceId: preferenceId,
     payer: {
       email: shipping.contact.email,
     }
@@ -169,6 +170,7 @@ export function StepPayment({ items, shipping, coupon, total, onBack }: StepPaym
               initialization={initialization}
               customization={{
                 paymentMethods: {
+                  mercadoPago: "all",
                   creditCard: "all",
                   debitCard: "all",
                   ticket: "all",
