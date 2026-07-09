@@ -566,141 +566,39 @@ export async function cancelOrderManually(req: Request, res: Response) {
 
 /**
  * POST /payments/process
- * Processes payment from MercadoPago Payment Brick
+ * Processes payment from MercadoPago Payment Brick.
+ * Uses an EXISTING order (created by createPreference) instead of creating a new one.
+ * Receives { formData, orderId } where orderId is the order already created with stock reserved.
  */
 export async function processPayment(req: Request, res: Response) {
     try {
-        const { formData, orderData } = req.body;
+        const { formData, orderId } = req.body;
 
-        if (!formData || !orderData) {
-            return res.status(400).json({ error: "formData y orderData son requeridos" });
+        if (!formData) {
+            return res.status(400).json({ error: "formData es requerido" });
         }
 
-        const { items, shipping, couponCode } = orderData;
-
-        // Limpiar reservas expiradas
-        await cleanupExpiredOrders();
-
-        if (!items || !Array.isArray(items) || items.length === 0) {
-            return res.status(400).json({ error: "Items requeridos" });
+        if (!orderId) {
+            return res.status(400).json({ error: "orderId es requerido" });
         }
 
-        if (!shipping || shipping.cost === undefined || shipping.cost === null || Number(shipping.cost) < 0) {
-            return res.status(400).json({ error: "Datos de envío requeridos" });
+        // Buscar la orden existente (ya creada por createPreference)
+        const [orderRows] = await sequelize.query(
+            'SELECT * FROM pedidos WHERE id = ?',
+            { replacements: [orderId], type: QueryTypes.SELECT }
+        ) as any;
+
+        const order = orderRows || (await sequelize.query(
+            'SELECT * FROM pedidos WHERE id = ?',
+            { replacements: [orderId], type: QueryTypes.SELECT }
+        ))[0];
+
+        if (!order) {
+            return res.status(404).json({ error: "Orden no encontrada" });
         }
 
-        // Validar items y obtener info del producto
-        const validatedItems = [];
-        let total = 0;
-
-        for (const item of items) {
-            const product = await getProductById(item.id);
-
-            if (!product) {
-                return res.status(400).json({ error: `Producto ${item.id} no encontrado` });
-            }
-
-            if (product.status !== "disponible") {
-                return res.status(400).json({ error: `Producto ${product.name} no está disponible` });
-            }
-
-            const quantity = Number(item.quantity) || 1;
-
-            if (product.limite > 0 && quantity > product.limite) {
-                return res.status(400).json({
-                    error: `Cantidad excede el límite para ${product.name} (máximo: ${product.limite})`
-                });
-            }
-
-            if (product.stock < quantity) {
-                if (product.stock === 0) {
-                    return res.status(400).json({ error: `${product.name} está agotado` });
-                }
-                return res.status(400).json({
-                    error: `Stock insuficiente para ${product.name} (disponible: ${product.stock})`
-                });
-            }
-
-            const itemTotal = Number(product.price) * quantity;
-            total += itemTotal;
-
-            validatedItems.push({
-                id_producto: product.id,
-                title: product.name,
-                cantidad: quantity,
-                precio_unitario: Number(product.price),
-            });
-        }
-
-        // Cupones
-        let discountAmount = 0;
-        let validCoupon = null;
-
-        if (couponCode) {
-            validCoupon = await couponService.getCouponByCode(couponCode);
-            if (validCoupon) {
-                const validation = couponService.validateCoupon(validCoupon);
-                if (validation.valid) {
-                    if (validCoupon.tipo_descuento === 'porcentaje') {
-                        discountAmount = (total * validCoupon.valor) / 100;
-                    } else if (validCoupon.tipo_descuento === 'fijo') {
-                        discountAmount = validCoupon.valor;
-                    }
-                    if (discountAmount > total && validCoupon.tipo_descuento !== 'envio_gratis') {
-                        discountAmount = total;
-                    }
-                } else {
-                    validCoupon = null;
-                }
-            }
-        }
-
-        let shippingCost = Number(shipping.cost);
-        if (validCoupon?.tipo_descuento === 'envio_gratis') {
-            discountAmount = shippingCost;
-            shippingCost = 0;
-        }
-
-        const totalWithShipping = total + shippingCost - (validCoupon?.tipo_descuento === 'envio_gratis' ? 0 : discountAmount);
-
-        const external_reference = uuidv4();
-        const loteActual = await lotesService.getLoteActual();
-
-        const order = await createOrder({
-            items: validatedItems.map(item => ({
-                id_producto: item.id_producto,
-                title: item.title,
-                cantidad: item.cantidad,
-                precio_unitario: item.precio_unitario,
-            })),
-            total: totalWithShipping,
-            external_reference,
-            cupon_codigo: validCoupon ? validCoupon.codigo : null,
-            cupon_descuento: discountAmount,
-            lote_id: loteActual?.id || null,
-            shipping_info: {
-                cost: Number(shipping.cost),
-                rate_id: shipping.rate_id,
-                service_type: shipping.service_type,
-                logistic_type: shipping.logistic_type || null,
-                carrier_id: shipping.carrier_id || null,
-                point_id: shipping.point_id || null,
-                address: shipping.address || null,
-                contact: shipping.contact,
-            },
-        });
-
-        // Reservar stock
-        try {
-            for (const item of validatedItems) {
-                await decreaseStock(item.id_producto, item.cantidad);
-                console.log(`Stock reservado: ${item.cantidad} x ${item.id_producto} para orden ${order.id}`);
-            }
-            await markOrderStockReserved(order.id);
-        } catch (stockError: any) {
-            console.error("Error reservando stock:", stockError);
-            await updateOrderStatus(order.id, "cancelled");
-            return res.status(400).json({ error: stockError.message || "Error reservando stock" });
+        if (order.status !== 'pending') {
+            return res.status(400).json({ error: `La orden ya fue procesada (estado: ${order.status})` });
         }
 
         // Procesar pago con MercadoPago Payment API
@@ -710,13 +608,13 @@ export async function processPayment(req: Request, res: Response) {
                     token: formData.token,
                     issuer_id: formData.issuer_id,
                     payment_method_id: formData.payment_method_id,
-                    transaction_amount: Number(totalWithShipping),
+                    transaction_amount: Number(order.total),
                     installments: Number(formData.installments),
                     payer: {
                         email: formData.payer.email,
                         identification: formData.payer.identification,
                     },
-                    external_reference: external_reference,
+                    external_reference: order.external_reference,
                     notification_url: process.env.NODE_ENV === 'development'
                         ? 'https://zpxtnmn7-3001.brs.devtunnels.ms/payments/webhook'
                         : `${process.env.PUBLIC_BASE_URL}/api/payments/webhook`,
@@ -740,9 +638,9 @@ export async function processPayment(req: Request, res: Response) {
                 await markOrderStockReleased(order.id);
                 console.log(`Orden ${order.id} pagada via Brick, stock confirmado`);
 
-                if (validCoupon) {
+                if (order.cupon_codigo) {
                     try {
-                        await couponService.incrementUsage(validCoupon.codigo);
+                        await couponService.incrementUsage(order.cupon_codigo);
                     } catch (err) {
                         console.error(`Error incrementando uso de cupón:`, err);
                     }
@@ -823,3 +721,4 @@ export async function processPayment(req: Request, res: Response) {
         res.status(500).json({ error: error?.message || "Error interno del servidor" });
     }
 }
+

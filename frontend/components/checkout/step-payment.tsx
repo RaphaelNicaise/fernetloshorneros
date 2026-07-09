@@ -12,9 +12,9 @@ import type { CartItem } from "@/lib/cart-context"
 // Inicializar MP
 const MP_PUBLIC_KEY = process.env.NEXT_PUBLIC_MP_PUBLIC_KEY
 if (!MP_PUBLIC_KEY) {
-  console.error("[PaymentBrick] ERROR: NEXT_PUBLIC_MP_PUBLIC_KEY no está definida. Verificá las variables de entorno.")
+  console.error("[PaymentBrick] ERROR: NEXT_PUBLIC_MP_PUBLIC_KEY no está definida.")
 }
-console.log("[PaymentBrick] Inicializando SDK con Public Key:", MP_PUBLIC_KEY?.substring(0, 12))
+console.log("[PaymentBrick] Public Key:", MP_PUBLIC_KEY?.substring(0, 12))
 if (MP_PUBLIC_KEY) {
   initMercadoPago(MP_PUBLIC_KEY, { locale: "es-AR" })
 }
@@ -32,17 +32,19 @@ export function StepPayment({ items, shipping, coupon, total, onBack }: StepPaym
   const [error, setError] = useState<string | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [preferenceId, setPreferenceId] = useState<string | null>(null)
+  const [orderId, setOrderId] = useState<number | null>(null)
   const [isLoadingPreference, setIsLoadingPreference] = useState(true)
 
-  // Al montar, crear la preferencia en el backend para obtener el preferenceId
+  // Al montar, crear la preferencia + orden + reservar stock via createPreference
   useEffect(() => {
     let cancelled = false
 
-    const createPreference = async () => {
+    const initPayment = async () => {
       try {
         setIsLoadingPreference(true)
         setError(null)
 
+        // Usamos el endpoint que YA crea orden + reserva stock + genera preferencia
         const orderData = {
           items: items.map(i => ({ id: i.id, quantity: i.quantity })),
           shipping: {
@@ -58,12 +60,13 @@ export function StepPayment({ items, shipping, coupon, total, onBack }: StepPaym
           couponCode: coupon?.codigo
         }
 
-        console.log("[PaymentBrick] Creando preferencia con orderData:", orderData)
-        const res = await api.post("/payments/create-brick-preference", orderData)
+        console.log("[PaymentBrick] Creando preferencia + orden:", orderData)
+        const res = await api.post("/payments/create-preference", orderData)
         
         if (!cancelled) {
-          console.log("[PaymentBrick] Preferencia creada:", res.data.id)
+          console.log("[PaymentBrick] Preferencia:", res.data.id, "Orden:", res.data.order_id)
           setPreferenceId(res.data.id)
+          setOrderId(res.data.order_id)
         }
       } catch (err: any) {
         if (!cancelled) {
@@ -77,7 +80,7 @@ export function StepPayment({ items, shipping, coupon, total, onBack }: StepPaym
       }
     }
 
-    createPreference()
+    initPayment()
     return () => { cancelled = true }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -90,34 +93,17 @@ export function StepPayment({ items, shipping, coupon, total, onBack }: StepPaym
   } : null
 
   const onSubmit = async ({ formData }: any) => {
-    console.log("[PaymentBrick] onSubmit ejecutado. Datos recibidos del Brick:", formData)
+    console.log("[PaymentBrick] onSubmit. formData:", formData, "orderId:", orderId)
     setIsProcessing(true)
     setError(null)
     
     try {
-      // 1. Armar orderData igual que createPreference
-      const orderData = {
-        items: items.map(i => ({ id: i.id, quantity: i.quantity })),
-        shipping: {
-          cost: shipping.shipping_cost,
-          rate_id: shipping.rate_id,
-          service_type: shipping.service_type,
-          logistic_type: null,
-          carrier_id: null,
-          point_id: null,
-          address: shipping.address,
-          contact: shipping.contact,
-        },
-        couponCode: coupon?.codigo
-      }
-
-      // 2. Enviar a nuestro backend endpoint unificado
+      // Enviar formData del Brick + orderId de la orden ya creada
       const res = await api.post("/payments/process", {
         formData,
-        orderData
+        orderId
       })
 
-      // 3. Evaluar respuesta
       if (res.data.status === "approved" || res.data.status === "pending" || res.data.status === "in_process") {
         router.push("/payment/success")
       } else {
@@ -126,25 +112,19 @@ export function StepPayment({ items, shipping, coupon, total, onBack }: StepPaym
       }
     } catch (err: any) {
       console.error("Error procesando pago:", err)
-      setError(err.response?.data?.error || err.message || "Ocurrió un error al procesar el pago. Por favor, intenta nuevamente.")
+      setError(err.response?.data?.error || err.message || "Ocurrió un error al procesar el pago.")
       setIsProcessing(false)
     }
   }
 
   const onBrickError = (error: any) => {
-    // Solo logueamos errores non_critical, no los mostramos al usuario
-    // porque son informativos (ej: el usuario aún no terminó de tipear la tarjeta)
+    // Errores non_critical son informativos (usuario aún escribiendo tarjeta)
     if (error?.type === "non_critical") {
-      console.warn("[PaymentBrick] Error non_critical (informativo):", error.message)
+      console.warn("[PaymentBrick] non_critical:", error.message)
       return
     }
-    console.error("[PaymentBrick] Error crítico del Brick:", error)
-    if (error && typeof error === 'object') {
-      try {
-        console.error("[PaymentBrick] Detalles:", JSON.stringify(error, null, 2))
-      } catch (e) {}
-    }
-    setError("Ocurrió un error al cargar el formulario de pago. Revisá la consola para más detalles.")
+    console.error("[PaymentBrick] Error crítico:", error)
+    setError("Ocurrió un error al cargar el formulario de pago.")
   }
 
   return (
@@ -179,7 +159,6 @@ export function StepPayment({ items, shipping, coupon, total, onBack }: StepPaym
                   creditCard: "all",
                   debitCard: "all",
                   ticket: "all",
-                  mercadoPago: "all",
                 },
               }}
               onSubmit={onSubmit}
