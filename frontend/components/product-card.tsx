@@ -104,7 +104,7 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
         <p className="mb-6 text-sm leading-relaxed text-black/62">{product.description}</p>
         <div className="mt-auto flex items-end justify-between gap-4">
-          <span className="text-2xl font-bold text-[#0b0a07]">
+          <span className="font-serif text-3xl font-bold text-[#0b0a07]">
             {Number.isFinite(priceNumber)
               ? priceNumber.toLocaleString('es-AR', {
                   style: 'currency',

@@ -109,13 +109,6 @@ export function StepPayment({ items, shipping, coupon, total, onBack }: StepPaym
         <div className="p-1 sm:p-4">
           <Payment
             initialization={initialization}
-            customization={{
-              paymentMethods: {
-                creditCard: "all",
-                debitCard: "all",
-                ticket: "all",
-              },
-            }}
             onSubmit={onSubmit}
             onError={onError}
           />

@@ -54,7 +54,7 @@ function RecommendedCard({
           <p className="line-clamp-1 text-xs text-black/55">{product.description}</p>
         )}
         <div className="mt-auto flex items-center justify-between gap-2">
-          <span className="text-sm font-bold text-[#0b0a07]">
+          <span className="font-serif text-sm font-bold text-[#0b0a07]">
             ${Number(product.price || 0).toLocaleString("es-AR")}
           </span>
           {outOfStock ? (
@@ -142,7 +142,7 @@ export function StepProducts({
                   </div>
                 </div>
                 <div className="mt-2 text-left sm:mt-0 sm:text-right">
-                  <p className="text-base font-bold text-[#0b0a07] sm:text-lg">
+                  <p className="font-serif text-base font-bold text-[#0b0a07] sm:text-lg">
                     ${(Number(item.price || 0) * (item.quantity || 1)).toLocaleString("es-AR")}
                   </p>
                 </div>
