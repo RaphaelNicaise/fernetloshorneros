@@ -194,8 +194,12 @@ export function StepPayment({ items, shipping, coupon, total, onBack }: StepPaym
             <Payment
               initialization={initialization}
               customization={{
-                // Al no especificar paymentMethods, Mercado Pago cargará automáticamente
-                // todos los medios de pago permitidos por la preferencia y la cuenta.
+                paymentMethods: {
+                  ticket: "all",
+                  creditCard: "all",
+                  debitCard: "all",
+                  mercadoPago: "all",
+                }
               }}
               onSubmit={onSubmit}
               onError={onBrickError}
