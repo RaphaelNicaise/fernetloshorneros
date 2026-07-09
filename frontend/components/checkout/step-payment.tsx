@@ -86,9 +86,8 @@ export function StepPayment({ items, shipping, coupon, total, onBack }: StepPaym
     return () => { cancelled = true }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const initialization = preferenceId ? {
+  const initialization = orderId ? {
     amount: total,
-    preferenceId: preferenceId,
     payer: {
       email: shipping.contact.email,
     }
