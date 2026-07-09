@@ -146,12 +146,16 @@ export function StepShipping({ items, initialData, onContinue, onBack }: StepShi
     return () => clearTimeout(timer)
   }, [canQuote, codigoPostal, provincia, ciudad, items])
 
+  const isValidEmail = (emailStr: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailStr.trim())
+  }
+
   const isValid = 
     selectedOption &&
     direccion.trim() &&
     numero.trim() &&
     nombre.trim() &&
-    email.trim().includes("@") &&
+    isValidEmail(email) &&
     dni.trim() &&
     telefono.trim()
 
