@@ -91,6 +91,7 @@ export function StepPayment({ items, shipping, coupon, total, onBack }: StepPaym
     preferenceId: preferenceId,
     payer: {
       email: shipping.contact.email,
+      entityType: "individual"
     }
   } : null
 
