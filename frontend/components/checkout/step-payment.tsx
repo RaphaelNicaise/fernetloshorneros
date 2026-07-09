@@ -4,15 +4,15 @@ import { useEffect, useState } from "react"
 import { initMercadoPago, Payment } from "@mercadopago/sdk-react"
 import { api } from "@/lib/api"
 import { useRouter } from "next/navigation"
-import { Lock, ShieldCheck } from "lucide-react"
+import { Lock, ShieldCheck, Loader2 } from "lucide-react"
 import type { ShippingData } from "./step-shipping"
 import type { CouponData } from "./step-coupon-summary"
 import type { CartItem } from "@/lib/cart-context"
 
 // Inicializar MP
 const MP_PUBLIC_KEY = process.env.NEXT_PUBLIC_MP_PUBLIC_KEY || "APP_USR-6caa59ec-7cdf-4901-abee-a3d549ca8ccb"
-console.log("[PaymentBrick] Inicializando SDK con Public Key que empieza en:", MP_PUBLIC_KEY.substring(0, 12))
-initMercadoPago(MP_PUBLIC_KEY)
+console.log("[PaymentBrick] Inicializando SDK con Public Key:", MP_PUBLIC_KEY.substring(0, 12))
+initMercadoPago(MP_PUBLIC_KEY, { locale: "es-AR" })
 
 interface StepPaymentProps {
   items: CartItem[]
@@ -26,14 +26,63 @@ export function StepPayment({ items, shipping, coupon, total, onBack }: StepPaym
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
+  const [preferenceId, setPreferenceId] = useState<string | null>(null)
+  const [isLoadingPreference, setIsLoadingPreference] = useState(true)
 
-  const initialization = {
+  // Al montar, crear la preferencia en el backend para obtener el preferenceId
+  useEffect(() => {
+    let cancelled = false
+
+    const createPreference = async () => {
+      try {
+        setIsLoadingPreference(true)
+        setError(null)
+
+        const orderData = {
+          items: items.map(i => ({ id: i.id, quantity: i.quantity })),
+          shipping: {
+            cost: shipping.shipping_cost,
+            rate_id: shipping.rate_id,
+            service_type: shipping.service_type,
+            logistic_type: null,
+            carrier_id: null,
+            point_id: null,
+            address: shipping.address,
+            contact: shipping.contact,
+          },
+          couponCode: coupon?.codigo
+        }
+
+        console.log("[PaymentBrick] Creando preferencia con orderData:", orderData)
+        const res = await api.post("/payments/create-brick-preference", orderData)
+        
+        if (!cancelled) {
+          console.log("[PaymentBrick] Preferencia creada:", res.data.id)
+          setPreferenceId(res.data.id)
+        }
+      } catch (err: any) {
+        if (!cancelled) {
+          console.error("[PaymentBrick] Error creando preferencia:", err)
+          setError(err.response?.data?.error || "Error al preparar el formulario de pago. Intenta nuevamente.")
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingPreference(false)
+        }
+      }
+    }
+
+    createPreference()
+    return () => { cancelled = true }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const initialization = preferenceId ? {
     amount: total,
+    preferenceId: preferenceId,
     payer: {
       email: shipping.contact.email,
-      entityType: "individual",
     }
-  }
+  } : null
 
   const onSubmit = async ({ formData }: any) => {
     console.log("[PaymentBrick] onSubmit ejecutado. Datos recibidos del Brick:", formData)
@@ -48,7 +97,7 @@ export function StepPayment({ items, shipping, coupon, total, onBack }: StepPaym
           cost: shipping.shipping_cost,
           rate_id: shipping.rate_id,
           service_type: shipping.service_type,
-          logistic_type: null, // MP brick flow simplificado
+          logistic_type: null,
           carrier_id: null,
           point_id: null,
           address: shipping.address,
@@ -72,16 +121,22 @@ export function StepPayment({ items, shipping, coupon, total, onBack }: StepPaym
       }
     } catch (err: any) {
       console.error("Error procesando pago:", err)
-      setError(err.message || "Ocurrió un error al procesar el pago. Por favor, intenta nuevamente.")
+      setError(err.response?.data?.error || err.message || "Ocurrió un error al procesar el pago. Por favor, intenta nuevamente.")
       setIsProcessing(false)
     }
   }
 
-  const onError = (error: any) => {
-    console.error("[PaymentBrick] Error interno del Brick (onError):", error)
+  const onBrickError = (error: any) => {
+    // Solo logueamos errores non_critical, no los mostramos al usuario
+    // porque son informativos (ej: el usuario aún no terminó de tipear la tarjeta)
+    if (error?.type === "non_critical") {
+      console.warn("[PaymentBrick] Error non_critical (informativo):", error.message)
+      return
+    }
+    console.error("[PaymentBrick] Error crítico del Brick:", error)
     if (error && typeof error === 'object') {
       try {
-        console.error("[PaymentBrick] Detalles del error:", JSON.stringify(error, null, 2))
+        console.error("[PaymentBrick] Detalles:", JSON.stringify(error, null, 2))
       } catch (e) {}
     }
     setError("Ocurrió un error al cargar el formulario de pago. Revisá la consola para más detalles.")
@@ -105,19 +160,37 @@ export function StepPayment({ items, shipping, coupon, total, onBack }: StepPaym
       )}
 
       <div className="relative overflow-hidden rounded-2xl border border-black/8 bg-white shadow-[0_18px_38px_rgba(11,10,7,0.05)] min-h-[400px]">
-        {/* Este ID es usado por la SDK internamente */}
         <div className="p-1 sm:p-4">
-          <Payment
-            initialization={initialization}
-            customization={{
-              paymentMethods: {
-                creditCard: "all",
-                debitCard: "all",
-              }
-            }}
-            onSubmit={onSubmit}
-            onError={onError}
-          />
+          {isLoadingPreference ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+              <Loader2 className="h-8 w-8 animate-spin text-[#aa825e]" />
+              <p className="text-sm text-black/50">Preparando formulario de pago...</p>
+            </div>
+          ) : initialization ? (
+            <Payment
+              initialization={initialization}
+              customization={{
+                paymentMethods: {
+                  creditCard: "all",
+                  debitCard: "all",
+                  ticket: "all",
+                  mercadoPago: "all",
+                },
+              }}
+              onSubmit={onSubmit}
+              onError={onBrickError}
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+              <p className="text-sm text-red-600">No se pudo cargar el formulario de pago.</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="rounded-xl bg-[#0b0a07] px-6 py-3 text-sm font-medium text-white hover:bg-black/80"
+              >
+                Reintentar
+              </button>
+            </div>
+          )}
         </div>
         
         {isProcessing && (

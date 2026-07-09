@@ -41,6 +41,118 @@ export async function cleanupExpiredOrders() {
 }
 
 /**
+ * POST /payments/create-brick-preference
+ * Creates a lightweight MP preference for Payment Brick initialization.
+ * Does NOT create an order or reserve stock — that happens in processPayment.
+ */
+export async function createBrickPreference(req: Request, res: Response) {
+    try {
+        const { items, shipping, couponCode } = req.body;
+
+        if (!items || !Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ error: "Items requeridos" });
+        }
+
+        if (!shipping || shipping.cost === undefined || shipping.cost === null || Number(shipping.cost) < 0) {
+            return res.status(400).json({ error: "Datos de envío requeridos" });
+        }
+
+        // Validar items y calcular total
+        const mpItems = [];
+        let total = 0;
+
+        for (const item of items) {
+            const product = await getProductById(item.id);
+            if (!product) {
+                return res.status(400).json({ error: `Producto ${item.id} no encontrado` });
+            }
+            const quantity = Number(item.quantity) || 1;
+            const unitPrice = Number(product.price);
+            total += unitPrice * quantity;
+
+            mpItems.push({
+                id: product.id,
+                title: product.name,
+                quantity: quantity,
+                unit_price: unitPrice,
+                currency_id: "ARS",
+            });
+        }
+
+        // Aplicar cupón si existe
+        let discountAmount = 0;
+        let validCoupon = null;
+
+        if (couponCode) {
+            validCoupon = await couponService.getCouponByCode(couponCode);
+            if (validCoupon) {
+                const validation = couponService.validateCoupon(validCoupon);
+                if (validation.valid) {
+                    if (validCoupon.tipo_descuento === 'porcentaje') {
+                        discountAmount = (total * validCoupon.valor) / 100;
+                    } else if (validCoupon.tipo_descuento === 'fijo') {
+                        discountAmount = validCoupon.valor;
+                    }
+                    if (discountAmount > total && validCoupon.tipo_descuento !== 'envio_gratis') {
+                        discountAmount = total;
+                    }
+                }
+            }
+        }
+
+        let shippingCost = Number(shipping.cost);
+        if (validCoupon?.tipo_descuento === 'envio_gratis') {
+            shippingCost = 0;
+        }
+
+        // Aplicar descuento proporcional a los items
+        if (discountAmount > 0 && validCoupon?.tipo_descuento !== 'envio_gratis') {
+            const discountRatio = (total - discountAmount) / total;
+            for (const item of mpItems) {
+                item.unit_price = Math.round(item.unit_price * discountRatio * 100) / 100;
+            }
+        }
+
+        // Agregar envío como item
+        mpItems.push({
+            id: "shipping",
+            title: `Envío (${shipping.service_type === 'pickup_point' ? 'Punto de retiro' : 'A domicilio'})${validCoupon?.tipo_descuento === 'envio_gratis' ? ' - GRATIS' : ''}`,
+            quantity: 1,
+            unit_price: shippingCost,
+            currency_id: "ARS",
+        });
+
+        const preference = await preferenceClient.create({
+            body: {
+                items: mpItems,
+                back_urls: {
+                    success: process.env.NODE_ENV === 'development'
+                        ? "https://zpxtnmn7-3000.brs.devtunnels.ms/payment/success"
+                        : `${process.env.PUBLIC_BASE_URL}/payment/success`,
+                    failure: process.env.NODE_ENV === 'development'
+                        ? "https://zpxtnmn7-3000.brs.devtunnels.ms/payment/failure"
+                        : `${process.env.PUBLIC_BASE_URL}/payment/failure`,
+                    pending: process.env.NODE_ENV === 'development'
+                        ? "https://zpxtnmn7-3000.brs.devtunnels.ms/payment/pending"
+                        : `${process.env.PUBLIC_BASE_URL}/payment/pending`,
+                },
+                auto_return: "approved",
+                external_reference: uuidv4(),
+                notification_url: process.env.NODE_ENV === 'development'
+                    ? 'https://zpxtnmn7-3001.brs.devtunnels.ms/payments/webhook'
+                    : `${process.env.PUBLIC_BASE_URL}/api/payments/webhook`,
+            },
+        });
+
+        console.log("[createBrickPreference] Preferencia creada:", preference.id);
+        res.json({ id: preference.id });
+    } catch (error: any) {
+        console.error("Error creando preferencia para Brick:", error);
+        res.status(500).json({ error: error?.message || "Error interno del servidor" });
+    }
+}
+
+/**
  * POST /payments/create-preference
  */
 export async function createPreference(req: Request, res: Response) {
