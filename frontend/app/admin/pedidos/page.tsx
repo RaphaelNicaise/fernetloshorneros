@@ -1,4 +1,5 @@
 'use client';
+import { toast } from 'sonner';
 
 import React, { useState, useEffect, useMemo } from 'react';
 import {
@@ -211,18 +212,7 @@ export default function AdminPedidosPage() {
     onConfirm: () => {},
   });
 
-  // Alerta/Mensaje personalizado
-  const [alertDialog, setAlertDialog] = useState<{
-    isOpen: boolean;
-    title: string;
-    message: string;
-    type: 'success' | 'error' | 'info';
-  }>({
-    isOpen: false,
-    title: '',
-    message: '',
-    type: 'info',
-  });
+
 
   useEffect(() => {
     fetchLotes();
@@ -272,14 +262,12 @@ export default function AdminPedidosPage() {
         if (dispatchModalOpen) {
           setDispatchModalOpen(false);
         }
-        if (alertDialog.isOpen) {
-          setAlertDialog((prev) => ({ ...prev, isOpen: false }));
-        }
+        
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [confirmDialog.isOpen, editModalOpen, dispatchModalOpen, alertDialog.isOpen]);
+  }, [confirmDialog.isOpen, editModalOpen, dispatchModalOpen]);
 
   async function openCreateManualModal() {
     setCreateManualModalOpen(true);
@@ -328,13 +316,7 @@ export default function AdminPedidosPage() {
       !manualProvincia ||
       manualOrderItems.length === 0
     ) {
-      setAlertDialog({
-        isOpen: true,
-        title: 'Error',
-        message:
-          'Completá nombre, email, dirección, ciudad, provincia y seleccioná al menos un producto.',
-        type: 'error',
-      });
+      toast.error('Error', { description: 'Completá nombre, email, dirección, ciudad, provincia y seleccioná al menos un producto.' });
       return;
     }
     try {
@@ -367,21 +349,11 @@ export default function AdminPedidosPage() {
       if (!res.ok || data.success !== true) {
         throw new Error(data.error || 'Error al crear el pedido manual');
       }
-      setAlertDialog({
-        isOpen: true,
-        title: 'Éxito',
-        message: 'Pedido manual creado correctamente.',
-        type: 'success',
-      });
+      toast.success('Éxito', { description: 'Pedido manual creado correctamente.' });
       setCreateManualModalOpen(false);
       await fetchOrders(true, filterLote);
     } catch (e: any) {
-      setAlertDialog({
-        isOpen: true,
-        title: 'Error',
-        message: e?.message || 'Error',
-        type: 'error',
-      });
+      toast.error('Error', { description: e?.message || 'Error' });
     } finally {
       setSubmittingStatus(false);
     }
@@ -389,12 +361,7 @@ export default function AdminPedidosPage() {
 
   async function handleCreateLocalOrder() {
     if (!localNombre || !localEmail || manualOrderItems.length === 0) {
-      setAlertDialog({
-        isOpen: true,
-        title: 'Error',
-        message: 'Completá nombre, email del comprador y seleccioná al menos un producto.',
-        type: 'error',
-      });
+      toast.error('Error', { description: 'Completá nombre, email del comprador y seleccioná al menos un producto.' });
       return;
     }
     try {
@@ -422,16 +389,11 @@ export default function AdminPedidosPage() {
       if (!res.ok || data.success !== true) {
         throw new Error(data.error || 'Error al registrar la venta física');
       }
-      setAlertDialog({
-        isOpen: true,
-        title: 'Éxito',
-        message: 'Venta física registrada correctamente.',
-        type: 'success',
-      });
+      toast.success('Éxito', { description: 'Venta física registrada correctamente.' });
       await fetchOrders();
       setCreateLocalModalOpen(false);
     } catch (e: any) {
-      setAlertDialog({ isOpen: true, title: 'Error', message: e.message, type: 'error' });
+      toast.error('Error', { description: e.message });
     } finally {
       setSubmittingStatus(false);
     }
@@ -562,21 +524,11 @@ export default function AdminPedidosPage() {
         }
       }
 
-      setAlertDialog({
-        isOpen: true,
-        title: 'Éxito',
-        message: 'El pedido fue actualizado correctamente.',
-        type: 'success',
-      });
+      toast.success('Éxito', { description: 'El pedido fue actualizado correctamente.' });
       setEditModalOpen(false);
       fetchOrders(true, filterLote);
     } catch (e: any) {
-      setAlertDialog({
-        isOpen: true,
-        title: 'Error',
-        message: e?.message || 'Ocurrió un error al guardar los cambios.',
-        type: 'error',
-      });
+      toast.error('Error', { description: e?.message || 'Ocurrió un error al guardar los cambios.' });
     } finally {
       setSubmittingStatus(false);
     }
@@ -614,24 +566,14 @@ export default function AdminPedidosPage() {
         throw new Error(data.error || 'Error al actualizar el estado');
       }
 
-      setAlertDialog({
-        isOpen: true,
-        title: 'Pedido Despachado',
-        message: `El pedido #${dispatchModalTarget.id} fue marcado como enviado exitosamente.`,
-        type: 'success',
-      });
+      toast.success('Pedido Despachado', { description: `El pedido #${dispatchModalTarget.id} fue marcado como enviado exitosamente.` });
 
       setDispatchModalOpen(false);
       setDispatchModalTarget(null);
       setQuickTrackingCode('');
       fetchOrders(true, filterLote);
     } catch (e: any) {
-      setAlertDialog({
-        isOpen: true,
-        title: 'Error al Despachar',
-        message: e?.message || 'Ocurrió un error al despachar el pedido.',
-        type: 'error',
-      });
+      toast.error('Error al Despachar', { description: e?.message || 'Ocurrió un error al despachar el pedido.' });
     } finally {
       setSubmittingStatus(false);
     }
@@ -659,29 +601,14 @@ export default function AdminPedidosPage() {
           });
           const data = await res.json().catch(() => ({}));
           if (!res.ok || data.success !== true) {
-            setAlertDialog({
-              isOpen: true,
-              title: 'Error',
-              message: data.error || `Error HTTP ${res.status}`,
-              type: 'error',
-            });
+            toast.error('Error', { description: data.error || `Error HTTP ${res.status}` });
             return;
           }
-          setAlertDialog({
-            isOpen: true,
-            title: 'Éxito',
-            message: 'La orden fue anulada y el reembolso fue procesado correctamente.',
-            type: 'success',
-          });
+          toast.success('Éxito', { description: 'La orden fue anulada y el reembolso fue procesado correctamente.' });
           setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
           fetchOrders(true);
         } catch (err: any) {
-          setAlertDialog({
-            isOpen: true,
-            title: 'Error',
-            message: err?.message || 'Error al anular',
-            type: 'error',
-          });
+          toast.error('Error', { description: err?.message || 'Error al anular' });
         }
       },
     });
@@ -749,30 +676,15 @@ export default function AdminPedidosPage() {
           );
           const data = await res.json().catch(() => ({}));
           if (!res.ok || data.success !== true) {
-            setAlertDialog({
-              isOpen: true,
-              title: 'Error',
-              message: data.error || `Error HTTP ${res.status}`,
-              type: 'error',
-            });
+            toast.error('Error', { description: data.error || `Error HTTP ${res.status}` });
             return;
           }
-          setAlertDialog({
-            isOpen: true,
-            title: 'Eliminado',
-            message: 'El pedido fue borrado por completo del sistema.',
-            type: 'success',
-          });
+          toast.success('Eliminado', { description: 'El pedido fue borrado por completo del sistema.' });
           setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
           fetchOrders(true);
         } catch (error) {
           console.error(error);
-          setAlertDialog({
-            isOpen: true,
-            title: 'Error',
-            message: 'Error de red eliminando el pedido.',
-            type: 'error',
-          });
+          toast.error('Error', { description: 'Error de red eliminando el pedido.' });
         }
       },
     });
@@ -959,12 +871,7 @@ export default function AdminPedidosPage() {
       const filename = `pedidos_${ts.getFullYear()}${pad(ts.getMonth() + 1)}${pad(ts.getDate())}_${pad(ts.getHours())}${pad(ts.getMinutes())}.xlsx`;
       XLSX.writeFile(wb, filename);
     } catch (e: any) {
-      setAlertDialog({
-        isOpen: true,
-        title: 'Error al Exportar',
-        message: e?.message || 'Ocurrió un error al obtener la información de los productos.',
-        type: 'error',
-      });
+      toast.error('Error al Exportar', { description: e?.message || 'Ocurrió un error al obtener la información de los productos.' });
     } finally {
       setExporting(false);
     }
@@ -1940,47 +1847,6 @@ export default function AdminPedidosPage() {
                 </Button>
               </div>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Alerta / Mensaje Personalizado */}
-      {alertDialog.isOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs"
-          onClick={() => setAlertDialog((prev) => ({ ...prev, isOpen: false }))}
-        >
-          <div
-            className="w-full max-w-sm space-y-4 rounded-xl border border-white/10 bg-[#0b0a07] p-6 text-center text-white shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex justify-center">
-              {alertDialog.type === 'success' ? (
-                <div className="flex h-12 w-12 items-center justify-center rounded-full border border-green-500/30 bg-green-500/20 text-2xl font-bold text-green-400">
-                  ✓
-                </div>
-              ) : alertDialog.type === 'error' ? (
-                <div className="flex h-12 w-12 items-center justify-center rounded-full border border-red-500/30 bg-red-500/20 text-2xl font-bold text-red-400">
-                  ✕
-                </div>
-              ) : (
-                <div className="flex h-12 w-12 items-center justify-center rounded-full border border-blue-500/30 bg-blue-500/20 text-2xl font-bold text-blue-400">
-                  i
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-1">
-              <h4 className="text-lg font-bold text-white">{alertDialog.title}</h4>
-              <p className="text-sm text-white/80">{alertDialog.message}</p>
-            </div>
-
-            <Button
-              onClick={() => setAlertDialog((prev) => ({ ...prev, isOpen: false }))}
-              className="w-full border-0 bg-[#AA6F3B] font-bold text-[#0b0a07] hover:bg-[#AA6F3B]/90"
-            >
-              Aceptar
-            </Button>
           </div>
         </div>
       )}

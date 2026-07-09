@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { API_BASE_URL } from "@/lib/api";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { 
     Ticket, 
     Plus, 
@@ -90,7 +90,7 @@ export default function CuponesAdmin() {
             }
         } catch (error) {
             console.error(error);
-            toast({ title: "Error", description: "No se pudieron cargar los cupones", variant: "destructive" });
+            toast.error("Error", { description: "No se pudieron cargar los cupones" });
         } finally {
             setLoading(false);
         }
@@ -123,11 +123,11 @@ export default function CuponesAdmin() {
                 throw new Error(errorData.error || "Error guardando cupón");
             }
 
-            toast({ title: "Cupón guardado", description: "El cupón se ha guardado correctamente" });
+            toast.success("Cupón guardado", { description: "El cupón se ha guardado correctamente" });
             setIsDialogOpen(false);
             fetchCoupons();
         } catch (error: any) {
-            toast({ title: "Error", description: error.message, variant: "destructive" });
+            toast.error("Error", { description: error.message });
         }
     };
 
@@ -151,14 +151,14 @@ export default function CuponesAdmin() {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (res.ok) {
-                toast({ title: "Cupón eliminado" });
+                toast.success("Cupón eliminado");
                 fetchCoupons();
             } else {
                 throw new Error("Error al eliminar");
             }
         } catch (error) {
             console.error(error);
-            toast({ title: "Error", description: "No se pudo eliminar el cupón", variant: "destructive" });
+            toast.error("Error", { description: "No se pudo eliminar el cupón" });
         }
     };
 

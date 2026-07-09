@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { api, API_BASE_URL } from '@/lib/api';
 import { Download, Loader2 } from 'lucide-react';
 
@@ -27,7 +27,7 @@ export default function ConfigPage() {
     "Tierra del Fuego", "Tucumán", "Uruguay"
   ];
 
-  const { toast } = useToast();
+
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -60,10 +60,8 @@ export default function ConfigPage() {
           }
         }
       } catch {
-        toast({
-          title: 'Error',
+        toast.error('Error', {
           description: 'No se pudieron obtener las configuraciones.',
-          variant: 'destructive',
         });
       }
     };
@@ -73,20 +71,20 @@ export default function ConfigPage() {
         const res = await api.get('/lotes');
         setLotes(res.data);
       } catch {
-        toast({ title: 'Error', description: 'No se pudieron obtener los lotes.', variant: 'destructive' });
+        toast.error('Error', { description: 'No se pudieron obtener los lotes.' });
       }
     };
 
     fetchSettings();
     fetchLotes();
-  }, [toast]);
+  }, []);
 
   const handleSave = async (key: string, value: string, name: string) => {
     try {
       await api.put(`/settings/${key}`, { value });
-      toast({ title: 'Éxito', description: `${name} actualizado.` });
+      toast.success('Éxito', { description: `${name} actualizado.` });
     } catch {
-      toast({ title: 'Error', description: `No se pudo actualizar ${name}.`, variant: 'destructive' });
+      toast.error('Error', { description: `No se pudo actualizar ${name}.` });
     }
   };
 
@@ -106,9 +104,9 @@ export default function ConfigPage() {
         )
       };
       await api.put('/settings/shipping_costs_by_province', { value: JSON.stringify(config) });
-      toast({ title: 'Éxito', description: 'Costos por provincia actualizados.' });
+      toast.success('Éxito', { description: 'Costos por provincia actualizados.' });
     } catch {
-      toast({ title: 'Error', description: 'No se pudo actualizar los costos por provincia.', variant: 'destructive' });
+      toast.error('Error', { description: 'No se pudo actualizar los costos por provincia.' });
     }
   };
 
@@ -118,14 +116,13 @@ export default function ConfigPage() {
     try {
       await api.put('/settings/maintenance_mode', { value: String(newValue) });
       setMaintenanceMode(newValue);
-      toast({
-        title: newValue ? '🔧 Mantenimiento activado' : '✅ Mantenimiento desactivado',
+      toast.success(newValue ? '🔧 Mantenimiento activado' : '✅ Mantenimiento desactivado', {
         description: newValue
           ? 'Solo las IPs autorizadas pueden acceder al sitio.'
           : 'El sitio está accesible para todos.',
       });
     } catch {
-      toast({ title: 'Error', description: 'No se pudo cambiar el modo mantenimiento.', variant: 'destructive' });
+      toast.error('Error', { description: 'No se pudo cambiar el modo mantenimiento.' });
     } finally {
       setMaintenanceSaving(false);
     }
@@ -136,33 +133,33 @@ export default function ConfigPage() {
     try {
       await api.post('/lotes', { nombre: newLoteName, setAsActive: lotes.length === 0 });
       setNewLoteName('');
-      toast({ title: 'Éxito', description: 'Lote creado.' });
+      toast.success('Éxito', { description: 'Lote creado.' });
       const res = await api.get('/lotes');
       setLotes(res.data);
     } catch {
-      toast({ title: 'Error', description: 'No se pudo crear el lote.', variant: 'destructive' });
+      toast.error('Error', { description: 'No se pudo crear el lote.' });
     }
   };
 
   const handleSetLoteActivo = async (id: number) => {
     try {
       await api.put(`/lotes/${id}/set-active`);
-      toast({ title: 'Éxito', description: 'Lote actual actualizado.' });
+      toast.success('Éxito', { description: 'Lote actual actualizado.' });
       const res = await api.get('/lotes');
       setLotes(res.data);
     } catch {
-      toast({ title: 'Error', description: 'No se pudo actualizar el lote actual.', variant: 'destructive' });
+      toast.error('Error', { description: 'No se pudo actualizar el lote actual.' });
     }
   };
 
   const handleDeleteLote = async (id: number) => {
     try {
       await api.delete(`/lotes/${id}`);
-      toast({ title: 'Éxito', description: 'Lote eliminado.' });
+      toast.success('Éxito', { description: 'Lote eliminado.' });
       const res = await api.get('/lotes');
       setLotes(res.data);
     } catch (error: any) {
-      toast({ title: 'Error', description: error.response?.data?.error || 'No se pudo eliminar el lote.', variant: 'destructive' });
+      toast.error('Error', { description: error.response?.data?.error || 'No se pudo eliminar el lote.' });
     }
   };
 
@@ -185,7 +182,7 @@ export default function ConfigPage() {
       a.remove();
       window.URL.revokeObjectURL(url);
     } catch {
-      toast({ title: 'Error', description: 'No se pudo generar el backup manual.', variant: 'destructive' });
+      toast.error('Error', { description: 'No se pudo generar el backup manual.' });
     } finally {
       setIsManualBackupLoading(false);
     }
@@ -213,7 +210,7 @@ export default function ConfigPage() {
       a.remove();
       window.URL.revokeObjectURL(url);
     } catch (e: any) {
-      toast({ title: 'Error', description: e.message, variant: 'destructive' });
+      toast.error('Error', { description: e.message });
     } finally {
       setIsAutoBackupLoading(false);
     }

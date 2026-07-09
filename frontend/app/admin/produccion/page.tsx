@@ -1,5 +1,5 @@
 'use client';
-
+import { toast } from 'sonner';
 import React, { useState, useEffect, useCallback } from 'react';
 import { API_BASE_URL } from '@/lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -229,7 +229,7 @@ export default function ProduccionPage() {
       if (selectedBarril?.id === undoConfirm.barrilId) refreshDetail(undoConfirm.barrilId);
       setUndoConfirm(null);
     } catch (error: any) {
-      alert(error.message);
+      toast.error('Error', { description: error.message });
     }
   };
 

@@ -30,6 +30,11 @@ export default function CartPage() {
   const [shippingData, setShippingData] = useState<ShippingData | null>(null)
   const [couponData, setCouponData] = useState<CouponData | null>(null)
 
+  // Scrollear hacia arriba al cambiar de paso
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [currentStep])
+
   useCartValidation()
 
   useEffect(() => {

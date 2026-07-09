@@ -5,6 +5,7 @@ import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
 import { API_BASE_URL } from "@/lib/api"
+import { Toaster } from "@/components/ui/sonner"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Package,
@@ -119,6 +120,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="dark min-h-screen bg-[#0f0d0a] text-foreground">
+      <Toaster position="top-right" richColors theme="dark" />
       {/* Sidebar backdrop (mobile) */}
       <AnimatePresence>
         {sidebarOpen && (

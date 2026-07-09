@@ -28,11 +28,9 @@ export function StepPayment({ items, shipping, coupon, total, onBack }: StepPaym
 
   const initialization = {
     amount: total,
-    // preferenceId: Opcional, pero si lo tuviéramos se pasaría acá. 
-    // Como creamos la orden on-the-fly en nuestro backend con formData, 
-    // pasamos el amount y payer email prefill.
     payer: {
       email: shipping.contact.email,
+      entityType: "individual",
     }
   }
 
@@ -109,7 +107,6 @@ export function StepPayment({ items, shipping, coupon, total, onBack }: StepPaym
                 creditCard: "all",
                 debitCard: "all",
                 ticket: "all",
-                mercadoPago: "all",
               },
             }}
             onSubmit={onSubmit}

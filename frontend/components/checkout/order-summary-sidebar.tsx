@@ -71,7 +71,7 @@ export function OrderSummarySidebar({ items, shipping, coupon }: OrderSummarySid
 
       <div className="flex items-end justify-between pt-2">
         <span className="font-serif text-base font-bold text-[#0b0a07]">Total</span>
-        <span className="text-xl font-black text-[#aa825e]">${total.toLocaleString("es-AR")}</span>
+        <span className="font-serif text-2xl font-bold text-[#aa825e]">${total.toLocaleString("es-AR")}</span>
       </div>
     </div>
   )

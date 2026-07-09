@@ -32,8 +32,16 @@ export function StepCouponSummary({ cartTotal, shippingCost, onContinue, onBack,
     setError("")
     
     try {
-      // Usamos el endpoint existente que devuelve los datos del cupón
-      const { data } = await api.get(`/coupons/${couponCode.toUpperCase()}`)
+      const res = await api.post("/coupons/validate", {
+        codigo: couponCode.toUpperCase(),
+        subtotal: cartTotal
+      })
+
+      if (!res.data.valid) {
+        throw new Error(res.data.error || "Cupón inválido")
+      }
+
+      const data = res.data.coupon
       
       let amountApplied = 0
       if (data.tipo_descuento === "porcentaje") {
@@ -143,7 +151,7 @@ export function StepCouponSummary({ cartTotal, shippingCost, onContinue, onBack,
           <div className="my-4 h-px w-full bg-black/10" />
           <div className="flex justify-between items-end">
             <span className="font-serif text-xl font-bold text-[#0b0a07]">Total a Pagar</span>
-            <span className="text-2xl font-black text-[#aa825e]">
+            <span className="font-serif text-3xl font-bold text-[#aa825e]">
               ${total.toLocaleString("es-AR")}
             </span>
           </div>
