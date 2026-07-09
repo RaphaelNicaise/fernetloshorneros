@@ -33,6 +33,7 @@ export function StepPayment({ items, shipping, coupon, total, onBack }: StepPaym
   const [isProcessing, setIsProcessing] = useState(false)
   const [preferenceId, setPreferenceId] = useState<string | null>(null)
   const [orderId, setOrderId] = useState<number | null>(null)
+  const [externalReference, setExternalReference] = useState<string | null>(null)
   const [isLoadingPreference, setIsLoadingPreference] = useState(true)
 
   // Al montar, crear la preferencia + orden + reservar stock via createPreference
@@ -67,6 +68,7 @@ export function StepPayment({ items, shipping, coupon, total, onBack }: StepPaym
           console.log("[PaymentBrick] Preferencia:", res.data.id, "Orden:", res.data.order_id)
           setPreferenceId(res.data.id)
           setOrderId(res.data.order_id)
+          setExternalReference(res.data.external_reference)
         }
       } catch (err: any) {
         if (!cancelled) {
@@ -125,6 +127,18 @@ export function StepPayment({ items, shipping, coupon, total, onBack }: StepPaym
     }
     console.error("[PaymentBrick] Error crítico:", error)
     setError("Ocurrió un error al cargar el formulario de pago.")
+  }
+
+  const handleBack = async () => {
+    if (externalReference && !isProcessing) {
+      try {
+        console.log("[PaymentBrick] Cancelando orden:", externalReference)
+        await api.post(`/payments/cancel/${externalReference}`)
+      } catch (err) {
+        console.error("Error cancelando orden al volver:", err)
+      }
+    }
+    onBack()
   }
 
   return (
@@ -188,7 +202,7 @@ export function StepPayment({ items, shipping, coupon, total, onBack }: StepPaym
 
       <div className="flex items-center justify-between pt-2">
         <button 
-          onClick={onBack} 
+          onClick={handleBack} 
           disabled={isProcessing}
           className="text-sm font-medium text-black/50 hover:text-[#0b0a07] transition-colors disabled:opacity-50"
         >
