@@ -198,6 +198,7 @@ export function StepPayment({ items, shipping, coupon, total, onBack }: StepPaym
                   ticket: "all",
                   creditCard: "all",
                   debitCard: "all",
+                  prepaidCard: "all",
                   mercadoPago: "all",
                 }
               }}
