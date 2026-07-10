@@ -157,6 +157,7 @@ CREATE TABLE IF NOT EXISTS barriles (
   estado ENUM('vacio','en_proceso','listo') NOT NULL DEFAULT 'vacio',
   proceso_activo_nombre VARCHAR(255) DEFAULT NULL,
   proceso_activo_inicio DATETIME DEFAULT NULL,
+  proceso_activo_fin DATETIME DEFAULT NULL,
   ultima_mezcla TIMESTAMP NULL DEFAULT NULL,
   notas TEXT DEFAULT NULL,
   fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

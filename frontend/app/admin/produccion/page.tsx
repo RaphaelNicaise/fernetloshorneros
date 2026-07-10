@@ -62,6 +62,7 @@ interface Barril {
   categoria_nombre?: string | null;
   proceso_activo_nombre?: string | null;
   proceso_activo_inicio?: string | null;
+  proceso_activo_fin?: string | null;
   necesita_mezcla?: boolean | number;
 }
 
@@ -134,14 +135,24 @@ function getAuthHeaders(): HeadersInit {
   return h;
 }
 
-function ProcessTimer({ start, name, className = "" }: { start: string, name: string, className?: string }) {
+function ProcessTimer({ end, name, className = "" }: { end: string, name: string, className?: string }) {
   const [now, setNow] = useState(new Date());
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 60000); // update every minute
     return () => clearInterval(interval);
   }, []);
   
-  const diffMs = now.getTime() - new Date(start).getTime();
+  const diffMs = new Date(end).getTime() - now.getTime();
+  
+  if (diffMs <= 0) {
+    return (
+      <div className={`flex items-center gap-1.5 text-[10px] text-red-400 font-medium ${className}`}>
+        <Timer size={10} />
+        <span>{name}: Completado</span>
+      </div>
+    );
+  }
+
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
   const diffDays = Math.floor(diffHours / 24);
   const remainingHours = diffHours % 24;
@@ -655,8 +666,8 @@ function BarrilCard({ barril, index, onDetail, onRefresh, onIngrediente, onExtra
               </span>
               <ChevronRight size={14} className="text-white/20 group-hover:text-white/50 transition-colors" />
             </div>
-            {barril.proceso_activo_nombre && barril.proceso_activo_inicio && (
-              <ProcessTimer start={barril.proceso_activo_inicio} name={barril.proceso_activo_nombre} className="mt-1" />
+            {barril.proceso_activo_nombre && barril.proceso_activo_fin && (
+              <ProcessTimer end={barril.proceso_activo_fin} name={barril.proceso_activo_nombre} className="mt-1" />
             )}
           </div>
         </div>
@@ -852,8 +863,8 @@ function BarrilDetailPanel({ barril, registros, loading, onClose, onRefresh, onR
                     <span className={`rounded-md px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${estado.color} ${estado.bg}`}>
                       {estado.label}
                     </span>
-                    {barril.proceso_activo_nombre && barril.proceso_activo_inicio && (
-                      <ProcessTimer start={barril.proceso_activo_inicio} name={barril.proceso_activo_nombre} className="!mt-0" />
+                    {barril.proceso_activo_nombre && barril.proceso_activo_fin && (
+                      <ProcessTimer end={barril.proceso_activo_fin} name={barril.proceso_activo_nombre} className="!mt-0" />
                     )}
                   </div>
                 </div>
@@ -1941,7 +1952,7 @@ function ProcesoModal({ barril, onClose, onSaved }: {
   barril: Barril | null; onClose: () => void; onSaved: () => void;
 }) {
   const isEnding = barril && barril.proceso_activo_nombre;
-  const [form, setForm] = useState({ nombre: '', inicio: '' });
+  const [form, setForm] = useState({ nombre: '', inicio: '', fin: '' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -1949,22 +1960,32 @@ function ProcesoModal({ barril, onClose, onSaved }: {
     if (barril && !isEnding) {
       const now = new Date();
       now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-      setForm({ nombre: '', inicio: now.toISOString().slice(0, 16) });
+      
+      const nextWeek = new Date(now);
+      nextWeek.setDate(nextWeek.getDate() + 7);
+
+      setForm({ 
+        nombre: '', 
+        inicio: now.toISOString().slice(0, 16),
+        fin: nextWeek.toISOString().slice(0, 16)
+      });
     }
   }, [barril, isEnding]);
 
   const handleSubmit = async () => {
     if (!barril) return;
-    if (!isEnding && !form.nombre.trim()) { setError('El nombre del proceso es requerido'); return; }
+    if (!isEnding && (!form.nombre.trim() || !form.fin)) { setError('El nombre y fecha fin del proceso son requeridos'); return; }
     
     setSaving(true); setError('');
     try {
       const payload = isEnding ? {
         proceso_activo_nombre: null,
-        proceso_activo_inicio: null
+        proceso_activo_inicio: null,
+        proceso_activo_fin: null
       } : {
         proceso_activo_nombre: form.nombre.trim(),
-        proceso_activo_inicio: new Date(form.inicio).toISOString()
+        proceso_activo_inicio: new Date(form.inicio).toISOString(),
+        proceso_activo_fin: new Date(form.fin).toISOString()
       };
 
       const res = await fetch(`${API_BASE_URL}/produccion/${barril.id}`, {
@@ -2000,10 +2021,17 @@ function ProcesoModal({ barril, onClose, onSaved }: {
                 <Input placeholder="Ej: Maceración, Maduración..." value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })}
                   className="bg-white/[0.03] border-white/10 text-white h-9" />
               </div>
-              <div>
-                <label className="text-[11px] font-medium text-white/50 mb-1.5 block">Fecha de Inicio *</label>
-                <Input type="datetime-local" value={form.inicio} onChange={(e) => setForm({ ...form, inicio: e.target.value })}
-                  className="bg-white/[0.03] border-white/10 text-white h-9" />
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[11px] font-medium text-white/50 mb-1.5 block">Inicio *</label>
+                  <Input type="datetime-local" value={form.inicio} onChange={(e) => setForm({ ...form, inicio: e.target.value })}
+                    className="bg-white/[0.03] border-white/10 text-white h-9 w-full text-[10px] sm:text-xs px-2" />
+                </div>
+                <div>
+                  <label className="text-[11px] font-medium text-white/50 mb-1.5 block">Fin *</label>
+                  <Input type="datetime-local" value={form.fin} onChange={(e) => setForm({ ...form, fin: e.target.value })}
+                    className="bg-white/[0.03] border-white/10 text-white h-9 w-full text-[10px] sm:text-xs px-2" />
+                </div>
               </div>
             </>
           )}

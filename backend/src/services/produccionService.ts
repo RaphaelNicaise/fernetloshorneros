@@ -15,6 +15,7 @@ export interface Barril {
   categoria_nombre?: string | null;
   proceso_activo_nombre?: string | null;
   proceso_activo_inicio?: string | null;
+  proceso_activo_fin?: string | null;
   necesita_mezcla?: boolean;
   ultimo_registro?: string | null;
 }
@@ -105,6 +106,7 @@ export const produccionService = {
       categoria_id?: number | null;
       proceso_activo_nombre?: string | null;
       proceso_activo_inicio?: string | null;
+      proceso_activo_fin?: string | null;
     }
   ): Promise<void> {
     const fields: string[] = [];
@@ -141,6 +143,10 @@ export const produccionService = {
     if (data.proceso_activo_inicio !== undefined) {
       fields.push('proceso_activo_inicio = ?');
       values.push(data.proceso_activo_inicio);
+    }
+    if (data.proceso_activo_fin !== undefined) {
+      fields.push('proceso_activo_fin = ?');
+      values.push(data.proceso_activo_fin);
     }
 
     if (fields.length === 0) return;
