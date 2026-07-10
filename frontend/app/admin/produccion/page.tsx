@@ -713,11 +713,12 @@ function BarrilCard({ barril, index, onDetail, onRefresh, onIngrediente, onExtra
 
 // ─── Barril Detail Panel ──────────────────────────────────────────
 
-function BarrilDetailPanel({ barril, registros, loading, onClose, onRefresh, onRefreshGlobal, onEdit, onDelete, onIngrediente, onExtraccion, onNota, onUndoRegistro }: {
+function BarrilDetailPanel({ barril, registros, loading, onClose, onRefresh, onRefreshGlobal, onEdit, onDelete, onIngrediente, onExtraccion, onNota, onProceso, onUndoRegistro }: {
   barril: Barril | null; registros: BarrilRegistro[]; loading: boolean;
   onClose: () => void; onRefresh: () => void; onRefreshGlobal: () => void;
   onEdit: (b: Barril) => void; onDelete: (b: Barril) => void;
   onIngrediente: (b: Barril, initialName?: string) => void; onExtraccion: (b: Barril) => void; onNota: (b: Barril) => void;
+  onProceso: (b: Barril) => void;
   onUndoRegistro?: (barrilId: number, registroId: number) => void;
 }) {
   const [showFullHistory, setShowFullHistory] = useState(false);
