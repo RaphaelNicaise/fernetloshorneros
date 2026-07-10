@@ -139,17 +139,28 @@ CREATE TABLE IF NOT EXISTS ingredientes (
 -- Insertar Alcohol como ingrediente fijo
 INSERT INTO ingredientes (nombre, unidad, es_fijo) VALUES ('Alcohol', 'litros', TRUE) ON DUPLICATE KEY UPDATE es_fijo=TRUE;
 
+-- Tabla de categorías para barriles
+CREATE TABLE IF NOT EXISTS barril_categorias (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(255) NOT NULL,
+  fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Tabla de barriles para gestión de producción
 CREATE TABLE IF NOT EXISTS barriles (
   id INT AUTO_INCREMENT PRIMARY KEY,
   identificador VARCHAR(50) NOT NULL UNIQUE,
   nombre VARCHAR(100) DEFAULT NULL,
+  categoria_id INT DEFAULT NULL,
   capacidad_litros DECIMAL(10, 2) NOT NULL,
   litros_actuales DECIMAL(10, 2) NOT NULL DEFAULT 0,
   estado ENUM('vacio','en_proceso','listo') NOT NULL DEFAULT 'vacio',
+  proceso_activo_nombre VARCHAR(255) DEFAULT NULL,
+  proceso_activo_inicio DATETIME DEFAULT NULL,
   ultima_mezcla TIMESTAMP NULL DEFAULT NULL,
   notas TEXT DEFAULT NULL,
-  fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (categoria_id) REFERENCES barril_categorias(id) ON DELETE SET NULL
 );
 
 -- Registro de actividades por barril

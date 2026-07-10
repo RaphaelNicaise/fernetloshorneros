@@ -58,7 +58,16 @@ interface Barril {
   ultima_mezcla: string | null;
   notas: string | null;
   fecha_creacion: string;
+  categoria_id?: number | null;
+  categoria_nombre?: string | null;
+  proceso_activo_nombre?: string | null;
+  proceso_activo_inicio?: string | null;
   necesita_mezcla?: boolean | number;
+}
+
+interface Categoria {
+  id: number;
+  nombre: string;
 }
 
 interface BarrilRegistro {
@@ -125,6 +134,34 @@ function getAuthHeaders(): HeadersInit {
   return h;
 }
 
+function ProcessTimer({ start, name, className = "" }: { start: string, name: string, className?: string }) {
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 60000); // update every minute
+    return () => clearInterval(interval);
+  }, []);
+  
+  const diffMs = now.getTime() - new Date(start).getTime();
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffHours / 24);
+  const remainingHours = diffHours % 24;
+  
+  let timeStr = '';
+  if (diffDays > 0) timeStr += `${diffDays}d `;
+  timeStr += `${remainingHours}h`;
+  if (diffDays === 0 && remainingHours === 0) {
+    const diffMin = Math.floor(diffMs / (1000 * 60));
+    timeStr = `${diffMin}m`;
+  }
+  
+  return (
+    <div className={`flex items-center gap-1.5 text-[10px] text-blue-400 font-medium ${className}`}>
+      <Timer size={10} className="animate-pulse" />
+      <span>{name}: {timeStr}</span>
+    </div>
+  );
+}
+
 // ─── Main Component ──────────────────────────────────────────────
 
 export default function ProduccionPage() {
@@ -137,6 +174,7 @@ export default function ProduccionPage() {
   // Modals
   const [showNewBarril, setShowNewBarril] = useState(false);
   const [showIngredientes, setShowIngredientes] = useState(false);
+  const [showCategorias, setShowCategorias] = useState(false);
   const [selectedBarril, setSelectedBarril] = useState<Barril | null>(null);
   const [detailRegistros, setDetailRegistros] = useState<BarrilRegistro[]>([]);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -149,6 +187,10 @@ export default function ProduccionPage() {
   const [ingredientePreseleccionado, setIngredientePreseleccionado] = useState<string | null>(null);
   const [extraccionModal, setExtraccionModal] = useState<Barril | null>(null);
   const [notaModal, setNotaModal] = useState<Barril | null>(null);
+  const [procesoModal, setProcesoModal] = useState<Barril | null>(null);
+
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [filterCategoria, setFilterCategoria] = useState<string>('all');
 
   const fetchBarriles = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -168,14 +210,24 @@ export default function ProduccionPage() {
     } catch (err) { console.error(err); }
   }, []);
 
+  const fetchCategorias = useCallback(async (silent = false) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/produccion/categorias`, { headers: getAuthHeaders() });
+      if (!res.ok) throw new Error('Error');
+      setCategorias(await res.json());
+    } catch (err) { console.error(err); }
+  }, []);
+
   // Initial fetch and Auto-refresh (polling)
   useEffect(() => { 
     fetchBarriles(); 
     fetchIngredientes(); 
+    fetchCategorias();
     
     const interval = setInterval(() => {
       fetchBarriles(true);
       fetchIngredientes(true);
+      fetchCategorias(true);
       // We do not auto-refresh selectedBarril detail to avoid un-syncing modal state.
       // E.g., if we fetch and the user is doing something, it might flash. 
       // Actually, if we refresh silently, it's fine.
@@ -186,7 +238,7 @@ export default function ProduccionPage() {
 
   const [filterNeedsMix, setFilterNeedsMix] = useState(false);
 
-  const refresh = () => { fetchBarriles(true); fetchIngredientes(true); };
+  const refresh = () => { fetchBarriles(true); fetchIngredientes(true); fetchCategorias(true); };
 
   const refreshDetail = async (barrilId: number, silent = false) => {
     if (!silent) setDetailLoading(true);
@@ -242,8 +294,9 @@ export default function ProduccionPage() {
     const matchSearch = b.identificador.toLowerCase().includes(search.toLowerCase()) ||
       (b.nombre && b.nombre.toLowerCase().includes(search.toLowerCase()));
     const matchEstado = filterEstado === 'all' || b.estado === filterEstado;
+    const matchCategoria = filterCategoria === 'all' || b.categoria_id === Number(filterCategoria);
     const matchNeedsMix = !filterNeedsMix || b.necesita_mezcla;
-    return matchSearch && matchEstado && matchNeedsMix;
+    return matchSearch && matchEstado && matchCategoria && matchNeedsMix;
   }).sort((a, b) => a.identificador.localeCompare(b.identificador, undefined, { numeric: true }));
 
   const alertas = barriles.filter((b) => b.necesita_mezcla);
@@ -266,6 +319,14 @@ export default function ProduccionPage() {
           <p className="mt-1 text-sm text-white/45">Gestión de barriles y registro de producción</p>
         </div>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setShowCategorias(true)}
+            className="border-white/10 text-white/60 hover:text-white gap-2"
+          >
+            <Package size={16} />
+            Categorías
+          </Button>
           <Button
             variant="outline"
             onClick={() => setShowIngredientes(true)}
@@ -373,10 +434,21 @@ export default function ProduccionPage() {
             <SelectValue placeholder="Estado" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
+            <SelectItem value="all">Todos (Estado)</SelectItem>
             <SelectItem value="vacio">Vacío</SelectItem>
             <SelectItem value="en_proceso">En Proceso</SelectItem>
             <SelectItem value="listo">Listo</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={filterCategoria} onValueChange={setFilterCategoria}>
+          <SelectTrigger className="w-full sm:w-36 bg-white/[0.03] border-white/10 text-white h-9">
+            <SelectValue placeholder="Categoría" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas (Cat)</SelectItem>
+            {categorias.map(c => (
+              <SelectItem key={c.id} value={String(c.id)}>{c.nombre}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
         <Button variant="outline" size="icon" onClick={() => { setLoading(true); fetchBarriles(); }}
@@ -417,8 +489,9 @@ export default function ProduccionPage() {
       )}
 
       {/* ── Modals ── */}
-      <NewBarrilModal open={showNewBarril} onClose={() => setShowNewBarril(false)} onCreated={() => { setShowNewBarril(false); refresh(); }} />
+      <NewBarrilModal open={showNewBarril} onClose={() => setShowNewBarril(false)} onCreated={() => { setShowNewBarril(false); refresh(); }} categorias={categorias} />
       <IngredientesManagerModal open={showIngredientes} onClose={() => setShowIngredientes(false)} ingredientes={ingredientes} onRefresh={fetchIngredientes} />
+      <CategoriasManagerModal open={showCategorias} onClose={() => setShowCategorias(false)} categorias={categorias} onRefresh={fetchCategorias} />
       <BarrilDetailPanel barril={selectedBarril} registros={detailRegistros} loading={detailLoading}
         onUndoRegistro={confirmUndo}
         onClose={() => { setSelectedBarril(null); setDetailRegistros([]); }}
@@ -428,6 +501,7 @@ export default function ProduccionPage() {
         onIngrediente={(b, initialName) => { setIngredientePreseleccionado(initialName || null); setIngredienteModal(b); }}
         onExtraccion={(b) => setExtraccionModal(b)}
         onNota={(b) => setNotaModal(b)}
+        onProceso={(b) => setProcesoModal(b)}
       />
       <IngredienteModal barril={ingredienteModal} ingredientes={ingredientes} 
         initialIngredientName={ingredientePreseleccionado}
@@ -435,7 +509,8 @@ export default function ProduccionPage() {
         onAdded={() => { setIngredienteModal(null); setIngredientePreseleccionado(null); refresh(); if (selectedBarril && ingredienteModal && selectedBarril.id === ingredienteModal.id) refreshDetail(selectedBarril.id); }} />
       <ExtraccionModal barril={extraccionModal} onClose={() => setExtraccionModal(null)} onAdded={() => { setExtraccionModal(null); refresh(); if (selectedBarril && extraccionModal && selectedBarril.id === extraccionModal.id) refreshDetail(selectedBarril.id); }} />
       <NotaModal barril={notaModal} onClose={() => setNotaModal(null)} onAdded={() => { setNotaModal(null); refresh(); if (selectedBarril && notaModal && selectedBarril.id === notaModal.id) refreshDetail(selectedBarril.id); }} />
-      <EditBarrilModal barril={editingBarril} onClose={() => setEditingBarril(null)} onSaved={() => { setEditingBarril(null); if (selectedBarril) refreshDetail(selectedBarril.id); refresh(); }} />
+      <ProcesoModal barril={procesoModal} onClose={() => setProcesoModal(null)} onSaved={() => { setProcesoModal(null); refresh(); if (selectedBarril && procesoModal && selectedBarril.id === procesoModal.id) refreshDetail(selectedBarril.id); }} />
+      <EditBarrilModal barril={editingBarril} categorias={categorias} onClose={() => setEditingBarril(null)} onSaved={() => { setEditingBarril(null); if (selectedBarril) refreshDetail(selectedBarril.id); refresh(); }} />
       <DeleteConfirmDialog barril={deleteConfirm} onClose={() => setDeleteConfirm(null)} onDeleted={() => { setDeleteConfirm(null); setSelectedBarril(null); refresh(); }} />
       <UndoConfirmDialog undoData={undoConfirm} onClose={() => setUndoConfirm(null)} onConfirm={executeUndo} />
     </div>
@@ -562,15 +637,27 @@ function BarrilCard({ barril, index, onDetail, onRefresh, onIngrediente, onExtra
               <Barrel size={16} className="text-[#AA6F3B]" />
             </div>
             <div>
-              <p className="text-sm font-bold text-white tracking-tight">{barril.identificador}</p>
-              {barril.nombre && <p className="text-[11px] text-white/35">{barril.nombre}</p>}
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-bold text-white tracking-tight">{barril.identificador}</p>
+                {barril.categoria_nombre && (
+                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-white/10 text-white/70 uppercase tracking-wider">
+                    {barril.categoria_nombre}
+                  </span>
+                )}
+              </div>
+              {barril.nombre && <p className="text-[11px] text-white/35 mt-0.5">{barril.nombre}</p>}
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className={`rounded-md px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${estado.color} ${estado.bg}`}>
-              {estado.label}
-            </span>
-            <ChevronRight size={14} className="text-white/20 group-hover:text-white/50 transition-colors" />
+          <div className="flex flex-col items-end gap-1">
+            <div className="flex items-center gap-2">
+              <span className={`rounded-md px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${estado.color} ${estado.bg}`}>
+                {estado.label}
+              </span>
+              <ChevronRight size={14} className="text-white/20 group-hover:text-white/50 transition-colors" />
+            </div>
+            {barril.proceso_activo_nombre && barril.proceso_activo_inicio && (
+              <ProcessTimer start={barril.proceso_activo_inicio} name={barril.proceso_activo_nombre} className="mt-1" />
+            )}
           </div>
         </div>
 
@@ -751,12 +838,22 @@ function BarrilDetailPanel({ barril, registros, loading, onClose, onRefresh, onR
                   <Barrel size={24} className="text-[#AA6F3B]" />
                 </div>
                 <div>
-                  <h2 className="text-base sm:text-lg font-bold leading-tight">{barril.identificador}</h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base sm:text-lg font-bold leading-tight">{barril.identificador}</h2>
+                    {barril.categoria_nombre && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-white/70 uppercase tracking-wider">
+                        {barril.categoria_nombre}
+                      </span>
+                    )}
+                  </div>
                   {barril.nombre && <p className="text-[11px] sm:text-xs text-white/40">{barril.nombre}</p>}
-                  <div className="mt-1">
+                  <div className="mt-1 flex items-center gap-3">
                     <span className={`rounded-md px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${estado.color} ${estado.bg}`}>
                       {estado.label}
                     </span>
+                    {barril.proceso_activo_nombre && barril.proceso_activo_inicio && (
+                      <ProcessTimer start={barril.proceso_activo_inicio} name={barril.proceso_activo_nombre} className="!mt-0" />
+                    )}
                   </div>
                 </div>
               </div>
@@ -784,7 +881,19 @@ function BarrilDetailPanel({ barril, registros, loading, onClose, onRefresh, onR
             </div>
 
             {/* Actions Row */}
-            <div className="grid grid-cols-4 gap-2 mt-3">
+            <div className="grid grid-cols-4 sm:grid-cols-5 gap-1.5 sm:gap-2 mt-3">
+              <button onClick={() => onProceso(barril)}
+                className={`flex flex-col items-center justify-center gap-1 rounded-lg py-2.5 px-1 text-[10px] font-medium transition-colors ${
+                  barril.proceso_activo_nombre 
+                    ? 'bg-blue-500/20 text-blue-400 ring-1 ring-blue-500/30' 
+                    : 'bg-white/[0.04] text-white/50 hover:bg-blue-500/15 hover:text-blue-300'
+                }`}
+              >
+                <Timer size={14} />
+                <span className="truncate w-full text-center px-0.5">
+                  {barril.proceso_activo_nombre ? 'Fin Proceso' : 'Proceso'}
+                </span>
+              </button>
               <MixButton barril={barril} onRefresh={() => { onRefresh(); onRefreshGlobal(); }} className="py-2.5 text-[10px]" />
               <button onClick={() => onIngrediente(barril)}
                 className="flex flex-col items-center justify-center gap-1 rounded-lg py-2.5 px-1 text-[10px] font-medium bg-white/[0.04] text-white/50 hover:bg-purple-500/15 hover:text-purple-300 transition-colors"
@@ -1452,10 +1561,10 @@ function IngredientesManagerModal({ open, onClose, ingredientes, onRefresh }: {
 
 // ─── New Barril Modal ─────────────────────────────────────────────
 
-function NewBarrilModal({ open, onClose, onCreated }: {
-  open: boolean; onClose: () => void; onCreated: () => void;
+function NewBarrilModal({ open, onClose, onCreated, categorias }: {
+  open: boolean; onClose: () => void; onCreated: () => void; categorias: Categoria[];
 }) {
-  const [form, setForm] = useState({ identificador: '', nombre: '', capacidad_litros: '', notas: '' });
+  const [form, setForm] = useState({ identificador: '', nombre: '', capacidad_litros: '', notas: '', categoria_id: 'all' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -1470,10 +1579,11 @@ function NewBarrilModal({ open, onClose, onCreated }: {
           nombre: form.nombre.trim() || undefined,
           capacidad_litros: parseFloat(form.capacidad_litros),
           notas: form.notas.trim() || undefined,
+          categoria_id: form.categoria_id !== 'all' ? Number(form.categoria_id) : null,
         }),
       });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Error'); }
-      setForm({ identificador: '', nombre: '', capacidad_litros: '', notas: '' });
+      setForm({ identificador: '', nombre: '', capacidad_litros: '', notas: '', categoria_id: 'all' });
       onCreated();
     } catch (err: any) { setError(err.message); }
     finally { setSaving(false); }
@@ -1500,6 +1610,18 @@ function NewBarrilModal({ open, onClose, onCreated }: {
               className="bg-white/[0.03] border-white/10 text-white placeholder:text-white/25 h-9" />
           </div>
           <div>
+            <label className="text-[11px] font-medium text-white/50 mb-1.5 block">Categoría <span className="text-white/25">(opcional)</span></label>
+            <Select value={form.categoria_id} onValueChange={(v) => setForm({ ...form, categoria_id: v })}>
+              <SelectTrigger className="bg-white/[0.03] border-white/10 text-white h-9">
+                <SelectValue placeholder="Seleccionar..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Sin categoría</SelectItem>
+                {categorias.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.nombre}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
             <label className="text-[11px] font-medium text-white/50 mb-1.5 block">Capacidad (litros) *</label>
             <Input type="number" placeholder="Ej: 200" value={form.capacidad_litros} onChange={(e) => setForm({ ...form, capacidad_litros: e.target.value })}
               className="bg-white/[0.03] border-white/10 text-white placeholder:text-white/25 h-9" />
@@ -1524,10 +1646,10 @@ function NewBarrilModal({ open, onClose, onCreated }: {
 
 // ─── Edit Barril Modal ────────────────────────────────────────────
 
-function EditBarrilModal({ barril, onClose, onSaved }: {
-  barril: Barril | null; onClose: () => void; onSaved: () => void;
+function EditBarrilModal({ barril, categorias, onClose, onSaved }: {
+  barril: Barril | null; categorias: Categoria[]; onClose: () => void; onSaved: () => void;
 }) {
-  const [form, setForm] = useState({ identificador: '', nombre: '', capacidad_litros: '', estado: 'vacio' as BarrilEstado, notas: '' });
+  const [form, setForm] = useState({ identificador: '', nombre: '', capacidad_litros: '', estado: 'vacio' as BarrilEstado, notas: '', categoria_id: 'all' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -1535,6 +1657,7 @@ function EditBarrilModal({ barril, onClose, onSaved }: {
     if (barril) setForm({
       identificador: barril.identificador, nombre: barril.nombre || '',
       capacidad_litros: String(barril.capacidad_litros), estado: barril.estado, notas: barril.notas || '',
+      categoria_id: barril.categoria_id ? String(barril.categoria_id) : 'all',
     });
   }, [barril]);
 
@@ -1547,6 +1670,7 @@ function EditBarrilModal({ barril, onClose, onSaved }: {
         body: JSON.stringify({
           identificador: form.identificador.trim(), nombre: form.nombre.trim(),
           capacidad_litros: parseFloat(form.capacidad_litros), estado: form.estado, notas: form.notas.trim(),
+          categoria_id: form.categoria_id !== 'all' ? Number(form.categoria_id) : null,
         }),
       });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Error'); }
@@ -1573,6 +1697,18 @@ function EditBarrilModal({ barril, onClose, onSaved }: {
             <label className="text-[11px] font-medium text-white/50 mb-1.5 block">Nombre</label>
             <Input value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })}
               className="bg-white/[0.03] border-white/10 text-white h-9" />
+          </div>
+          <div>
+            <label className="text-[11px] font-medium text-white/50 mb-1.5 block">Categoría</label>
+            <Select value={form.categoria_id} onValueChange={(v) => setForm({ ...form, categoria_id: v })}>
+              <SelectTrigger className="bg-white/[0.03] border-white/10 text-white h-9">
+                <SelectValue placeholder="Seleccionar..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Sin categoría</SelectItem>
+                {categorias.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.nombre}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <label className="text-[11px] font-medium text-white/50 mb-1.5 block">Capacidad (litros)</label>
@@ -1679,6 +1815,204 @@ function UndoConfirmDialog({ undoData, onClose, onConfirm }: {
           <Button variant="outline" onClick={onClose} className="border-white/10 text-white/60 hover:text-white h-9 text-xs">Cancelar</Button>
           <Button onClick={handleUndo} disabled={undoing} className="bg-red-600 hover:bg-red-700 text-white gap-1.5 h-9 text-xs">
             {undoing && <RefreshCw size={12} className="animate-spin" />} Deshacer
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Categorías Manager Modal ─────────────────────────────────────
+
+function CategoriasManagerModal({ open, onClose, categorias, onRefresh }: {
+  open: boolean; onClose: () => void; categorias: Categoria[]; onRefresh: () => void;
+}) {
+  const [nombre, setNombre] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingNombre, setEditingNombre] = useState('');
+
+  const handleCreate = async () => {
+    if (!nombre.trim()) return;
+    setSaving(true); setError('');
+    try {
+      const res = await fetch(`${API_BASE_URL}/produccion/categorias`, {
+        method: 'POST', headers: getAuthHeaders(),
+        body: JSON.stringify({ nombre: nombre.trim() }),
+      });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Error'); }
+      setNombre('');
+      onRefresh();
+    } catch (err: any) { setError(err.message); }
+    finally { setSaving(false); }
+  };
+
+  const handleUpdate = async (id: number) => {
+    if (!editingNombre.trim()) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/produccion/categorias/${id}`, {
+        method: 'PUT', headers: getAuthHeaders(),
+        body: JSON.stringify({ nombre: editingNombre.trim() }),
+      });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Error'); }
+      setEditingId(null);
+      onRefresh();
+    } catch (err: any) { setError(err.message); }
+  };
+
+  const handleDelete = async (id: number) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/produccion/categorias/${id}`, {
+        method: 'DELETE', headers: getAuthHeaders(),
+      });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Error'); }
+      onRefresh();
+    } catch (err: any) { setError(err.message); }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={() => { onClose(); setError(''); setEditingId(null); }}>
+      <DialogContent className="bg-[#0f0d0a] border-white/10 text-white w-[95vw] sm:max-w-sm max-h-[90vh] overflow-y-auto pr-8 sm:pr-6">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-white text-base">
+            <Package size={16} className="text-[#AA6F3B]" />
+            Categorías de Barriles
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="flex gap-2 mt-2">
+          <Input placeholder="Nueva categoría..." value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+            className="bg-white/[0.03] border-white/10 text-white placeholder:text-white/25 h-9 text-sm flex-1"
+          />
+          <Button onClick={handleCreate} disabled={saving || !nombre.trim()} size="sm"
+            className="bg-[#AA6F3B] hover:bg-[#AA6F3B]/80 text-white h-9 px-3">
+            <Plus size={16} />
+          </Button>
+        </div>
+
+        {error && <p className="text-xs text-red-400 bg-red-400/10 rounded-lg px-3 py-2 border border-red-500/20">{error}</p>}
+
+        <div className="space-y-1.5 max-h-60 overflow-y-auto mt-2 pr-1">
+          {categorias.length === 0 ? (
+            <p className="text-xs text-white/30 text-center py-4">No hay categorías</p>
+          ) : categorias.map((cat) => (
+            <div key={cat.id} className="flex items-center gap-2 rounded-lg bg-white/[0.02] border border-white/6 px-3 py-2">
+              {editingId === cat.id ? (
+                <>
+                  <Input value={editingNombre} onChange={(e) => setEditingNombre(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleUpdate(cat.id)}
+                    className="bg-white/[0.03] border-white/10 text-white h-8 text-xs flex-1"
+                    autoFocus
+                  />
+                  <button onClick={() => handleUpdate(cat.id)} className="text-emerald-400 hover:text-emerald-300">
+                    <RefreshCw size={14} />
+                  </button>
+                  <button onClick={() => setEditingId(null)} className="text-white/30 hover:text-white/50">
+                    <X size={14} />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className="flex-1 text-sm text-white/80">{cat.nombre}</div>
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => { setEditingId(cat.id); setEditingNombre(cat.nombre); }}
+                      className="text-white/30 hover:text-white/70 p-1 rounded hover:bg-white/5 transition-colors"><Pencil size={14} /></button>
+                    <button onClick={() => handleDelete(cat.id)}
+                      className="text-white/30 hover:text-red-400 p-1 rounded hover:bg-red-500/10 transition-colors"><Trash2 size={14} /></button>
+                  </div>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Proceso Modal ────────────────────────────────────────────────
+
+function ProcesoModal({ barril, onClose, onSaved }: {
+  barril: Barril | null; onClose: () => void; onSaved: () => void;
+}) {
+  const isEnding = barril && barril.proceso_activo_nombre;
+  const [form, setForm] = useState({ nombre: '', inicio: '' });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (barril && !isEnding) {
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+      setForm({ nombre: '', inicio: now.toISOString().slice(0, 16) });
+    }
+  }, [barril, isEnding]);
+
+  const handleSubmit = async () => {
+    if (!barril) return;
+    if (!isEnding && !form.nombre.trim()) { setError('El nombre del proceso es requerido'); return; }
+    
+    setSaving(true); setError('');
+    try {
+      const payload = isEnding ? {
+        proceso_activo_nombre: null,
+        proceso_activo_inicio: null
+      } : {
+        proceso_activo_nombre: form.nombre.trim(),
+        proceso_activo_inicio: new Date(form.inicio).toISOString()
+      };
+
+      const res = await fetch(`${API_BASE_URL}/produccion/${barril.id}`, {
+        method: 'PUT', headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Error'); }
+      onSaved();
+    } catch (err: any) { setError(err.message); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <Dialog open={!!barril} onOpenChange={() => { onClose(); setError(''); }}>
+      <DialogContent className="bg-[#0f0d0a] border-white/10 text-white max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-white text-base">
+            <Timer size={16} className={isEnding ? "text-red-400" : "text-blue-400"} /> 
+            {isEnding ? 'Finalizar Proceso' : 'Iniciar Proceso'}
+          </DialogTitle>
+          <p className="text-xs text-white/40">{barril?.identificador}</p>
+        </DialogHeader>
+        
+        <div className="space-y-3 mt-2">
+          {isEnding ? (
+            <p className="text-sm text-white/60">
+              Vas a finalizar el proceso <strong className="text-white">{barril?.proceso_activo_nombre}</strong>.
+            </p>
+          ) : (
+            <>
+              <div>
+                <label className="text-[11px] font-medium text-white/50 mb-1.5 block">Nombre del Proceso *</label>
+                <Input placeholder="Ej: Maceración, Maduración..." value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })}
+                  className="bg-white/[0.03] border-white/10 text-white h-9" />
+              </div>
+              <div>
+                <label className="text-[11px] font-medium text-white/50 mb-1.5 block">Fecha de Inicio *</label>
+                <Input type="datetime-local" value={form.inicio} onChange={(e) => setForm({ ...form, inicio: e.target.value })}
+                  className="bg-white/[0.03] border-white/10 text-white h-9" />
+              </div>
+            </>
+          )}
+          {error && <p className="text-xs text-red-400 bg-red-400/10 rounded-lg px-3 py-2 border border-red-500/20">{error}</p>}
+        </div>
+
+        <DialogFooter className="mt-2">
+          <Button variant="outline" onClick={onClose} className="border-white/10 text-white/60 hover:text-white h-9 text-xs">Cancelar</Button>
+          <Button onClick={handleSubmit} disabled={saving} className={`${isEnding ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'} text-white gap-1.5 h-9 text-xs`}>
+            {saving && <RefreshCw size={12} className="animate-spin" />} {isEnding ? 'Finalizar' : 'Iniciar'}
           </Button>
         </DialogFooter>
       </DialogContent>

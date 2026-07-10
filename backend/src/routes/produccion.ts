@@ -64,6 +64,60 @@ router.delete('/ingredientes/:id', async (req: Request, res: Response) => {
   }
 });
 
+// ─── Categorías ───────────────────────────────────────────────────
+
+router.get('/categorias', async (req: Request, res: Response) => {
+  try {
+    const categorias = await produccionService.getCategorias();
+    res.json(categorias);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/categorias', async (req: Request, res: Response) => {
+  try {
+    const { nombre } = req.body;
+    if (!nombre || !nombre.trim()) {
+      return res.status(400).json({ error: 'El nombre es requerido' });
+    }
+    const id = await produccionService.createCategoria(nombre.trim());
+    res.status(201).json({ id, message: 'Categoría creada' });
+  } catch (error: any) {
+    if (error.message?.includes('Duplicate entry') || error.name === 'SequelizeUniqueConstraintError') {
+      return res.status(400).json({ error: 'Ya existe una categoría con ese nombre' });
+    }
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.put('/categorias/:id', async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    const { nombre } = req.body;
+    if (!nombre || !nombre.trim()) {
+      return res.status(400).json({ error: 'El nombre es requerido' });
+    }
+    await produccionService.updateCategoria(id, nombre.trim());
+    res.json({ message: 'Categoría actualizada' });
+  } catch (error: any) {
+    if (error.message?.includes('Duplicate entry') || error.name === 'SequelizeUniqueConstraintError') {
+      return res.status(400).json({ error: 'Ya existe una categoría con ese nombre' });
+    }
+    res.status(400).json({ error: error.message });
+  }
+});
+
+router.delete('/categorias/:id', async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    await produccionService.deleteCategoria(id);
+    res.json({ message: 'Categoría eliminada' });
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
 // ─── Barriles ─────────────────────────────────────────────────────
 
 // GET /produccion — List all barriles
@@ -103,11 +157,11 @@ router.get('/:id', async (req: Request, res: Response) => {
 // POST /produccion — Create barrel
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { identificador, nombre, capacidad_litros, notas } = req.body;
+    const { identificador, nombre, capacidad_litros, notas, categoria_id } = req.body;
     if (!identificador || !capacidad_litros) {
       return res.status(400).json({ error: 'Identificador y capacidad son requeridos' });
     }
-    const id = await produccionService.createBarril({ identificador, nombre, capacidad_litros, notas });
+    const id = await produccionService.createBarril({ identificador, nombre, capacidad_litros, notas, categoria_id });
     res.status(201).json({ id, message: 'Barril creado' });
   } catch (error: any) {
     if (error.message?.includes('Duplicate entry') || error.name === 'SequelizeUniqueConstraintError') {

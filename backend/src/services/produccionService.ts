@@ -11,6 +11,10 @@ export interface Barril {
   ultima_mezcla: string | null;
   notas: string | null;
   fecha_creacion: string;
+  categoria_id?: number | null;
+  categoria_nombre?: string | null;
+  proceso_activo_nombre?: string | null;
+  proceso_activo_inicio?: string | null;
   necesita_mezcla?: boolean;
   ultimo_registro?: string | null;
 }
@@ -30,7 +34,7 @@ export interface BarrilRegistro {
 export const produccionService = {
   async getAllBarriles(): Promise<Barril[]> {
     return sequelize.query<Barril>(
-      `SELECT b.*,
+      `SELECT b.*, c.nombre AS categoria_nombre,
         (SELECT MAX(r.fecha) FROM barril_registros r WHERE r.barril_id = b.id) AS ultimo_registro,
         CASE
           WHEN b.estado = 'en_proceso'
@@ -39,6 +43,7 @@ export const produccionService = {
           ELSE FALSE
         END AS necesita_mezcla
       FROM barriles b
+      LEFT JOIN barril_categorias c ON b.categoria_id = c.id
       ORDER BY b.id DESC`,
       { type: QueryTypes.SELECT }
     );
@@ -46,14 +51,16 @@ export const produccionService = {
 
   async getBarrilById(id: number): Promise<{ barril: Barril; registros: BarrilRegistro[] } | null> {
     const rows = await sequelize.query<Barril>(
-      `SELECT b.*,
+      `SELECT b.*, c.nombre AS categoria_nombre,
         CASE
           WHEN b.estado = 'en_proceso'
             AND (b.ultima_mezcla IS NULL OR b.ultima_mezcla < DATE_SUB(NOW(), INTERVAL 24 HOUR))
           THEN TRUE
           ELSE FALSE
         END AS necesita_mezcla
-      FROM barriles b WHERE b.id = ?`,
+      FROM barriles b 
+      LEFT JOIN barril_categorias c ON b.categoria_id = c.id
+      WHERE b.id = ?`,
       { replacements: [id], type: QueryTypes.SELECT }
     );
     if (rows.length === 0) return null;
@@ -75,11 +82,12 @@ export const produccionService = {
     nombre?: string;
     capacidad_litros: number;
     notas?: string;
+    categoria_id?: number | null;
   }): Promise<number> {
     const [result]: any = await sequelize.query(
-      `INSERT INTO barriles (identificador, nombre, capacidad_litros, notas) VALUES (?, ?, ?, ?)`,
+      `INSERT INTO barriles (identificador, nombre, capacidad_litros, notas, categoria_id) VALUES (?, ?, ?, ?, ?)`,
       {
-        replacements: [data.identificador, data.nombre || null, data.capacidad_litros, data.notas || null],
+        replacements: [data.identificador, data.nombre || null, data.capacidad_litros, data.notas || null, data.categoria_id || null],
         type: QueryTypes.INSERT,
       }
     );
@@ -94,6 +102,9 @@ export const produccionService = {
       capacidad_litros?: number;
       estado?: string;
       notas?: string;
+      categoria_id?: number | null;
+      proceso_activo_nombre?: string | null;
+      proceso_activo_inicio?: string | null;
     }
   ): Promise<void> {
     const fields: string[] = [];
@@ -118,6 +129,18 @@ export const produccionService = {
     if (data.notas !== undefined) {
       fields.push('notas = ?');
       values.push(data.notas || null);
+    }
+    if (data.categoria_id !== undefined) {
+      fields.push('categoria_id = ?');
+      values.push(data.categoria_id);
+    }
+    if (data.proceso_activo_nombre !== undefined) {
+      fields.push('proceso_activo_nombre = ?');
+      values.push(data.proceso_activo_nombre);
+    }
+    if (data.proceso_activo_inicio !== undefined) {
+      fields.push('proceso_activo_inicio = ?');
+      values.push(data.proceso_activo_inicio);
     }
 
     if (fields.length === 0) return;
@@ -337,6 +360,36 @@ export const produccionService = {
         AND (b.ultima_mezcla IS NULL OR b.ultima_mezcla < DATE_SUB(NOW(), INTERVAL 24 HOUR))
       ORDER BY b.ultima_mezcla ASC`,
       { type: QueryTypes.SELECT }
+    );
+  },
+
+  // ─── Categorías ──────────────────────────────────────────────────
+  async getCategorias(): Promise<{ id: number; nombre: string }[]> {
+    return sequelize.query(
+      `SELECT * FROM barril_categorias ORDER BY nombre ASC`,
+      { type: QueryTypes.SELECT }
+    );
+  },
+
+  async createCategoria(nombre: string): Promise<number> {
+    const [result]: any = await sequelize.query(
+      `INSERT INTO barril_categorias (nombre) VALUES (?)`,
+      { replacements: [nombre], type: QueryTypes.INSERT }
+    );
+    return result;
+  },
+
+  async updateCategoria(id: number, nombre: string): Promise<void> {
+    await sequelize.query(
+      `UPDATE barril_categorias SET nombre = ? WHERE id = ?`,
+      { replacements: [nombre, id], type: QueryTypes.UPDATE }
+    );
+  },
+
+  async deleteCategoria(id: number): Promise<void> {
+    await sequelize.query(
+      `DELETE FROM barril_categorias WHERE id = ?`,
+      { replacements: [id], type: QueryTypes.DELETE }
     );
   },
 };
