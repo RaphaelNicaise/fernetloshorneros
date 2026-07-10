@@ -142,11 +142,11 @@ export const produccionService = {
     }
     if (data.proceso_activo_inicio !== undefined) {
       fields.push('proceso_activo_inicio = ?');
-      values.push(data.proceso_activo_inicio);
+      values.push(data.proceso_activo_inicio ? new Date(data.proceso_activo_inicio).toISOString().slice(0, 19).replace('T', ' ') : null);
     }
     if (data.proceso_activo_fin !== undefined) {
       fields.push('proceso_activo_fin = ?');
-      values.push(data.proceso_activo_fin);
+      values.push(data.proceso_activo_fin ? new Date(data.proceso_activo_fin).toISOString().slice(0, 19).replace('T', ' ') : null);
     }
 
     if (fields.length === 0) return;
