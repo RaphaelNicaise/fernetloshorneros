@@ -1997,6 +1997,16 @@ function ProcesoModal({ barril, onClose, onSaved }: {
         body: JSON.stringify(payload),
       });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Error'); }
+      
+      const descripcionNota = isEnding 
+        ? `Proceso '${barril.proceso_activo_nombre}' finalizado manualmente.`
+        : `Proceso '${form.nombre.trim()}' iniciado (Fin estimado: ${new Date(form.fin).toLocaleString('es-AR')}).`;
+        
+      await fetch(`${API_BASE_URL}/produccion/${barril.id}/registros`, {
+        method: 'POST', headers: getAuthHeaders(),
+        body: JSON.stringify({ tipo: 'nota', descripcion: descripcionNota }),
+      });
+
       onSaved();
     } catch (err: any) { setError(err.message); }
     finally { setSaving(false); }

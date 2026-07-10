@@ -406,6 +406,20 @@ export const produccionService = {
   },
 
   async checkAndCompleteProcesses(): Promise<void> {
+    const rows = await sequelize.query(
+      `SELECT id, proceso_activo_nombre FROM barriles WHERE proceso_activo_fin <= NOW() AND proceso_activo_auto_listo = TRUE`,
+      { type: QueryTypes.SELECT }
+    ) as any[];
+
+    if (rows.length === 0) return;
+
+    for (const row of rows) {
+      await sequelize.query(
+        `INSERT INTO barril_registros (barril_id, tipo, descripcion) VALUES (?, 'nota', ?)`,
+        { replacements: [row.id, `Proceso '${row.proceso_activo_nombre}' completado automáticamente.`] }
+      );
+    }
+
     await sequelize.query(
       `UPDATE barriles 
        SET estado = 'listo', 
@@ -413,8 +427,8 @@ export const produccionService = {
            proceso_activo_inicio = NULL, 
            proceso_activo_fin = NULL, 
            proceso_activo_auto_listo = FALSE
-       WHERE proceso_activo_fin <= NOW() AND proceso_activo_auto_listo = TRUE`,
-      { type: QueryTypes.UPDATE }
+       WHERE id IN (?)`,
+      { replacements: [rows.map(r => r.id)], type: QueryTypes.UPDATE }
     );
   }
 };
