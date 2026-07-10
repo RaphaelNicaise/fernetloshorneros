@@ -18,6 +18,7 @@ import couponsRouter from '@/routes/coupons';
 import lotesRouter from '@/routes/lotes';
 import produccionRouter from '@/routes/produccion';
 import audiencesRouter from '@/routes/audiences';
+import { produccionService } from '@/services/produccionService';
 import backupsRouter from '@/routes/backups';
 import cron from 'node-cron';
 import { createAutoBackup } from '@/services/backupService';
@@ -63,6 +64,7 @@ const startServer = async () => {
       // Tarea en segundo plano para limpiar carritos abandonados
       setInterval(() => {
         cleanupExpiredOrders().catch(err => console.error("Error en cron de limpieza:", err));
+        produccionService.checkAndCompleteProcesses().catch(err => console.error("Error en cron de produccion:", err));
       }, 60000); // 1 minuto
       
       // Cron job diario para backups a las 3 AM

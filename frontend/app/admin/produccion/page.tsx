@@ -63,6 +63,7 @@ interface Barril {
   proceso_activo_nombre?: string | null;
   proceso_activo_inicio?: string | null;
   proceso_activo_fin?: string | null;
+  proceso_activo_auto_listo?: boolean;
   necesita_mezcla?: boolean | number;
 }
 
@@ -1952,7 +1953,7 @@ function ProcesoModal({ barril, onClose, onSaved }: {
   barril: Barril | null; onClose: () => void; onSaved: () => void;
 }) {
   const isEnding = barril && barril.proceso_activo_nombre;
-  const [form, setForm] = useState({ nombre: '', inicio: '', fin: '' });
+  const [form, setForm] = useState({ nombre: '', inicio: '', fin: '', autoListo: false });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -1967,7 +1968,8 @@ function ProcesoModal({ barril, onClose, onSaved }: {
       setForm({ 
         nombre: '', 
         inicio: now.toISOString().slice(0, 16),
-        fin: nextWeek.toISOString().slice(0, 16)
+        fin: nextWeek.toISOString().slice(0, 16),
+        autoListo: false
       });
     }
   }, [barril, isEnding]);
@@ -1981,11 +1983,13 @@ function ProcesoModal({ barril, onClose, onSaved }: {
       const payload = isEnding ? {
         proceso_activo_nombre: null,
         proceso_activo_inicio: null,
-        proceso_activo_fin: null
+        proceso_activo_fin: null,
+        proceso_activo_auto_listo: false
       } : {
         proceso_activo_nombre: form.nombre.trim(),
         proceso_activo_inicio: new Date(form.inicio).toISOString(),
-        proceso_activo_fin: new Date(form.fin).toISOString()
+        proceso_activo_fin: new Date(form.fin).toISOString(),
+        proceso_activo_auto_listo: form.autoListo
       };
 
       const res = await fetch(`${API_BASE_URL}/produccion/${barril.id}`, {
@@ -2032,6 +2036,18 @@ function ProcesoModal({ barril, onClose, onSaved }: {
                   <Input type="datetime-local" value={form.fin} onChange={(e) => setForm({ ...form, fin: e.target.value })}
                     className="bg-white/[0.03] border-white/10 text-white h-9 w-full text-[10px] sm:text-xs px-2" />
                 </div>
+              </div>
+              <div className="flex items-start gap-2 mt-3 p-2 rounded-lg bg-white/[0.02] border border-white/5">
+                <input 
+                  type="checkbox" 
+                  id="autoListo" 
+                  checked={form.autoListo} 
+                  onChange={(e) => setForm({ ...form, autoListo: e.target.checked })}
+                  className="mt-0.5 rounded border-white/20 bg-white/5 text-[#AA6F3B] focus:ring-[#AA6F3B] focus:ring-offset-[#0f0d0a] cursor-pointer"
+                />
+                <label htmlFor="autoListo" className="text-[11px] leading-tight text-white/70 cursor-pointer select-none flex-1">
+                  Cambiar automáticamente el estado del barril a <strong>"Listo"</strong> cuando termine el tiempo del proceso.
+                </label>
               </div>
             </>
           )}

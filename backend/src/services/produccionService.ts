@@ -16,6 +16,7 @@ export interface Barril {
   proceso_activo_nombre?: string | null;
   proceso_activo_inicio?: string | null;
   proceso_activo_fin?: string | null;
+  proceso_activo_auto_listo?: boolean;
   necesita_mezcla?: boolean;
   ultimo_registro?: string | null;
 }
@@ -107,6 +108,7 @@ export const produccionService = {
       proceso_activo_nombre?: string | null;
       proceso_activo_inicio?: string | null;
       proceso_activo_fin?: string | null;
+      proceso_activo_auto_listo?: boolean;
     }
   ): Promise<void> {
     const fields: string[] = [];
@@ -147,6 +149,10 @@ export const produccionService = {
     if (data.proceso_activo_fin !== undefined) {
       fields.push('proceso_activo_fin = ?');
       values.push(data.proceso_activo_fin ? new Date(data.proceso_activo_fin).toISOString().slice(0, 19).replace('T', ' ') : null);
+    }
+    if (data.proceso_activo_auto_listo !== undefined) {
+      fields.push('proceso_activo_auto_listo = ?');
+      values.push(data.proceso_activo_auto_listo ? 1 : 0);
     }
 
     if (fields.length === 0) return;
@@ -398,4 +404,17 @@ export const produccionService = {
       { replacements: [id], type: QueryTypes.DELETE }
     );
   },
+
+  async checkAndCompleteProcesses(): Promise<void> {
+    await sequelize.query(
+      `UPDATE barriles 
+       SET estado = 'listo', 
+           proceso_activo_nombre = NULL, 
+           proceso_activo_inicio = NULL, 
+           proceso_activo_fin = NULL, 
+           proceso_activo_auto_listo = FALSE
+       WHERE proceso_activo_fin <= NOW() AND proceso_activo_auto_listo = TRUE`,
+      { type: QueryTypes.UPDATE }
+    );
+  }
 };

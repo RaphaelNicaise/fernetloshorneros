@@ -158,6 +158,7 @@ CREATE TABLE IF NOT EXISTS barriles (
   proceso_activo_nombre VARCHAR(255) DEFAULT NULL,
   proceso_activo_inicio DATETIME DEFAULT NULL,
   proceso_activo_fin DATETIME DEFAULT NULL,
+  proceso_activo_auto_listo BOOLEAN DEFAULT FALSE,
   ultima_mezcla TIMESTAMP NULL DEFAULT NULL,
   notas TEXT DEFAULT NULL,
   fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
