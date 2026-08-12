@@ -46,7 +46,7 @@ export const PROVINCIAS_ARGENTINA = [
   'Santa Cruz',
   'Santa Fe',
   'Santiago del Estero',
-  'Tierra del Fuego, Antártida e Islas del Atlántico Sur',
+  'Tierra del Fuego',
   'Tucumán',
 ];
 
