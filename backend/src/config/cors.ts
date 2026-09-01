@@ -8,6 +8,7 @@ const allowedOrigins = new Set([
   'https://frontend:3000',
 ]);
 
+
 export default function cors(req: Request, res: Response, next: NextFunction) {
   const origin = req.headers.origin as string | undefined;
 
