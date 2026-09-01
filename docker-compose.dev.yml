@@ -51,6 +51,7 @@
           WATCHPACK_POLLING_INTERVAL: "1000"
           CI: "true"
           NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+          NEXT_PUBLIC_MP_PUBLIC_KEY: ${MP_PUBLIC_KEY}
           MAINTENANCE_ALLOWED_IPS: ${MAINTENANCE_ALLOWED_IPS:-}
         volumes:
           - ./frontend:/app

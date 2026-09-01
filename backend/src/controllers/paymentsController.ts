@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { v4 as uuidv4 } from "uuid";
-import { preferenceClient } from "@/config/mercadopago";
+import { preferenceClient, paymentClient } from "@/config/mercadopago";
 import {
     createOrder,
     getOrderByReference,
@@ -37,6 +37,118 @@ export async function cleanupExpiredOrders() {
         }
     } catch (cleanupError) {
         console.error("Error limpiando reservas expiradas:", cleanupError);
+    }
+}
+
+/**
+ * POST /payments/create-brick-preference
+ * Creates a lightweight MP preference for Payment Brick initialization.
+ * Does NOT create an order or reserve stock — that happens in processPayment.
+ */
+export async function createBrickPreference(req: Request, res: Response) {
+    try {
+        const { items, shipping, couponCode } = req.body;
+
+        if (!items || !Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ error: "Items requeridos" });
+        }
+
+        if (!shipping || shipping.cost === undefined || shipping.cost === null || Number(shipping.cost) < 0) {
+            return res.status(400).json({ error: "Datos de envío requeridos" });
+        }
+
+        // Validar items y calcular total
+        const mpItems = [];
+        let total = 0;
+
+        for (const item of items) {
+            const product = await getProductById(item.id);
+            if (!product) {
+                return res.status(400).json({ error: `Producto ${item.id} no encontrado` });
+            }
+            const quantity = Number(item.quantity) || 1;
+            const unitPrice = Number(product.price);
+            total += unitPrice * quantity;
+
+            mpItems.push({
+                id: product.id,
+                title: product.name,
+                quantity: quantity,
+                unit_price: unitPrice,
+                currency_id: "ARS",
+            });
+        }
+
+        // Aplicar cupón si existe
+        let discountAmount = 0;
+        let validCoupon = null;
+
+        if (couponCode) {
+            validCoupon = await couponService.getCouponByCode(couponCode);
+            if (validCoupon) {
+                const validation = couponService.validateCoupon(validCoupon);
+                if (validation.valid) {
+                    if (validCoupon.tipo_descuento === 'porcentaje') {
+                        discountAmount = (total * validCoupon.valor) / 100;
+                    } else if (validCoupon.tipo_descuento === 'fijo') {
+                        discountAmount = validCoupon.valor;
+                    }
+                    if (discountAmount > total && validCoupon.tipo_descuento !== 'envio_gratis') {
+                        discountAmount = total;
+                    }
+                }
+            }
+        }
+
+        let shippingCost = Number(shipping.cost);
+        if (validCoupon?.tipo_descuento === 'envio_gratis') {
+            shippingCost = 0;
+        }
+
+        // Aplicar descuento proporcional a los items
+        if (discountAmount > 0 && validCoupon?.tipo_descuento !== 'envio_gratis') {
+            const discountRatio = (total - discountAmount) / total;
+            for (const item of mpItems) {
+                item.unit_price = Math.round(item.unit_price * discountRatio * 100) / 100;
+            }
+        }
+
+        // Agregar envío como item
+        mpItems.push({
+            id: "shipping",
+            title: `Envío (${shipping.service_type === 'pickup_point' ? 'Punto de retiro' : 'A domicilio'})${validCoupon?.tipo_descuento === 'envio_gratis' ? ' - GRATIS' : ''}`,
+            quantity: 1,
+            unit_price: shippingCost,
+            currency_id: "ARS",
+        });
+
+        const preference = await preferenceClient.create({
+            body: {
+                items: mpItems,
+                back_urls: {
+                    success: process.env.NODE_ENV === 'development'
+                        ? "https://zpxtnmn7-3000.brs.devtunnels.ms/payment/success"
+                        : `${process.env.PUBLIC_BASE_URL}/payment/success`,
+                    failure: process.env.NODE_ENV === 'development'
+                        ? "https://zpxtnmn7-3000.brs.devtunnels.ms/payment/failure"
+                        : `${process.env.PUBLIC_BASE_URL}/payment/failure`,
+                    pending: process.env.NODE_ENV === 'development'
+                        ? "https://zpxtnmn7-3000.brs.devtunnels.ms/payment/pending"
+                        : `${process.env.PUBLIC_BASE_URL}/payment/pending`,
+                },
+                auto_return: "approved",
+                external_reference: uuidv4(),
+                notification_url: process.env.NODE_ENV === 'development'
+                    ? 'https://zpxtnmn7-3001.brs.devtunnels.ms/payments/webhook'
+                    : `${process.env.PUBLIC_BASE_URL}/api/payments/webhook`,
+            },
+        });
+
+        console.log("[createBrickPreference] Preferencia creada:", preference.id);
+        res.json({ id: preference.id });
+    } catch (error: any) {
+        console.error("Error creando preferencia para Brick:", error);
+        res.status(500).json({ error: error?.message || "Error interno del servidor" });
     }
 }
 
@@ -451,3 +563,162 @@ export async function cancelOrderManually(req: Request, res: Response) {
         res.status(500).json({ error: error?.message || "Error interno cancelando orden" });
     }
 }
+
+/**
+ * POST /payments/process
+ * Processes payment from MercadoPago Payment Brick.
+ * Uses an EXISTING order (created by createPreference) instead of creating a new one.
+ * Receives { formData, orderId } where orderId is the order already created with stock reserved.
+ */
+export async function processPayment(req: Request, res: Response) {
+    try {
+        const { formData, orderId } = req.body;
+
+        if (!formData) {
+            return res.status(400).json({ error: "formData es requerido" });
+        }
+
+        if (!orderId) {
+            return res.status(400).json({ error: "orderId es requerido" });
+        }
+
+        // Buscar la orden existente (ya creada por createPreference)
+        const [orderRows] = await sequelize.query(
+            'SELECT * FROM pedidos WHERE id = ?',
+            { replacements: [orderId], type: QueryTypes.SELECT }
+        ) as any;
+
+        const order = orderRows || (await sequelize.query(
+            'SELECT * FROM pedidos WHERE id = ?',
+            { replacements: [orderId], type: QueryTypes.SELECT }
+        ))[0];
+
+        if (!order) {
+            return res.status(404).json({ error: "Orden no encontrada" });
+        }
+
+        if (order.status !== 'pending') {
+            return res.status(400).json({ error: `La orden ya fue procesada (estado: ${order.status})` });
+        }
+
+        // Procesar pago con MercadoPago Payment API
+        try {
+            const paymentResult = await paymentClient.create({
+                body: {
+                    token: formData.token,
+                    issuer_id: formData.issuer_id,
+                    payment_method_id: formData.payment_method_id,
+                    transaction_amount: Number(order.total),
+                    installments: Number(formData.installments),
+                    payer: {
+                        email: formData.payer.email,
+                        identification: formData.payer.identification,
+                    },
+                    external_reference: order.external_reference,
+                    notification_url: process.env.NODE_ENV === 'development'
+                        ? 'https://zpxtnmn7-3001.brs.devtunnels.ms/payments/webhook'
+                        : `${process.env.PUBLIC_BASE_URL}/api/payments/webhook`,
+                },
+                requestOptions: {
+                    idempotencyKey: uuidv4(),
+                },
+            });
+
+            // Registrar el pago
+            await createPayment({
+                id_pedido: order.id,
+                mp_payment_id: String(paymentResult.id),
+                status: paymentResult.status || "unknown",
+                payment_method: paymentResult.payment_method_id || null,
+                total: paymentResult.transaction_amount || 0,
+            });
+
+            if (paymentResult.status === "approved") {
+                await updateOrderStatus(order.id, "paid");
+                await markOrderStockReleased(order.id);
+                console.log(`Orden ${order.id} pagada via Brick, stock confirmado`);
+
+                if (order.cupon_codigo) {
+                    try {
+                        await couponService.incrementUsage(order.cupon_codigo);
+                    } catch (err) {
+                        console.error(`Error incrementando uso de cupón:`, err);
+                    }
+                }
+
+                const envio = await getEnvioByOrderId(order.id);
+                if (envio) {
+                    if (envio.status === 'pending') {
+                        try {
+                            await updateEnvioStatus(envio.id, 'to_ship');
+                        } catch (shipError: any) {
+                            console.error("Error actualizando envío:", shipError);
+                        }
+                    }
+
+                    try {
+                        const orderItems = await getOrderItems(order.id);
+                        let loteNombre: string | undefined;
+                        if (order.lote_id) {
+                            const [loteData] = await sequelize.query('SELECT nombre FROM lotes WHERE id = ?', { replacements: [order.lote_id], type: QueryTypes.SELECT });
+                            loteNombre = loteData ? (loteData as any).nombre : undefined;
+                        }
+                        await enviarMailConfirmacionCompra(
+                            envio.email_cliente,
+                            envio.nombre_cliente,
+                            String(order.id),
+                            orderItems,
+                            Number(order.total),
+                            Number(envio.costo),
+                            Number(order.cupon_descuento || 0),
+                            loteNombre
+                        );
+                    } catch (mailError) {
+                        console.error("Error enviando mail de confirmación:", mailError);
+                    }
+                }
+            } else if (paymentResult.status === "rejected") {
+                await updateOrderStatus(order.id, "failed");
+                try {
+                    if (await isOrderStockReserved(order.id)) {
+                        const orderItems = await getOrderItems(order.id);
+                        for (const item of orderItems) {
+                            await increaseStock(item.id_producto, item.cantidad);
+                        }
+                        await markOrderStockReleased(order.id);
+                    }
+                } catch (stockError: any) {
+                    console.error("Error restaurando stock:", stockError);
+                }
+            }
+            // For 'pending' or 'in_process', the webhook will handle it
+
+            res.json({
+                status: paymentResult.status,
+                status_detail: paymentResult.status_detail,
+                order_id: order.id,
+                payment_id: paymentResult.id,
+            });
+        } catch (mpError: any) {
+            console.error("Error procesando pago MP:", mpError);
+            // Liberar stock si falla el pago
+            try {
+                if (await isOrderStockReserved(order.id)) {
+                    const orderItems = await getOrderItems(order.id);
+                    for (const item of orderItems) {
+                        await increaseStock(item.id_producto, item.cantidad);
+                    }
+                    await markOrderStockReleased(order.id);
+                }
+                await updateOrderStatus(order.id, "failed");
+            } catch (releaseError) {
+                console.error("Error liberando stock tras fallo:", releaseError);
+            }
+            return res.status(500).json({ error: mpError?.message || "Error procesando pago" });
+        }
+    } catch (error: any) {
+        console.error("Error en processPayment:", error);
+        res.status(500).json({ error: error?.message || "Error interno del servidor" });
+    }
+}
+
