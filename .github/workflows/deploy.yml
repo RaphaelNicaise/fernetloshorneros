@@ -42,8 +42,8 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            git config --global --add safe.directory "*"
             cd /var/www/fernetloshorneros
-            git config --global --add safe.directory /var/www/fernetloshorneros
             git pull origin main
             docker compose -f docker-compose.prod.yml up -d --build
             docker image prune -f
