@@ -33,23 +33,27 @@ export function StepCouponSummary({ cartTotal, shippingCost, onContinue, onBack,
     
     try {
       const res = await api.post("/coupons/validate", {
-        codigo: couponCode.toUpperCase(),
+        codigo: couponCode.trim().toUpperCase(),
         subtotal: cartTotal
       })
 
       if (!res.data.valid) {
-        throw new Error(res.data.error || "Cupón inválido")
+        setError(res.data.error || "Cupón inválido o expirado.")
+        setCouponState(null)
+        return
       }
 
       const data = res.data.coupon
       
-      let amountApplied = 0
-      if (data.tipo_descuento === "porcentaje") {
-        amountApplied = (cartTotal * data.valor) / 100
-      } else if (data.tipo_descuento === "fijo") {
-        amountApplied = data.valor
-      } else if (data.tipo_descuento === "envio_gratis") {
-        amountApplied = shippingCost
+      let amountApplied = res.data.discountAmount ?? 0
+      if (!amountApplied) {
+        if (data.tipo_descuento === "porcentaje") {
+          amountApplied = (cartTotal * data.valor) / 100
+        } else if (data.tipo_descuento === "fijo") {
+          amountApplied = data.valor
+        } else if (data.tipo_descuento === "envio_gratis") {
+          amountApplied = shippingCost
+        }
       }
 
       // El descuento fijo/porcentaje no puede superar el costo de los productos
@@ -60,14 +64,7 @@ export function StepCouponSummary({ cartTotal, shippingCost, onContinue, onBack,
       setCouponState({ ...data, amountApplied })
     } catch (err: any) {
       const serverError = err.response?.data?.error || err.message;
-      
-      if (err.response?.status === 404 || serverError === 'Cupón no encontrado') {
-        setError("Este código de descuento no existe.");
-      } else if (serverError === 'El cupón ha expirado.' || serverError === 'El cupón no está activo.') {
-        setError("Este cupón ya expiró o alcanzó su límite de usos.");
-      } else {
-        setError(serverError || "Cupón inválido");
-      }
+      setError(serverError || "No se pudo validar el cupón");
       setCouponState(null)
     } finally {
       setLoading(false)

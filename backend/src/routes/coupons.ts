@@ -8,40 +8,42 @@ const router = Router();
 router.post('/validate', async (req: Request, res: Response) => {
   try {
     const { codigo, subtotal } = req.body;
-    if (!codigo) {
-      return res.status(400).json({ error: 'Código requerido' });
+    if (!codigo || typeof codigo !== 'string' || !codigo.trim()) {
+      return res.json({ valid: false, error: 'Por favor ingresá un código de cupón.' });
     }
 
-    const coupon = await couponService.getCouponByCode(codigo.toUpperCase());
+    const cleanCode = codigo.trim().toUpperCase();
+    const coupon = await couponService.getCouponByCode(cleanCode);
     if (!coupon) {
-      return res.status(404).json({ error: 'Cupón no encontrado' });
+      return res.json({ valid: false, error: 'Este código de descuento no existe.' });
     }
 
     const validation = couponService.validateCoupon(coupon);
     if (!validation.valid) {
-      return res.status(400).json({ error: validation.error });
+      return res.json({ valid: false, error: validation.error || 'El cupón ya expiró o no está activo.' });
     }
 
+    const subtotalNum = Number(subtotal) || 0;
     let discountAmount = 0;
     if (coupon.tipo_descuento === 'porcentaje') {
-      discountAmount = (subtotal * coupon.valor) / 100;
+      discountAmount = (subtotalNum * Number(coupon.valor)) / 100;
     } else if (coupon.tipo_descuento === 'fijo') {
-      discountAmount = coupon.valor;
+      discountAmount = Number(coupon.valor);
     }
 
     // No permitir que el descuento sea mayor al subtotal
-    if (discountAmount > subtotal && coupon.tipo_descuento !== 'envio_gratis') {
-      discountAmount = subtotal;
+    if (discountAmount > subtotalNum && coupon.tipo_descuento !== 'envio_gratis') {
+      discountAmount = subtotalNum;
     }
 
-    res.json({
+    return res.json({
       valid: true,
       coupon,
       discountAmount
     });
   } catch (error: any) {
     console.error('Error validating coupon:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    return res.status(500).json({ valid: false, error: 'Error interno del servidor validando cupón' });
   }
 });
 
