@@ -16,8 +16,12 @@ waitlistRouter.post("/", async (req, res) => {
         
         res.status(201).json({ message: "Registrado en lista de espera exitosamente" });
     } catch (error: any) {
-        if (error.message === "El email ya está registrado en la lista de espera.") {
-            return res.status(409).json({ error: error.message });
+        console.error("Waitlist error:", error);
+        if (error.message === "El email ya se encuentra registrado") {
+            return res.status(409).json({ error: "El email ya está registrado en la lista de espera." });
+        }
+        if (error.message === "Provincia inválida") {
+            return res.status(400).json({ error: "Provincia inválida" });
         }
         res.status(500).json({ error: error.message || "Error al registrar en la lista de espera" });
     }

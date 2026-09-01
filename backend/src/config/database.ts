@@ -1,16 +1,19 @@
 import dotenv from "dotenv";
 import { Sequelize } from "sequelize";
+import path from "path";
 
-dotenv.config();
+dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
 
 const {
 	DB_HOST = process.env.MYSQL_HOST || "localhost",
 	DB_PORT = process.env.MYSQL_PORT || "3306",
 	DB_USER = process.env.MYSQL_USER || "root",
 	DB_PASSWORD = process.env.MYSQL_ROOT_PASSWORD,
-	DB_NAME = process.env.MYSQL_DATABASE,
 	DB_DIALECT = "mysql",
 } = process.env;
+
+const isTest = process.env.NODE_ENV === "test";
+const DB_NAME = isTest ? (process.env.MYSQL_DATABASE_TEST || "fernetloshorneros_test") : process.env.MYSQL_DATABASE;
 
 const sequelize = new Sequelize(DB_NAME!, DB_USER!, DB_PASSWORD!, {
 	host: DB_HOST,

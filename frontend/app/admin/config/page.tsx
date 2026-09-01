@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { api, API_BASE_URL } from '@/lib/api';
-import { Download, Loader2 } from 'lucide-react';
+import { Download, Loader2, MapPin, Plus, Trash2 } from 'lucide-react';
 
 export default function ConfigPage() {
   const [minPurchaseAmount, setMinPurchaseAmount] = useState('');
@@ -20,6 +20,10 @@ export default function ConfigPage() {
   const [isAutoBackupLoading, setIsAutoBackupLoading] = useState(false);
 
   const [provinceCosts, setProvinceCosts] = useState<Record<string, string>>({});
+  const [selectedNewProv, setSelectedNewProv] = useState<string>('');
+  const [newProvCost, setNewProvCost] = useState<string>('');
+  const [isSavingProvinceCosts, setIsSavingProvinceCosts] = useState(false);
+
   const PROVINCIAS = [
     "Buenos Aires", "Capital Federal", "Catamarca", "Chaco", "Chubut", "Córdoba", "Corrientes",
     "Entre Ríos", "Formosa", "Jujuy", "La Pampa", "La Rioja", "Mendoza", "Misiones", "Neuquén",
@@ -53,7 +57,14 @@ export default function ConfigPage() {
         setMaintenanceMode(maint === 'true');
         if (provCosts) {
           try {
-            setProvinceCosts(JSON.parse(provCosts));
+            const parsed = JSON.parse(provCosts);
+            const cleaned: Record<string, string> = {};
+            Object.entries(parsed).forEach(([k, v]) => {
+              if (v !== undefined && v !== null && String(v).trim() !== '') {
+                cleaned[k] = String(v).trim();
+              }
+            });
+            setProvinceCosts(cleaned);
           } catch (e) {
             console.error(e);
           }
@@ -89,16 +100,69 @@ export default function ConfigPage() {
     }
   };
 
+  const handleAddProvinceCost = async () => {
+    if (!selectedNewProv) {
+      toast({ title: 'Atención', description: 'Seleccioná una provincia.', variant: 'destructive' });
+      return;
+    }
+    if (!newProvCost || isNaN(Number(newProvCost)) || Number(newProvCost) < 0) {
+      toast({ title: 'Atención', description: 'Ingresá un costo de envío válido.', variant: 'destructive' });
+      return;
+    }
+
+    const updated = { ...provinceCosts, [selectedNewProv]: newProvCost.trim() };
+    setProvinceCosts(updated);
+    const addedProv = selectedNewProv;
+    setSelectedNewProv('');
+    setNewProvCost('');
+
+    try {
+      setIsSavingProvinceCosts(true);
+      await api.put('/settings/province_shipping_costs', { value: JSON.stringify(updated) });
+      toast({ title: 'Éxito', description: `Tarifa especial agregada para ${addedProv}.` });
+    } catch {
+      toast({ title: 'Error', description: 'No se pudo guardar la tarifa especial.', variant: 'destructive' });
+    } finally {
+      setIsSavingProvinceCosts(false);
+    }
+  };
+
+  const handleDeleteProvinceCost = async (prov: string) => {
+    const updated = { ...provinceCosts };
+    delete updated[prov];
+    setProvinceCosts(updated);
+
+    try {
+      setIsSavingProvinceCosts(true);
+      await api.put('/settings/province_shipping_costs', { value: JSON.stringify(updated) });
+      toast({ title: 'Éxito', description: `Se eliminó la tarifa especial de ${prov}. Ahora usará el costo general.` });
+    } catch {
+      toast({ title: 'Error', description: 'No se pudo actualizar los costos.', variant: 'destructive' });
+    } finally {
+      setIsSavingProvinceCosts(false);
+    }
+  };
+
   const handleProvinceCostChange = (prov: string, val: string) => {
     setProvinceCosts(prev => ({ ...prev, [prov]: val }));
   };
 
   const handleSaveProvinceCosts = async () => {
     try {
-      await api.put('/settings/province_shipping_costs', { value: JSON.stringify(provinceCosts) });
-      toast({ title: 'Éxito', description: 'Costos por provincia actualizados.' });
+      setIsSavingProvinceCosts(true);
+      const cleaned: Record<string, string> = {};
+      Object.entries(provinceCosts).forEach(([k, v]) => {
+        if (v !== undefined && v !== null && String(v).trim() !== '') {
+          cleaned[k] = String(v).trim();
+        }
+      });
+      setProvinceCosts(cleaned);
+      await api.put('/settings/province_shipping_costs', { value: JSON.stringify(cleaned) });
+      toast({ title: 'Éxito', description: 'Costos por provincia actualizados correctamente.' });
     } catch {
-      toast({ title: 'Error', description: 'No se pudo actualizar los costos por provincia.', variant: 'destructive' });
+      toast({ title: 'Error', description: 'No se pudieron actualizar los costos por provincia.', variant: 'destructive' });
+    } finally {
+      setIsSavingProvinceCosts(false);
     }
   };
 
@@ -268,44 +332,154 @@ export default function ConfigPage() {
           </div>
         </div>
 
-        {/* Costo de Envío Fijo */}
+        {/* Costo de Envío General */}
         <div className="bg-white/10 rounded-xl p-5">
-          <h2 className="text-white font-semibold mb-3">Costo de envío fijo (Correo Argentino)</h2>
+          <h2 className="text-white font-semibold mb-1">Costo de envío general (Por defecto)</h2>
+          <p className="text-white/60 text-sm mb-4">
+            Este valor se cobrará por defecto en todas las provincias que no tengan una tarifa especial configurada abajo.
+          </p>
           <div className="flex items-center gap-4">
-            <Input
-              id="fixed-shipping"
-              type="number"
-              value={fixedShippingCost}
-              onChange={(e) => setFixedShippingCost(e.target.value)}
-              className="w-48"
-            />
-            <Button onClick={() => handleSave('fixed_shipping_cost', fixedShippingCost, 'Costo de envío')}>Guardar</Button>
+            <div className="relative w-48">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50 text-sm">$</span>
+              <Input
+                id="fixed-shipping"
+                type="number"
+                value={fixedShippingCost}
+                onChange={(e) => setFixedShippingCost(e.target.value)}
+                className="pl-7 bg-black/20 border-white/10 text-white"
+                placeholder="5000"
+              />
+            </div>
+            <Button onClick={() => handleSave('fixed_shipping_cost', fixedShippingCost, 'Costo de envío')}>
+              Guardar Costo General
+            </Button>
           </div>
         </div>
 
-        {/* Costos por Provincia */}
+        {/* Tarifas Especiales por Provincia */}
         <div className="bg-white/10 rounded-xl p-5">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <div>
-              <h2 className="text-white font-semibold">Costos de envío por Provincia</h2>
-              <p className="text-white/60 text-sm">Si se deja vacío, se utilizará el costo de envío fijo por defecto.</p>
+              <h2 className="text-white font-semibold mb-1">Tarifas especiales por Provincia (Opcional)</h2>
+              <p className="text-white/60 text-sm">
+                Agregá un precio específico solo para las provincias que requieran un valor diferente. Las no listadas usarán el costo general (${fixedShippingCost || '5000'}).
+              </p>
             </div>
-            <Button onClick={handleSaveProvinceCosts}>Guardar Costos</Button>
+            {Object.keys(provinceCosts).length > 0 && (
+              <Button 
+                onClick={handleSaveProvinceCosts}
+                disabled={isSavingProvinceCosts}
+                variant="outline"
+                className="border-white/20 hover:bg-white/10 text-white self-start sm:self-auto"
+              >
+                {isSavingProvinceCosts ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Guardar Cambios
+              </Button>
+            )}
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {PROVINCIAS.map(prov => (
-              <div key={prov} className="flex flex-col gap-1">
-                <label className="text-xs text-white/80 font-medium truncate">{prov}</label>
+
+          {/* Formulario para agregar tarifa especial */}
+          <div className="bg-black/20 p-4 rounded-lg border border-white/10 mb-6">
+            <h3 className="text-xs font-semibold text-white/70 uppercase tracking-wider mb-3">
+              + Agregar tarifa especial
+            </h3>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <select
+                value={selectedNewProv}
+                onChange={(e) => setSelectedNewProv(e.target.value)}
+                className="bg-black/40 border border-white/10 text-white text-sm rounded-md px-3 py-2 flex-1 focus:outline-none focus:ring-1 focus:ring-[#AA6F3B]"
+              >
+                <option value="" disabled className="bg-neutral-900 text-white/40">
+                  Seleccionar provincia...
+                </option>
+                {PROVINCIAS.filter(p => !Object.prototype.hasOwnProperty.call(provinceCosts, p)).map(prov => (
+                  <option key={prov} value={prov} className="bg-neutral-900 text-white">
+                    {prov}
+                  </option>
+                ))}
+              </select>
+
+              <div className="relative w-full sm:w-44">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50 text-sm">$</span>
                 <Input
                   type="number"
-                  placeholder={fixedShippingCost}
-                  value={provinceCosts[prov] || ''}
-                  onChange={(e) => handleProvinceCostChange(prov, e.target.value)}
-                  className="bg-black/20 border-white/10 text-white"
+                  placeholder="Ej: 7500"
+                  value={newProvCost}
+                  onChange={(e) => setNewProvCost(e.target.value)}
+                  className="pl-7 bg-black/40 border-white/10 text-white"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddProvinceCost();
+                    }
+                  }}
                 />
               </div>
-            ))}
+
+              <Button
+                onClick={handleAddProvinceCost}
+                disabled={isSavingProvinceCosts || !selectedNewProv || !newProvCost}
+                className="bg-[#AA6F3B] hover:bg-[#8a5a2f] text-white flex items-center justify-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Agregar Tarifa
+              </Button>
+            </div>
+            {PROVINCIAS.filter(p => !Object.prototype.hasOwnProperty.call(provinceCosts, p)).length === 0 && (
+              <p className="text-xs text-amber-400/80 mt-2">
+                Todas las provincias ya tienen una tarifa especial asignada.
+              </p>
+            )}
           </div>
+
+          {/* Lista de tarifas especiales configuradas */}
+          {Object.keys(provinceCosts).length === 0 ? (
+            <div className="text-center py-6 px-4 bg-black/10 rounded-lg border border-dashed border-white/10">
+              <p className="text-sm text-white/60">
+                No hay tarifas especiales configuradas.
+              </p>
+              <p className="text-xs text-white/40 mt-1">
+                Todas las provincias se cobrarán al costo general (${fixedShippingCost || '5000'}).
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {Object.entries(provinceCosts).map(([prov, cost]) => (
+                <div
+                  key={prov}
+                  className="flex items-center justify-between gap-3 bg-black/20 p-3 rounded-lg border border-white/10"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <MapPin className="w-4 h-4 text-[#AA6F3B] shrink-0" />
+                    <span className="text-sm text-white font-medium truncate" title={prov}>
+                      {prov}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <div className="relative w-28">
+                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/50 text-xs">$</span>
+                      <Input
+                        type="number"
+                        value={cost}
+                        onChange={(e) => handleProvinceCostChange(prov, e.target.value)}
+                        className="pl-6 h-8 text-xs bg-black/40 border-white/10 text-white"
+                      />
+                    </div>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => handleDeleteProvinceCost(prov)}
+                      className="h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                      title="Eliminar tarifa especial (usar costo general)"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Modo mantenimiento */}

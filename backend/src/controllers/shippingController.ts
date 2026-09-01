@@ -30,6 +30,39 @@ async function buildZipnovaItems(items: Array<{ id: string; quantity?: number }>
 }
 
 /**
+ * Resuelve el costo de envío para una provincia específica:
+ * Si la provincia tiene un valor configurado, se usa ese valor.
+ * De lo contrario, retorna el costo por defecto.
+ */
+function resolveShippingCost(costsRaw: string | undefined | null, state: string, defaultCost: number): number {
+    if (!costsRaw || !state) return defaultCost;
+    try {
+        const costs = JSON.parse(costsRaw);
+        if (typeof costs !== "object" || costs === null) return defaultCost;
+
+        // Búsqueda directa
+        if (costs[state] !== undefined && costs[state] !== null && String(costs[state]).trim() !== "" && !isNaN(Number(costs[state]))) {
+            return Number(costs[state]);
+        }
+
+        // Búsqueda normalizada (sin acentos, mayúsculas/minúsculas)
+        const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+        const target = norm(state);
+
+        for (const [key, val] of Object.entries(costs)) {
+            if (val === undefined || val === null || String(val).trim() === "" || isNaN(Number(val))) continue;
+            const normKey = norm(key);
+            if (normKey === target || target.includes(normKey) || normKey.includes(target)) {
+                return Number(val);
+            }
+        }
+    } catch (e) {
+        console.error("Error parsing province_shipping_costs", e);
+    }
+    return defaultCost;
+}
+
+/**
  * POST /shipping/quote
  * Cotiza el envío (retorna la opción más barata)
  */
@@ -51,18 +84,8 @@ export async function quote(req: Request, res: Response) {
         const fixedCostSetting = await getSetting('fixed_shipping_cost');
         const defaultCost = fixedCostSetting ? Number(fixedCostSetting.value) : 5000;
         
-        let shippingCost = defaultCost;
         const provinceCostsSetting = await getSetting('province_shipping_costs');
-        if (provinceCostsSetting && provinceCostsSetting.value) {
-            try {
-                const costs = JSON.parse(provinceCostsSetting.value);
-                if (costs[destination.state] !== undefined) {
-                    shippingCost = Number(costs[destination.state]);
-                }
-            } catch (e) {
-                console.error("Error parsing province_shipping_costs", e);
-            }
-        }
+        const shippingCost = resolveShippingCost(provinceCostsSetting?.value, destination.state, defaultCost);
 
         const normalizedCity = destination.city.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
         const isLocalCity = ["bahia blanca", "ingeniero white", "punta alta"].includes(normalizedCity);
@@ -118,18 +141,8 @@ export async function quoteOptions(req: Request, res: Response) {
         const fixedCostSetting = await getSetting('fixed_shipping_cost');
         const defaultCost = fixedCostSetting ? Number(fixedCostSetting.value) : 5000;
         
-        let shippingCost = defaultCost;
         const provinceCostsSetting = await getSetting('province_shipping_costs');
-        if (provinceCostsSetting && provinceCostsSetting.value) {
-            try {
-                const costs = JSON.parse(provinceCostsSetting.value);
-                if (costs[destination.state] !== undefined && costs[destination.state] !== "") {
-                    shippingCost = Number(costs[destination.state]);
-                }
-            } catch (e) {
-                console.error("Error parsing province_shipping_costs", e);
-            }
-        }
+        const shippingCost = resolveShippingCost(provinceCostsSetting?.value, destination.state, defaultCost);
 
         let all_results: any[] = [];
         const normalizedCity = (destination.city || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
