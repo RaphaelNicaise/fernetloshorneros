@@ -4,16 +4,22 @@ import { adminAuth } from '../middleware/adminAuth';
 
 const router = Router();
 
-// Endpoint público para que el middleware de Next.js verifique el modo mantenimiento
-// Devuelve si el modo está activo. La validación de IP la hace el propio middleware frontend.
+// Endpoint público para que el middleware de Next.js verifique el modo mantenimiento y las IPs autorizadas
 router.get('/maintenance-check', async (_req, res) => {
     try {
         const setting = await getSetting('maintenance_mode');
+        const allowedIpsSetting = await getSetting('maintenance_allowed_ips');
         const active = setting?.value === 'true';
-        res.json({ maintenance: active });
+        const envIps = process.env.MAINTENANCE_ALLOWED_IPS || '';
+        const dbIps = allowedIpsSetting?.value || '';
+        const allowedIps = `${envIps},${dbIps}`
+            .split(',')
+            .map(ip => ip.trim())
+            .filter(Boolean);
+
+        res.json({ maintenance: active, allowed_ips: allowedIps });
     } catch {
-        // En caso de error en DB, no bloquear el acceso
-        res.json({ maintenance: false });
+        res.json({ maintenance: false, allowed_ips: [] });
     }
 });
 

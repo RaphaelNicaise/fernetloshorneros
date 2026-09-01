@@ -24,6 +24,9 @@ import cron from 'node-cron';
 import { createAutoBackup } from '@/services/backupService';
 import { cleanupExpiredOrders } from '@/controllers/paymentsController';
 
+import { errorHandler } from '@/middleware/errorHandler';
+import { logger } from '@/utils/logger';
+
 dotenv.config();
 
 const app = express();
@@ -38,8 +41,31 @@ const uploadsDir = process.env.UPLOADS_DIR || path.resolve(process.cwd(), 'uploa
 app.use('/uploads', express.static(uploadsDir));
 app.use('/uploads', uploadsRouter);
 
-app.get('/', (req, res) => {res.json({ message: 'Backend funcionando' });});
-app.get('/health', (req, res) => {res.status(200).json({ status: 'ok' });});
+app.get('/', (req, res) => { res.json({ message: 'Backend funcionando' }); });
+app.get('/health', (req, res) => { res.status(200).json({ status: 'ok' }); });
+app.get('/my-ip', (req, res) => {
+  const forwarded = req.headers['x-forwarded-for'];
+  const realIp = req.headers['x-real-ip'];
+  const cfIp = req.headers['cf-connecting-ip'];
+  const socketIp = req.socket.remoteAddress;
+  const detectedIp = (
+    (typeof forwarded === 'string' ? forwarded.split(',')[0].trim() : '') ||
+    (typeof realIp === 'string' ? realIp : '') ||
+    (typeof cfIp === 'string' ? cfIp : '') ||
+    socketIp ||
+    ''
+  ).replace(/^::ffff:/, '');
+
+  res.json({
+    your_ip_for_env: detectedIp,
+    headers: {
+      'x-forwarded-for': forwarded,
+      'x-real-ip': realIp,
+      'cf-connecting-ip': cfIp,
+      socket_remote_address: socketIp,
+    },
+  });
+});
 app.use('/waitlist', waitlistRouter);
 app.use('/payments', paymentsRouter);
 app.use('/admin', adminRouter);
@@ -54,31 +80,34 @@ app.use('/produccion', produccionRouter);
 app.use('/audiences', audiencesRouter);
 app.use('/backups', backupsRouter);
 
+// Global error handler
+app.use(errorHandler);
 
 const startServer = async () => {
   try {
     await connectDB({ sync: false });
     app.listen(port, '0.0.0.0', () => {
-      console.log(`Servidor escuchando en el puerto ${port}`);
+      logger.info(`Servidor escuchando en el puerto ${port}`);
       
       // Tarea en segundo plano para limpiar carritos abandonados
       setInterval(() => {
-        cleanupExpiredOrders().catch(err => console.error("Error en cron de limpieza:", err));
-        produccionService.checkAndCompleteProcesses().catch(err => console.error("Error en cron de produccion:", err));
+        cleanupExpiredOrders().catch(err => logger.error("Error en cron de limpieza:", err));
+        produccionService.checkAndCompleteProcesses().catch(err => logger.error("Error en cron de produccion:", err));
       }, 60000); // 1 minuto
       
       // Cron job diario para backups a las 3 AM
       cron.schedule('0 3 * * *', async () => {
         try {
-          console.log('Iniciando backup automático diario...');
+          logger.info('Iniciando backup automático diario...');
           await createAutoBackup();
-          console.log('Backup automático finalizado con éxito.');
+          logger.info('Backup automático finalizado con éxito.');
         } catch (error) {
-          console.error('Error al generar backup automático:', error);
+          logger.error('Error al generar backup automático:', error);
         }
       });
     });
   } catch (error) {
+    logger.error('Error al iniciar el servidor:', error);
     process.exit(1);
   }
 };

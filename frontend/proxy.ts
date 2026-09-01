@@ -1,12 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-// IPs autorizadas durante el modo mantenimiento (separadas por coma en .env)
-// Ejemplo: MAINTENANCE_ALLOWED_IPS=192.168.1.1,203.0.113.5
-const ALLOWED_IPS = (process.env.MAINTENANCE_ALLOWED_IPS || '')
-  .split(',')
-  .map((ip) => ip.trim())
-  .filter(Boolean)
-
 // URL interna al backend (solo accesible desde el contenedor)
 const INTERNAL_API_URL =
   process.env.NEXT_INTERNAL_API_URL ||
@@ -14,35 +7,87 @@ const INTERNAL_API_URL =
   'http://backend:3001'
 
 // Cache simple en memoria: evita llamar al backend en CADA request
-let maintenanceCache: { value: boolean; expiresAt: number } | null = null
-const CACHE_TTL_MS = 15_000 // 15 segundos
+let maintenanceCache: { active: boolean; allowedIps: string[]; expiresAt: number } | null = null
+const CACHE_TTL_MS = 10_000 // 10 segundos
 
-async function isMaintenanceActive(): Promise<boolean> {
+async function getMaintenanceStatus(): Promise<{ active: boolean; allowedIps: string[] }> {
   const now = Date.now()
   if (maintenanceCache && maintenanceCache.expiresAt > now) {
-    return maintenanceCache.value
+    return { active: maintenanceCache.active, allowedIps: maintenanceCache.allowedIps }
   }
   try {
     const res = await fetch(`${INTERNAL_API_URL}/settings/maintenance-check`, {
       cache: 'no-store',
       signal: AbortSignal.timeout(2000),
     })
-    if (!res.ok) return false
+    if (!res.ok) return { active: false, allowedIps: [] }
     const data = await res.json()
-    maintenanceCache = { value: Boolean(data.maintenance), expiresAt: now + CACHE_TTL_MS }
-    return maintenanceCache.value
+    const active = Boolean(data.maintenance)
+    const allowedIps = Array.isArray(data.allowed_ips) ? data.allowed_ips : []
+    maintenanceCache = { active, allowedIps, expiresAt: now + CACHE_TTL_MS }
+    return { active, allowedIps }
   } catch {
     // Si el backend no responde, no bloquear el acceso
-    return false
+    return { active: false, allowedIps: [] }
   }
 }
 
-function getClientIp(req: NextRequest): string {
-  return (
-    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    req.headers.get('x-real-ip') ||
-    '127.0.0.1'
+function getClientIps(req: NextRequest): string[] {
+  const ips: string[] = []
+
+  // Cloudflare header
+  const cfIp = req.headers.get('cf-connecting-ip')?.trim()
+  if (cfIp) ips.push(cfIp)
+
+  // X-Real-IP
+  const realIp = req.headers.get('x-real-ip')?.trim()
+  if (realIp) ips.push(realIp)
+
+  // X-Forwarded-For (puede ser una lista: client, proxy1, proxy2)
+  const forwardedFor = req.headers.get('x-forwarded-for')
+  if (forwardedFor) {
+    forwardedFor.split(',').forEach((ip) => {
+      const trimmed = ip.trim()
+      if (trimmed) ips.push(trimmed)
+    })
+  }
+
+  // Normalizar IPv4-mapped IPv6 (ej: ::ffff:190.x.x.x -> 190.x.x.x) y minúsculas para IPv6
+  const normalized = ips.map((ip) =>
+    ip
+      .replace(/^::ffff:/i, '')
+      .replace(/^\[(.*)\]$/, '$1')
+      .trim()
+      .toLowerCase()
   )
+  return Array.from(new Set(normalized))
+}
+
+function isIpAllowed(req: NextRequest, backendAllowedIps: string[] = []): boolean {
+  const envAllowed = (process.env.MAINTENANCE_ALLOWED_IPS || '')
+    .split(',')
+    .map((ip) =>
+      ip
+        .replace(/^::ffff:/i, '')
+        .replace(/^\[(.*)\]$/, '$1')
+        .trim()
+        .toLowerCase()
+    )
+    .filter(Boolean)
+
+  const dbAllowed = backendAllowedIps.map((ip) =>
+    ip
+      .replace(/^::ffff:/i, '')
+      .replace(/^\[(.*)\]$/, '$1')
+      .trim()
+      .toLowerCase()
+  )
+
+  const allAllowed = Array.from(new Set([...envAllowed, ...dbAllowed]))
+  if (allAllowed.length === 0) return false
+
+  const clientIps = getClientIps(req)
+  return clientIps.some((clientIp) => allAllowed.includes(clientIp))
 }
 
 export async function proxy(req: NextRequest) {
@@ -64,11 +109,10 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next()
   }
 
-  const active = await isMaintenanceActive()
+  const { active, allowedIps } = await getMaintenanceStatus()
   if (!active) return NextResponse.next()
 
-  const clientIp = getClientIp(req)
-  if (ALLOWED_IPS.includes(clientIp)) return NextResponse.next()
+  if (isIpAllowed(req, allowedIps)) return NextResponse.next()
 
   // Redirigir a la página de mantenimiento
   return NextResponse.redirect(new URL('/mantenimiento', req.url))
