@@ -486,7 +486,7 @@ export default function ConfigPage() {
         <div className="bg-white/10 rounded-xl p-5">
           <h2 className="text-white font-semibold mb-1">Modo mantenimiento</h2>
           <p className="text-white/60 text-sm mb-4">
-            Cuando está activo, solo las IPs definidas en <code className="text-white/80">MAINTENANCE_ALLOWED_IPS</code> pueden acceder al sitio. El resto ve la página de mantenimiento.
+            Cuando está activo, los visitantes verán la página de mantenimiento. Los administradores con sesión iniciada pueden navegar y probar toda la tienda con normalidad.
           </p>
           <div className="flex items-center gap-4">
             <button
