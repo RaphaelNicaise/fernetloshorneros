@@ -10,8 +10,13 @@ export default function PaymentSuccessPage() {
   const { clearCart } = useCart()
 
   useEffect(() => {
-    // Limpiar el carrito cuando el pago es exitoso
+    // Limpiar el carrito en estado y en almacenamiento persistente
     clearCart()
+    try {
+      localStorage.removeItem("artisan-cart")
+      sessionStorage.removeItem("appliedCoupon")
+      sessionStorage.removeItem("checkoutShipping")
+    } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

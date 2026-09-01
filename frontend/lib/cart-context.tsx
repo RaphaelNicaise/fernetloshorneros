@@ -28,6 +28,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined)
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([])
+  const [isLoaded, setIsLoaded] = useState(false)
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -50,17 +51,24 @@ export function CartProvider({ children }: { children: ReactNode }) {
       } catch (e) {
         // Ignorar
       }
+    } finally {
+      setIsLoaded(true)
     }
   }, [])
 
-  // Save cart to localStorage whenever it changes
+  // Save cart to localStorage whenever it changes (only after initial load)
   useEffect(() => {
+    if (!isLoaded) return
     try {
-      localStorage.setItem("artisan-cart", JSON.stringify(items))
+      if (items.length === 0) {
+        localStorage.removeItem("artisan-cart")
+      } else {
+        localStorage.setItem("artisan-cart", JSON.stringify(items))
+      }
     } catch (error) {
       console.error("Error saving cart to localStorage:", error)
     }
-  }, [items])
+  }, [items, isLoaded])
 
   const addItem = (newItem: Omit<CartItem, "quantity">) => {
     let showLimitToast: { limite: number } | null = null
@@ -151,6 +159,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const clearCart = () => {
     setItems([])
+    try {
+      localStorage.removeItem("artisan-cart")
+    } catch (e) {
+      // Ignorar
+    }
   }
 
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0)
