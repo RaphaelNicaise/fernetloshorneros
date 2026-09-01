@@ -601,6 +601,17 @@ export async function processPayment(req: Request, res: Response) {
             return res.status(400).json({ error: `La orden ya fue procesada (estado: ${order.status})` });
         }
 
+        // Si el pago es mediante Billetera de Mercado Pago (no genera token de tarjeta en el cliente),
+        // se procesa a través del flujo de la preferencia y el Webhook.
+        if (!formData.token) {
+            console.log(`[processPayment] Orden ${order.id} seleccionó pago con billetera Mercado Pago (sin token de tarjeta).`);
+            return res.json({
+                status: "in_process",
+                status_detail: "waiting_wallet_payment",
+                order_id: order.id,
+            });
+        }
+
         // Procesar pago con MercadoPago Payment API
         try {
             const paymentResult = await paymentClient.create({

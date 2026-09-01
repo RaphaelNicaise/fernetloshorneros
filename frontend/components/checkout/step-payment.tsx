@@ -97,6 +97,15 @@ export function StepPayment({ items, shipping, coupon, total, onBack }: StepPaym
 
   const onSubmit = async ({ formData }: any) => {
     console.log("[PaymentBrick] onSubmit. formData:", formData, "orderId:", orderId)
+
+    // Si es pago con billetera Mercado Pago (no tiene token de tarjeta)
+    if (!formData?.token) {
+      console.log("[PaymentBrick] Pago con Billetera Mercado Pago (popup/redirect). Esperando confirmación...")
+      setIsProcessing(true)
+      setError(null)
+      return
+    }
+
     setIsProcessing(true)
     setError(null)
 
@@ -111,7 +120,7 @@ export function StepPayment({ items, shipping, coupon, total, onBack }: StepPaym
 
       if (status === "approved") {
         router.push("/payment/success")
-      } else if (status === "in_process") {
+      } else if (status === "in_process" || status === "pending") {
         router.push("/payment/pending")
       } else {
         const errorMessages: Record<string, string> = {
