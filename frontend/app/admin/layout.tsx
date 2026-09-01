@@ -79,15 +79,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           setChecked(true)
           return
         }
-        localStorage.removeItem("admin_token")
+        clearAdminAuth()
         router.replace("/admin/login")
       }
     }
     verify()
   }, [router, pathname, isLoginPage])
 
-  const handleLogout = () => {
+  const clearAdminAuth = () => {
     localStorage.removeItem("admin_token")
+    try {
+      const hostname = window.location.hostname
+      const domainStr = hostname === "localhost" ? "" : `domain=.${hostname.replace(/^www\./, '')}; `
+      document.cookie = `admin_token=; Max-Age=0; Path=/; ${domainStr}SameSite=Lax; Secure`
+      document.cookie = `admin_token=; Max-Age=0; Path=/; SameSite=Lax; Secure`
+      document.cookie = `admin_token=; Max-Age=0; Path=/;`
+    } catch {}
+  }
+
+  const handleLogout = () => {
+    clearAdminAuth()
     router.replace("/admin/login")
   }
 
