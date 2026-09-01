@@ -7,7 +7,6 @@ import { useWaitlistModal } from "@/lib/waitlist-modal-context"
 const heroImages = [
   { src: "/fernet1.webp", alt: "Fernet 1" },
   { src: "/fernet2.webp", alt: "Fernet 2" },
-  { src: "/fernet3.webp", alt: "Fernet 3" },
 ]
 
 export default function MantenimientoPage() {
@@ -43,7 +42,7 @@ export default function MantenimientoPage() {
       <div className="pt-14 sm:pt-16">
         <div className="bg-neutral-900 text-white text-center py-3 px-4">
           <p className="text-sm font-medium tracking-wide">
-            🔧 Estamos realizando mejoras en la web. Volvemos pronto.
+            🔧 Estamos ultimando detalles para el lanzamiento del Lote 2. ¡Volvemos muy pronto!
           </p>
         </div>
       </div>
@@ -99,12 +98,12 @@ export default function MantenimientoPage() {
               {/* Mensaje de mantenimiento en lugar de los botones */}
               <div className="flex flex-col items-center md:items-start gap-4">
                 <div className="inline-flex items-center gap-3 px-6 py-4 bg-neutral-900 text-white rounded-lg">
-                  <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 flex-shrink-0 text-[#aa825e]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
                   </svg>
                   <div>
-                    <p className="font-semibold text-sm">Sitio en mantenimiento</p>
-                    <p className="text-neutral-400 text-xs mt-0.5">Estamos mejorando la experiencia para vos.</p>
+                    <p className="font-semibold text-sm">Preparando el Lote 2</p>
+                    <p className="text-neutral-400 text-xs mt-0.5">Estamos ultimando detalles para que todo salga perfecto.</p>
                   </div>
                 </div>
                 
@@ -121,7 +120,7 @@ export default function MantenimientoPage() {
                 </button>
 
                 <span className="text-[11px] text-neutral-400 mt-2">
-                  Anotate ahora y te avisaremos cuando estemos de vuelta.
+                  Anotate ahora para recibir la notificación prioritaria apenas abramos.
                 </span>
               </div>
             </div>
