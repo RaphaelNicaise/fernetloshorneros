@@ -217,10 +217,9 @@ export function StepPayment({ items, shipping, coupon, total, onBack }: StepPaym
                   debitCard: "all",
                   prepaidCard: "all",
                   mercadoPago: ["wallet_purchase"],
-                  minInstallments: 1,
                   maxInstallments: 1,
                   types: {
-                    excluded: ["creditCard" as any, "credit_card" as any],
+                    excluded: ["creditCard", "onboarding_credits"],
                   },
                 }
               }}
