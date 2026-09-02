@@ -217,7 +217,7 @@ export function StepPayment({ items, shipping, coupon, total, onBack }: StepPaym
                   // creditCard: "all", desactivamos tarjeta de credito
                   debitCard: "all",
                   prepaidCard: "all",
-                  mercadoPago: "wallet_purchase", // desactivamos mp credito
+                  mercadoPago: ["wallet_purchase"], // desactivamos mp credito
                 }
               }}
               onSubmit={onSubmit}
