@@ -347,6 +347,7 @@ export async function createPreference(req: Request, res: Response) {
                         { id: "credit_card" },
                     ],
                     installments: 1,
+                    default_installments: 1,
                 },
                 notification_url: process.env.NODE_ENV === 'development'
                     ? 'https://zpxtnmn7-3001.brs.devtunnels.ms/payments/webhook'
