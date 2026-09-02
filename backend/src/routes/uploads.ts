@@ -1,10 +1,14 @@
 import { Router, type Request, type Response } from 'express';
+import { adminAuth } from '@/middleware/adminAuth';
 
 const multer = require('multer') as any;
 import fs from 'fs';
 import path from 'path';
 
 const uploadsRouter = Router();
+
+// Proteger subida y listado de archivos para que solo administradores autenticados puedan utilizarlos
+uploadsRouter.use(adminAuth);
 
 // Directorio de destino para archivos subidos. En producción, se espera que sea un volumen montado.
 const UPLOADS_DIR = process.env.UPLOADS_DIR || path.resolve(process.cwd(), 'uploads');

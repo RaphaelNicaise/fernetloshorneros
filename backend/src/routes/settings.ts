@@ -4,6 +4,14 @@ import { adminAuth } from '../middleware/adminAuth';
 
 const router = Router();
 
+// Claves públicas permitidas para consulta anónima desde la tienda
+const PUBLIC_SETTINGS = new Set([
+    'min_order_amount',
+    'fixed_shipping_cost',
+    'province_shipping_costs',
+    'maintenance_mode',
+]);
+
 // Endpoint público para que el middleware de Next.js verifique si el modo mantenimiento está activo
 router.get('/maintenance-check', async (_req, res) => {
     try {
@@ -16,19 +24,35 @@ router.get('/maintenance-check', async (_req, res) => {
     }
 });
 
-// GET público para que el frontend pueda obtener el monto mínimo
+// GET: público para configuraciones del frontend / tienda, protegido por adminAuth para claves privadas
 router.get('/:key', async (req, res) => {
-    try {
-        const { key } = req.params;
-        const setting = await getSetting(key);
-        if (setting) {
-            res.json(setting);
-        } else {
-            res.status(404).json({ message: 'Setting not found' });
+    const { key } = req.params;
+    
+    // Si la clave es pública, servirla sin requerir login
+    if (PUBLIC_SETTINGS.has(key)) {
+        try {
+            const setting = await getSetting(key);
+            if (setting) {
+                return res.json(setting);
+            }
+            return res.status(404).json({ message: 'Setting not found' });
+        } catch (error) {
+            return res.status(500).json({ message: 'Error getting setting', error });
         }
-    } catch (error) {
-        res.status(500).json({ message: 'Error getting setting', error });
     }
+
+    // Si es una clave privada/sensible, exigir adminAuth
+    return adminAuth(req, res, async () => {
+        try {
+            const setting = await getSetting(key);
+            if (setting) {
+                return res.json(setting);
+            }
+            return res.status(404).json({ message: 'Setting not found' });
+        } catch (error) {
+            return res.status(500).json({ message: 'Error getting setting', error });
+        }
+    });
 });
 
 router.put('/:key', adminAuth, async (req, res) => {

@@ -2,6 +2,9 @@ import { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
 
 const SECRET = process.env.ADMIN_JWT_SECRET || process.env.ADMIN_PASSWORD || 'default-secret';
+if (!process.env.ADMIN_JWT_SECRET && !process.env.ADMIN_PASSWORD && process.env.NODE_ENV === 'production') {
+  console.error('[SECURITY WARNING] ADMIN_JWT_SECRET o ADMIN_PASSWORD deben estar configurados en .env en producción');
+}
 
 export function verifyToken(token: string): { valid: boolean; payload?: any } {
   const parts = token.split('.');
