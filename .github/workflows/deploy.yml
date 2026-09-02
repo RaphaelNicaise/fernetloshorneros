@@ -42,6 +42,7 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            set -e
             git config --global --add safe.directory "*"
             cd /var/www/fernetloshorneros
             git pull origin main
