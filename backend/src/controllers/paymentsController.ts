@@ -25,7 +25,7 @@ import { QueryTypes } from "sequelize";
 
 export async function cleanupExpiredOrders() {
     try {
-        const expiredOrders = await getExpiredReservations(5);
+        const expiredOrders = await getExpiredReservations(10);
         for (const expiredOrder of expiredOrders) {
             const expiredItems = await getOrderItems(expiredOrder.id);
             for (const item of expiredItems) {

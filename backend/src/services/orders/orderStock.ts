@@ -63,7 +63,7 @@ export async function isOrderStockReserved(orderId: number): Promise<boolean> {
 /**
  * Obtiene órdenes pendientes con stock reservado que expiraron (más de X minutos)
  */
-export async function getExpiredReservations(minutesThreshold: number = 5): Promise<Array<{ id: number }>> {
+export async function getExpiredReservations(minutesThreshold: number = 10): Promise<Array<{ id: number }>> {
     const orders = await sequelize.query<{ id: number }>(
         `SELECT id FROM pedidos 
          WHERE status = 'pending' 

@@ -74,28 +74,32 @@ export async function deleteProduct(id: string): Promise<void> {
 }
 
 /**
- * Descuenta el stock de un producto y actualiza el status a 'agotado' si llega a 0
+ * Descuenta el stock de un producto de forma atómica en SQL y actualiza el status a 'agotado' si llega a 0
  * @returns El nuevo stock del producto
  */
 export async function decreaseStock(id: string, quantity: number): Promise<number> {
-    // Primero obtenemos el producto para verificar el stock actual
-    const product = await getProductById(id);
-    if (!product) {
-        throw new Error(`Producto ${id} no encontrado`);
-    }
-
-    const newStock = Math.max(0, product.stock - quantity);
-    const newStatus = newStock === 0 && product.status !== 'proximamente' ? 'agotado' : product.status;
-
-    await sequelize.query(
-        `UPDATE productos SET stock = :newStock, status = :newStatus WHERE id = :id`,
+    const [, metadata]: any = await sequelize.query(
+        `UPDATE productos 
+         SET stock = stock - :quantity,
+             status = CASE WHEN (stock - :quantity) <= 0 AND status != 'proximamente' THEN 'agotado' ELSE status END
+         WHERE id = :id AND stock >= :quantity`,
         {
-            replacements: { id, newStock, newStatus },
+            replacements: { id, quantity },
             type: QueryTypes.UPDATE,
         }
     );
 
-    return newStock;
+    const affectedRows = typeof metadata === 'number' ? metadata : (metadata?.affectedRows ?? 0);
+    if (affectedRows === 0) {
+        const product = await getProductById(id);
+        if (!product) {
+            throw new Error(`Producto ${id} no encontrado`);
+        }
+        throw new Error(`Stock insuficiente para ${product.name} (disponible: ${product.stock})`);
+    }
+
+    const updated = await getProductById(id);
+    return updated ? updated.stock : 0;
 }
 
 /**
@@ -122,26 +126,21 @@ export async function updateStock(id: string, stock: number): Promise<void> {
 }
 
 /**
- * Incrementa el stock de un producto (para reponer reservas expiradas o pagos fallidos)
+ * Incrementa el stock de un producto (para reponer reservas expiradas o pagos fallidos) de forma atómica
  * También actualiza el status a 'disponible' si estaba 'agotado'
  */
 export async function increaseStock(id: string, quantity: number): Promise<number> {
-    const product = await getProductById(id);
-    if (!product) {
-        throw new Error(`Producto ${id} no encontrado`);
-    }
-
-    const newStock = product.stock + quantity;
-    // Si el producto estaba agotado y ahora tiene stock, volver a disponible
-    const newStatus = product.status === 'agotado' && newStock > 0 ? 'disponible' : product.status;
-
     await sequelize.query(
-        `UPDATE productos SET stock = :newStock, status = :newStatus WHERE id = :id`,
+        `UPDATE productos 
+         SET stock = stock + :quantity,
+             status = CASE WHEN status = 'agotado' AND (stock + :quantity) > 0 THEN 'disponible' ELSE status END
+         WHERE id = :id`,
         {
-            replacements: { id, newStock, newStatus },
+            replacements: { id, quantity },
             type: QueryTypes.UPDATE,
         }
     );
 
-    return newStock;
+    const updated = await getProductById(id);
+    return updated ? updated.stock : 0;
 }
