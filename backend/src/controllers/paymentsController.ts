@@ -342,6 +342,12 @@ export async function createPreference(req: Request, res: Response) {
                 },
                 auto_return: "approved",
                 external_reference: external_reference,
+                payment_methods: {
+                    excluded_payment_types: [
+                        { id: "credit_card" },
+                    ],
+                    installments: 1,
+                },
                 notification_url: process.env.NODE_ENV === 'development'
                     ? 'https://zpxtnmn7-3001.brs.devtunnels.ms/payments/webhook'
                     : `${process.env.PUBLIC_BASE_URL}/api/payments/webhook`,
