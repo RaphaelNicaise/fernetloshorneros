@@ -220,7 +220,7 @@ export function StepPayment({ items, shipping, coupon, total, onBack }: StepPaym
                   minInstallments: 1,
                   maxInstallments: 1,
                   types: {
-                    excluded: ["creditCard"],
+                    excluded: ["creditCard" as any, "credit_card" as any],
                   },
                 }
               }}
