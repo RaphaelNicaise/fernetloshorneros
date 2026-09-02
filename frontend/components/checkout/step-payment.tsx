@@ -219,8 +219,9 @@ export function StepPayment({ items, shipping, coupon, total, onBack }: StepPaym
                   mercadoPago: ["wallet_purchase"],
                   minInstallments: 1,
                   maxInstallments: 1,
-                  types: {excluded: ["credit_card"], // <-- CLAVE: Bloquea el render del selector de cuotas
-      },
+                  types: {
+                    excluded: ["creditCard"],
+                  },
                 }
               }}
               onSubmit={onSubmit}
