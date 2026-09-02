@@ -214,10 +214,10 @@ export function StepPayment({ items, shipping, coupon, total, onBack }: StepPaym
               customization={{
                 paymentMethods: {
                   ticket: "all",
-                  // creditCard: "all", desactivamos tarjeta de credito
                   debitCard: "all",
                   prepaidCard: "all",
-                  mercadoPago: ["wallet_purchase"], // desactivamos mp credito
+                  mercadoPago: ["wallet_purchase"],
+                  maxInstallments: 1,
                 }
               }}
               onSubmit={onSubmit}
