@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import {
   getAllOrders,
+  getOrderById,
   getOrderItems,
   getEnvioByOrderId,
   getPaymentByOrderId,
@@ -14,6 +15,8 @@ import {
 import { enviarMailComprador } from '@/services/mailService';
 import { getProductById, decreaseStock } from '@/services/productService';
 import { lotesService } from '@/services/lotesService';
+import sequelize from '@/config/database';
+import { QueryTypes } from 'sequelize';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
@@ -55,10 +58,74 @@ export async function cancelOrderShipment(req: Request, res: Response) {
     const { restoreStock } = req.body;
     if (isNaN(orderId)) return res.status(400).json({ error: 'ID inválido' });
 
-    const envio = await getEnvioByOrderId(orderId);
-    if (!envio) return res.status(404).json({ error: 'Envío no encontrado para la orden' });
+    const order = await getOrderById(orderId);
+    if (!order) return res.status(404).json({ error: 'Pedido no encontrado' });
 
-    // Actualizar estados en la base de datos de forma consistente y restaurar stock si se solicita
+    const payment = await getPaymentByOrderId(orderId);
+    const isManualPayment =
+      !payment?.mp_payment_id || String(payment.mp_payment_id).startsWith('manual_');
+
+    let refundResult: any = null;
+
+    // 1. Si el pago fue realizado mediante Mercado Pago online, intentar el reembolso PRIMERO
+    if (payment && payment.mp_payment_id && !isManualPayment) {
+      const mpAccessToken = process.env.MP_ACCESS_TOKEN;
+      if (!mpAccessToken) {
+        return res.status(500).json({
+          success: false,
+          error: 'MP_ACCESS_TOKEN no está configurado en el servidor para procesar reembolsos automáticos.',
+        });
+      }
+
+      const refundRes = await fetch(
+        `https://api.mercadopago.com/v1/payments/${payment.mp_payment_id}/refunds`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${mpAccessToken}`,
+            'Content-Type': 'application/json',
+            'X-Idempotency-Key': uuidv4(),
+          },
+          body: JSON.stringify({}),
+        }
+      );
+
+      refundResult = await refundRes.json().catch(() => null);
+      console.log('Refund MercadoPago result:', refundResult);
+
+      // Si Mercado Pago falló o devolvió un error (ej. sin fondos, pago no reembolsable)
+      if (!refundRes.ok || (refundResult && (refundResult.status >= 400 || refundResult.error))) {
+        let errorMsg =
+          refundResult?.message || refundResult?.error || 'Error al procesar el reembolso en Mercado Pago';
+
+        if (
+          errorMsg.includes("Collector hasn't enough available money") ||
+          refundResult?.cause?.some(
+            (c: any) => c.code === 2031 || String(c.description).includes('enough available money')
+          )
+        ) {
+          const totalFormatted = payment.total ? `$${payment.total}` : '';
+          errorMsg = `Tu cuenta de Mercado Pago no tiene saldo disponible suficiente para emitir el reembolso ${totalFormatted}. Ingresá dinero en tu cuenta de Mercado Pago e intentalo nuevamente.`;
+        } else if (
+          refundResult?.cause &&
+          Array.isArray(refundResult.cause) &&
+          refundResult.cause.length > 0
+        ) {
+          errorMsg = refundResult.cause.map((c: any) => c.description || c.code).join(', ');
+        }
+
+        // NO anular el pedido ni devolver stock si Mercado Pago no pudo emitir el reembolso
+        return res.status(400).json({
+          success: false,
+          error: errorMsg,
+          details: refundResult,
+        });
+      }
+    } else if (isManualPayment) {
+      console.log(`Pedido #${orderId} es manual, se omite el reembolso en Mercado Pago.`);
+    }
+
+    // 2. Si el reembolso en MP fue exitoso (o era un pedido manual), recién ahora anulamos la orden y restauramos stock
     await manualUpdateOrderStatus(
       orderId,
       'cancelado',
@@ -66,45 +133,22 @@ export async function cancelOrderShipment(req: Request, res: Response) {
       restoreStock === true || restoreStock === undefined
     );
 
-    // Hacer refund en MercadoPago si aplica
-    let refundResult = null;
-    try {
-      const payment = await getPaymentByOrderId(orderId);
-      // Evitar intentar reembolsar pedidos manuales (efectivo/transferencia creados en admin)
-      const isManualPayment =
-        payment?.mp_payment_id && String(payment.mp_payment_id).startsWith('manual_');
-
-      if (payment && payment.mp_payment_id && !isManualPayment) {
-        const mpAccessToken = process.env.MP_ACCESS_TOKEN;
-        if (mpAccessToken) {
-          const refundRes = await fetch(
-            `https://api.mercadopago.com/v1/payments/${payment.mp_payment_id}/refunds`,
-            {
-              method: 'POST',
-              headers: {
-                Authorization: `Bearer ${mpAccessToken}`,
-                'Content-Type': 'application/json',
-                'X-Idempotency-Key': uuidv4(),
-              },
-              body: JSON.stringify({}),
-            }
-          );
-          refundResult = await refundRes.json().catch(() => null);
-          console.log('Refund MercadoPago result:', refundResult);
-        } else {
-          console.warn('MP_ACCESS_TOKEN no configurado, no se pudo hacer refund');
-        }
-      } else if (isManualPayment) {
-        console.log('Pedido manual, se omite el refund en MercadoPago.');
-      }
-    } catch (refundError: any) {
-      console.error('Error haciendo refund en MercadoPago:', refundError);
+    // 3. Actualizar estado del pago en la base de datos a 'refunded'
+    if (payment) {
+      await sequelize.query(`UPDATE pagos SET status = 'refunded' WHERE id = :id`, {
+        replacements: { id: payment.id },
+        type: QueryTypes.UPDATE,
+      });
     }
 
-    return res.json({ success: true, refund: refundResult });
+    return res.json({
+      success: true,
+      message: 'El pedido fue anulado y el reembolso fue procesado exitosamente.',
+      refund: refundResult,
+    });
   } catch (error: any) {
-    console.error('Error cancelando envío:', error);
-    return res.status(500).json({ error: error?.message || 'Error interno' });
+    console.error('Error cancelando pedido:', error);
+    return res.status(500).json({ error: error?.message || 'Error interno al anular pedido' });
   }
 }
 
