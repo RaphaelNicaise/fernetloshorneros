@@ -26,8 +26,8 @@ const sequelize = new Sequelize(DB_NAME!, DB_USER!, DB_PASSWORD!, {
 	},
 });
 
-export async function connectDB(options?: { sync?: boolean; force?: boolean }) {
-	const maxAttempts = 12;
+export async function connectDB(options?: { sync?: boolean; force?: boolean; maxAttempts?: number }) {
+	const maxAttempts = options?.maxAttempts ?? (isTest ? 1 : 12);
 	let attempt = 0;
 
 	while (attempt < maxAttempts) {

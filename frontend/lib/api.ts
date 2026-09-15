@@ -252,22 +252,86 @@ export interface Localidad {
   nombre: string;
 }
 
+let provinciasCache: Provincia[] | null = null;
+const localidadesCache: Record<string, Localidad[]> = {};
+
 export async function fetchProvincias(): Promise<Provincia[]> {
+  if (provinciasCache && provinciasCache.length > 0) {
+    return provinciasCache;
+  }
+  if (typeof window !== 'undefined') {
+    try {
+      const cached = sessionStorage.getItem('georef_provincias');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        provinciasCache = parsed;
+        return parsed;
+      }
+    } catch {
+      // Ignore storage errors
+    }
+  }
+
   const res = await fetch('https://apis.datos.gob.ar/georef/api/provincias');
   if (!res.ok) throw new Error('Error cargando provincias');
   const data = await res.json();
-  return (data.provincias || []).sort((a: Provincia, b: Provincia) =>
+  const sorted = (data.provincias || []).sort((a: Provincia, b: Provincia) =>
     a.nombre.localeCompare(b.nombre)
   );
+
+  provinciasCache = sorted;
+  if (typeof window !== 'undefined') {
+    try {
+      sessionStorage.setItem('georef_provincias', JSON.stringify(sorted));
+    } catch {
+      // Storage full or disabled
+    }
+  }
+
+  return sorted;
 }
 
 export async function fetchLocalidades(provincia: string): Promise<Localidad[]> {
+  const normKey = provincia.trim().toLowerCase();
+
+  // 1. Check in-memory cache
+  if (localidadesCache[normKey]) {
+    return localidadesCache[normKey];
+  }
+
+  // 2. Check sessionStorage cache
+  if (typeof window !== 'undefined') {
+    try {
+      const cached = sessionStorage.getItem(`georef_loc_${normKey}`);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        localidadesCache[normKey] = parsed;
+        return parsed;
+      }
+    } catch {
+      // Ignore storage errors
+    }
+  }
+
+  // 3. Fetch from Georef API
   const res = await fetch(
     `https://apis.datos.gob.ar/georef/api/localidades?provincia=${encodeURIComponent(provincia)}&max=2000`
   );
   if (!res.ok) throw new Error('Error cargando localidades');
   const data = await res.json();
-  return (data.localidades || []).sort((a: Localidad, b: Localidad) =>
+  const sorted = (data.localidades || []).sort((a: Localidad, b: Localidad) =>
     a.nombre.localeCompare(b.nombre)
   );
+
+  // Save to caches
+  localidadesCache[normKey] = sorted;
+  if (typeof window !== 'undefined') {
+    try {
+      sessionStorage.setItem(`georef_loc_${normKey}`, JSON.stringify(sorted));
+    } catch {
+      // Storage full or disabled
+    }
+  }
+
+  return sorted;
 }

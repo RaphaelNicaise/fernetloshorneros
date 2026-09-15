@@ -9,6 +9,7 @@ const PUBLIC_SETTINGS = new Set([
     'min_order_amount',
     'fixed_shipping_cost',
     'province_shipping_costs',
+    'city_shipping_costs',
     'maintenance_mode',
 ]);
 

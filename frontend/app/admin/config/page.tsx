@@ -3,9 +3,19 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { useToast } from '@/hooks/use-toast';
-import { api, API_BASE_URL } from '@/lib/api';
-import { Download, Loader2, MapPin, Plus, Trash2 } from 'lucide-react';
+import { api, API_BASE_URL, fetchLocalidades, type Localidad } from '@/lib/api';
+import { cn } from '@/lib/utils';
+import { Building2, Check, ChevronsUpDown, Download, Loader2, MapPin, Plus, Trash2 } from 'lucide-react';
+
+interface CityCostRule {
+  id: string;
+  province: string;
+  city: string;
+  cost: string;
+}
 
 export default function ConfigPage() {
   const [minPurchaseAmount, setMinPurchaseAmount] = useState('');
@@ -23,6 +33,16 @@ export default function ConfigPage() {
   const [selectedNewProv, setSelectedNewProv] = useState<string>('');
   const [newProvCost, setNewProvCost] = useState<string>('');
   const [isSavingProvinceCosts, setIsSavingProvinceCosts] = useState(false);
+
+  // Tarifas especiales por ciudad
+  const [cityCosts, setCityCosts] = useState<CityCostRule[]>([]);
+  const [selectedCityProv, setSelectedCityProv] = useState<string>('');
+  const [availableCities, setAvailableCities] = useState<Localidad[]>([]);
+  const [selectedCity, setSelectedCity] = useState<string>('');
+  const [newCityCost, setNewCityCost] = useState<string>('');
+  const [isLoadingCities, setIsLoadingCities] = useState(false);
+  const [isSavingCityCosts, setIsSavingCityCosts] = useState(false);
+  const [openCityCombobox, setOpenCityCombobox] = useState(false);
 
   const PROVINCIAS = [
     "Buenos Aires", "Capital Federal", "Catamarca", "Chaco", "Chubut", "Córdoba", "Corrientes",
@@ -45,11 +65,12 @@ export default function ConfigPage() {
           }
         };
 
-        const [min, shipping, maint, provCosts] = await Promise.all([
+        const [min, shipping, maint, provCosts, cityCostsRaw] = await Promise.all([
           fetchSetting('min_purchase_amount'),
           fetchSetting('fixed_shipping_cost'),
           fetchSetting('maintenance_mode'),
           fetchSetting('province_shipping_costs'),
+          fetchSetting('city_shipping_costs'),
         ]);
         
         setMinPurchaseAmount(min || '');
@@ -67,6 +88,24 @@ export default function ConfigPage() {
             setProvinceCosts(cleaned);
           } catch (e) {
             console.error(e);
+          }
+        }
+        if (cityCostsRaw) {
+          try {
+            const parsed = JSON.parse(cityCostsRaw);
+            if (Array.isArray(parsed)) {
+              const cleaned: CityCostRule[] = parsed
+                .filter((r: any) => r && r.city && r.cost !== undefined && r.cost !== null)
+                .map((r: any) => ({
+                  id: r.id || `${r.province || ''}-${r.city}-${Math.random()}`,
+                  province: r.province || '',
+                  city: r.city,
+                  cost: String(r.cost).trim(),
+                }));
+              setCityCosts(cleaned);
+            }
+          } catch (e) {
+            console.error("Error parsing city_shipping_costs", e);
           }
         }
       } catch {
@@ -163,6 +202,146 @@ export default function ConfigPage() {
       toast({ title: 'Error', description: 'No se pudieron actualizar los costos por provincia.', variant: 'destructive' });
     } finally {
       setIsSavingProvinceCosts(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!selectedCityProv) {
+      setAvailableCities([]);
+      setSelectedCity('');
+      return;
+    }
+    if (selectedCityProv === "Uruguay") {
+      setAvailableCities([{ id: "UY-TODO", nombre: "Todo el país (Uruguay)" }]);
+      setSelectedCity("Todo el país (Uruguay)");
+      return;
+    }
+
+    let active = true;
+    setIsLoadingCities(true);
+    setSelectedCity('');
+
+    fetchLocalidades(selectedCityProv)
+      .then((cities) => {
+        if (active) {
+          setAvailableCities(cities);
+        }
+      })
+      .catch((err) => {
+        console.error("Error cargando localidades:", err);
+        if (active) {
+          toast({
+            title: "Error",
+            description: "No se pudieron cargar las localidades de la provincia seleccionada.",
+            variant: "destructive",
+          });
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setIsLoadingCities(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [selectedCityProv, toast]);
+
+  const handleAddCityCost = async () => {
+    if (!selectedCityProv) {
+      toast({ title: 'Atención', description: 'Seleccioná una provincia.', variant: 'destructive' });
+      return;
+    }
+    if (!selectedCity.trim()) {
+      toast({ title: 'Atención', description: 'Seleccioná una ciudad.', variant: 'destructive' });
+      return;
+    }
+    if (!newCityCost || isNaN(Number(newCityCost)) || Number(newCityCost) < 0) {
+      toast({ title: 'Atención', description: 'Ingresá un costo de envío válido.', variant: 'destructive' });
+      return;
+    }
+
+    const existingIndex = cityCosts.findIndex(
+      r => r.province.toLowerCase() === selectedCityProv.toLowerCase() && r.city.toLowerCase() === selectedCity.trim().toLowerCase()
+    );
+
+    let updated: CityCostRule[];
+    if (existingIndex >= 0) {
+      updated = [...cityCosts];
+      updated[existingIndex] = {
+        ...updated[existingIndex],
+        cost: newCityCost.trim(),
+      };
+    } else {
+      const newRule: CityCostRule = {
+        id: `${selectedCityProv.toLowerCase().replace(/\s+/g, '-')}-${selectedCity.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`,
+        province: selectedCityProv,
+        city: selectedCity.trim(),
+        cost: newCityCost.trim(),
+      };
+      updated = [...cityCosts, newRule];
+    }
+
+    setCityCosts(updated);
+    const addedCity = selectedCity;
+    setSelectedCity('');
+    setNewCityCost('');
+
+    try {
+      setIsSavingCityCosts(true);
+      await api.put('/settings/city_shipping_costs', { value: JSON.stringify(updated) });
+      toast({ title: 'Éxito', description: `Tarifa especial guardada para ${addedCity} (${selectedCityProv}).` });
+    } catch {
+      toast({ title: 'Error', description: 'No se pudo guardar la tarifa especial por ciudad.', variant: 'destructive' });
+    } finally {
+      setIsSavingCityCosts(false);
+    }
+  };
+
+  const handleDeleteCityCost = async (id: string) => {
+    const ruleToDelete = cityCosts.find(r => r.id === id);
+    const updated = cityCosts.filter(r => r.id !== id);
+    setCityCosts(updated);
+
+    try {
+      setIsSavingCityCosts(true);
+      await api.put('/settings/city_shipping_costs', { value: JSON.stringify(updated) });
+      toast({
+        title: 'Éxito',
+        description: ruleToDelete
+          ? `Se eliminó la tarifa de ${ruleToDelete.city}. Ahora usará la tarifa provincial o general.`
+          : 'Tarifa eliminada.',
+      });
+    } catch {
+      toast({ title: 'Error', description: 'No se pudo actualizar los costos por ciudad.', variant: 'destructive' });
+    } finally {
+      setIsSavingCityCosts(false);
+    }
+  };
+
+  const handleCityCostChange = (id: string, val: string) => {
+    setCityCosts(prev => prev.map(r => r.id === id ? { ...r, cost: val } : r));
+  };
+
+  const handleSaveCityCosts = async () => {
+    try {
+      setIsSavingCityCosts(true);
+      const cleaned = cityCosts
+        .filter(r => r.city && r.cost !== undefined && r.cost !== null && String(r.cost).trim() !== '')
+        .map(r => ({
+          id: r.id,
+          province: r.province,
+          city: r.city,
+          cost: String(r.cost).trim(),
+        }));
+      setCityCosts(cleaned);
+      await api.put('/settings/city_shipping_costs', { value: JSON.stringify(cleaned) });
+      toast({ title: 'Éxito', description: 'Costos por ciudad actualizados correctamente.' });
+    } catch {
+      toast({ title: 'Error', description: 'No se pudieron actualizar los costos por ciudad.', variant: 'destructive' });
+    } finally {
+      setIsSavingCityCosts(false);
     }
   };
 
@@ -472,6 +651,194 @@ export default function ConfigPage() {
                       onClick={() => handleDeleteProvinceCost(prov)}
                       className="h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-500/10"
                       title="Eliminar tarifa especial (usar costo general)"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Tarifas Especiales por Ciudad */}
+        <div className="bg-white/10 rounded-xl p-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div>
+              <h2 className="text-white font-semibold mb-1">Tarifas especiales por Ciudad (Opcional)</h2>
+              <p className="text-white/60 text-sm">
+                Configurá precios específicos para localidades puntuales. Tienen la máxima prioridad (Ciudad &gt; Provincia &gt; General).
+              </p>
+            </div>
+            {cityCosts.length > 0 && (
+              <Button 
+                onClick={handleSaveCityCosts}
+                disabled={isSavingCityCosts}
+                variant="outline"
+                className="border-white/20 hover:bg-white/10 text-white self-start sm:self-auto"
+              >
+                {isSavingCityCosts ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Guardar Cambios
+              </Button>
+            )}
+          </div>
+
+          {/* Formulario para agregar tarifa por ciudad */}
+          <div className="bg-black/20 p-4 rounded-lg border border-white/10 mb-6">
+            <h3 className="text-xs font-semibold text-white/70 uppercase tracking-wider mb-3">
+              + Agregar tarifa por ciudad
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-stretch sm:items-center">
+              {/* Selector de Provincia */}
+              <div className="sm:col-span-4">
+                <select
+                  value={selectedCityProv}
+                  onChange={(e) => setSelectedCityProv(e.target.value)}
+                  className="w-full bg-black/40 border border-white/10 text-white text-sm rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[#AA6F3B]"
+                >
+                  <option value="" disabled className="bg-neutral-900 text-white/40">
+                    1. Seleccionar provincia...
+                  </option>
+                  {PROVINCIAS.map(prov => (
+                    <option key={prov} value={prov} className="bg-neutral-900 text-white">
+                      {prov}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Combobox de Ciudad */}
+              <div className="sm:col-span-4">
+                <Popover open={openCityCombobox} onOpenChange={setOpenCityCombobox}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={openCityCombobox}
+                      disabled={!selectedCityProv || isLoadingCities}
+                      className="w-full bg-black/40 border-white/10 text-white text-sm justify-between hover:bg-black/60 hover:text-white font-normal"
+                    >
+                      <span className="truncate">
+                        {isLoadingCities ? "Cargando ciudades..." : (selectedCity || (selectedCityProv ? "2. Buscar ciudad..." : "2. Seleccioná provincia primero"))}
+                      </span>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] min-w-[260px] p-0 bg-neutral-900 border-neutral-800 text-white" align="start">
+                    <Command className="bg-neutral-900 text-white">
+                      <CommandInput placeholder="Escribir nombre de ciudad..." className="text-white placeholder:text-neutral-500" />
+                      <CommandList>
+                        <CommandEmpty className="py-3 px-4 text-xs text-neutral-400">
+                          No se encontraron localidades.
+                        </CommandEmpty>
+                        <CommandGroup className="max-h-60 overflow-y-auto">
+                          {availableCities.map((c) => (
+                            <CommandItem
+                              key={c.id || c.nombre}
+                              value={c.nombre}
+                              onSelect={(currentValue) => {
+                                const match = availableCities.find(x => x.nombre.toLowerCase() === currentValue.toLowerCase());
+                                setSelectedCity(match ? match.nombre : currentValue);
+                                setOpenCityCombobox(false);
+                              }}
+                              className="text-neutral-200 aria-selected:bg-[#AA6F3B]/30 aria-selected:text-white cursor-pointer"
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4 text-[#AA6F3B]",
+                                  selectedCity.toLowerCase() === c.nombre.toLowerCase() ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {c.nombre}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Input Costo */}
+              <div className="sm:col-span-2">
+                <div className="relative w-full">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50 text-sm">$</span>
+                  <Input
+                    type="number"
+                    placeholder="Ej: 4500"
+                    value={newCityCost}
+                    onChange={(e) => setNewCityCost(e.target.value)}
+                    className="pl-7 bg-black/40 border-white/10 text-white"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddCityCost();
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Botón Agregar */}
+              <div className="sm:col-span-2">
+                <Button
+                  onClick={handleAddCityCost}
+                  disabled={isSavingCityCosts || !selectedCityProv || !selectedCity || !newCityCost}
+                  className="w-full bg-[#AA6F3B] hover:bg-[#8a5a2f] text-white flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Agregar
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Lista de tarifas por ciudad */}
+          {cityCosts.length === 0 ? (
+            <div className="text-center py-6 px-4 bg-black/10 rounded-lg border border-dashed border-white/10">
+              <p className="text-sm text-white/60">
+                No hay tarifas especiales por ciudad configuradas.
+              </p>
+              <p className="text-xs text-white/40 mt-1">
+                Los envíos se calcularán según la tarifa de su provincia o el costo general.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {cityCosts.map((rule) => (
+                <div
+                  key={rule.id}
+                  className="flex items-center justify-between gap-3 bg-black/20 p-3 rounded-lg border border-white/10"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Building2 className="w-4 h-4 text-[#AA6F3B] shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm text-white font-medium truncate" title={rule.city}>
+                        {rule.city}
+                      </p>
+                      <p className="text-[11px] text-white/50 truncate" title={rule.province}>
+                        {rule.province}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <div className="relative w-28">
+                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/50 text-xs">$</span>
+                      <Input
+                        type="number"
+                        value={rule.cost}
+                        onChange={(e) => handleCityCostChange(rule.id, e.target.value)}
+                        className="pl-6 h-8 text-xs bg-black/40 border-white/10 text-white"
+                      />
+                    </div>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => handleDeleteCityCost(rule.id)}
+                      className="h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                      title="Eliminar tarifa especial por ciudad"
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>

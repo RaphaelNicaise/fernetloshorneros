@@ -3,6 +3,7 @@
 import { useRef } from 'react';
 import Image from 'next/image';
 import { m, useScroll, useTransform } from 'framer-motion';
+import { CountdownTimer } from './CountdownTimer';
 
 interface HeroSectionProps {
   onOpenWaitlist: () => void;
@@ -84,18 +85,19 @@ export function HeroSection({ onOpenWaitlist }: HeroSectionProps) {
                   </div>
                 </div>
               </div>
-              <span className="mt-3 ml-0 block font-serif text-2xl tracking-[0.24em] text-[#aa825e] uppercase sm:text-3xl">
-                Lote 2
-              </span>
-              <br />
-              <h1 className="mb-5 text-center font-serif text-4xl leading-[1.02] font-bold text-white sm:text-5xl">
-                Preventa Septiembre 2026
+              <h1 className="mb-3 text-center font-serif text-3xl leading-[1.05] font-bold text-white sm:text-4xl">
+                Preventa <span className="text-[#aa825e]">Lote 2</span>
               </h1>
 
+              <div className="mb-5 flex flex-col items-center gap-2">
+                <span className="text-[11px] font-semibold tracking-[0.22em] text-[#aa825e] uppercase">
+                  Disponible en:
+                </span>
+                <CountdownTimer />
+              </div>
+
               <p className="mb-8 max-w-[42ch] text-sm leading-[1.85] text-white/82 sm:text-lg">
-                Solo{' '}
-                <span className="font-semibold text-white">17.500 botellas numeradas</span>.
-                Reservá tu lugar ahora para asegurar tu unidad antes del lanzamiento público.
+                Solo <span className="font-semibold text-white">2000 botellas</span>, no te las pierdas.
               </p>
 
               <div className="flex w-full flex-col items-center gap-4 sm:w-auto sm:flex-row sm:gap-5">
@@ -149,17 +151,19 @@ export function HeroSection({ onOpenWaitlist }: HeroSectionProps) {
                 </div>
               </div>
 
-              <h1 className="mb-5 text-left font-serif text-6xl leading-[1.02] font-bold text-white lg:text-7xl">
-                Preventa Septiembre 2026
-                <span className="mt-0 ml-4 inline-block font-serif text-2xl tracking-[0.24em] text-[#aa825e] uppercase md:text-4xl">
-                  Lote 2
-                </span>
+              <h1 className="mb-4 text-left font-serif text-5xl leading-[1.05] font-bold text-white lg:text-6xl xl:text-7xl">
+                Preventa <span className="text-[#aa825e]">Lote 2</span>
               </h1>
 
+              <div className="mb-6 flex flex-col items-start gap-2.5">
+                <span className="text-xs font-semibold tracking-[0.25em] text-[#aa825e] uppercase">
+                  Disponible en:
+                </span>
+                <CountdownTimer />
+              </div>
+
               <p className="mb-8 max-w-[42ch] text-left text-base leading-[1.85] text-white/82 md:text-lg">
-                Solo{' '}
-                <span className="font-semibold text-white">17.500 botellas numeradas</span>.
-                Reservá tu lugar ahora para asegurar tu unidad antes del lanzamiento público.
+                Solo <span className="font-semibold text-white">2000 botellas</span>, no te las pierdas.
               </p>
 
               <div className="flex w-auto flex-row items-center gap-5">

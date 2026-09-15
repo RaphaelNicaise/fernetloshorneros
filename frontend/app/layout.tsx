@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     template: "%s | Los Horneros Fernet",
   },
   description:
-    "Fernet artesanal argentino elaborado con más de 20 hierbas seleccionadas. Lote 2 en preventa — solo 17.500 botellas numeradas. Septiembre 2026.",
+    "Fernet artesanal argentino elaborado con más de 20 hierbas seleccionadas. Lote 2 en preventa — solo 2000 botellas numeradas.",
   keywords: [
     "fernet artesanal",
     "fernet argentino",
@@ -45,7 +45,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Los Horneros Fernet — Artesanal Argentino",
     description:
-      "Fernet artesanal elaborado con más de 20 hierbas seleccionadas. Lote 2 en preventa — solo 17.500 botellas numeradas. Septiembre 2026.",
+      "Fernet artesanal elaborado con más de 20 hierbas seleccionadas. Lote 2 en preventa — solo 2000 botellas numeradas.",
     url: SITE_URL,
     siteName: "Los Horneros Fernet",
     locale: "es_AR",
@@ -55,7 +55,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Los Horneros Fernet — Artesanal Argentino",
-    description: "Solo 17.500 botellas numeradas. Preventa Septiembre 2026.",
+    description: "Solo 2000 botellas numeradas.",
     images: [OG_IMAGE],
   },
   robots: { index: true, follow: true },
