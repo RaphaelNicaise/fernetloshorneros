@@ -129,25 +129,10 @@ export async function quote(req: Request, res: Response) {
         const cityCostsSetting = await getSetting('city_shipping_costs');
         const shippingCost = resolveShippingCost(cityCostsSetting?.value, provinceCostsSetting?.value, destination.state, destination.city, defaultCost);
 
-        const normalizedCity = destination.city.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-        const isLocalCity = ["bahia blanca", "ingeniero white", "punta alta"].includes(normalizedCity);
-
-        if (isLocalCity) {
-            res.json({
-                success: true,
-                shipping_cost: 0,
-                carrier: "Retiro en Local (Los Horneros)",
-                delivery_time: "Inmediato",
-                products_total: declaredValue,
-                total: declaredValue,
-            });
-            return;
-        }
-
         res.json({
             success: true,
             shipping_cost: shippingCost,
-            carrier: "Correo Argentino",
+            carrier: "Envío a Domicilio",
             delivery_time: "3-7 días",
             products_total: declaredValue,
             total: declaredValue + shippingCost,
@@ -163,7 +148,7 @@ export async function quote(req: Request, res: Response) {
 
 /**
  * POST /shipping/quote-options
- * Cotiza el envío y retorna TODAS las opciones disponibles
+ * Cotiza el envío y retorna las opciones disponibles a domicilio
  */
 export async function quoteOptions(req: Request, res: Response) {
     try {
@@ -187,65 +172,24 @@ export async function quoteOptions(req: Request, res: Response) {
         const cityCostsSetting = await getSetting('city_shipping_costs');
         const shippingCost = resolveShippingCost(cityCostsSetting?.value, provinceCostsSetting?.value, destination.state, destination.city, defaultCost);
 
-        let all_results: any[] = [];
-        const normalizedCity = (destination.city || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-        const isLocalCity = ["bahia blanca", "ingeniero white", "punta alta"].includes(normalizedCity);
-
-        if (isLocalCity) {
-            all_results = [
-                {
-                    rate_id: "local-delivery",
-                    carrier_name: "Envío a Domicilio (Transportista Propio)",
-                    carrier_id: 2,
-                    service_type: "standard_delivery",
-                    logistic_type: "manual",
-                    amounts: {
-                        price: shippingCost,
-                        price_incl_tax: shippingCost,
-                    },
-                    estimated_delivery: {
-                        min_days: 1,
-                        max_days: 2,
-                    },
-                    tags: []
+        const all_results = [
+            {
+                rate_id: "envio-domicilio-fijo",
+                carrier_name: "Envío a Domicilio",
+                carrier_id: 1,
+                service_type: "standard_delivery",
+                logistic_type: "manual",
+                amounts: {
+                    price: shippingCost,
+                    price_incl_tax: shippingCost,
                 },
-                {
-                    rate_id: "local-pickup",
-                    carrier_name: "Retiro en el local (Los Horneros)",
-                    carrier_id: 3,
-                    service_type: "pickup_point",
-                    logistic_type: "manual",
-                    amounts: {
-                        price: 0,
-                        price_incl_tax: 0,
-                    },
-                    estimated_delivery: {
-                        min_days: 0,
-                        max_days: 1,
-                    },
-                    tags: []
-                }
-            ];
-        } else {
-            all_results = [
-                {
-                    rate_id: "correo-argentino-fijo",
-                    carrier_name: "Correo Argentino",
-                    carrier_id: 1,
-                    service_type: "standard_delivery",
-                    logistic_type: "manual",
-                    amounts: {
-                        price: shippingCost,
-                        price_incl_tax: shippingCost,
-                    },
-                    estimated_delivery: {
-                        min_days: 3,
-                        max_days: 7,
-                    },
-                    tags: []
-                }
-            ];
-        }
+                estimated_delivery: {
+                    min_days: 3,
+                    max_days: 7,
+                },
+                tags: []
+            }
+        ];
 
         res.json({
             success: true,

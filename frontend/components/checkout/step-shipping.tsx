@@ -265,34 +265,57 @@ export function StepShipping({ items, initialData, onContinue, onBack }: StepShi
         )}
 
         {options.length > 0 && !loadingOptions && (
-          <div className="mt-4 animate-in fade-in slide-in-from-top-2">
-            <h3 className={labelClass}>Método de envío</h3>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {options.map(opt => {
-                const isSelected = selectedOption?.rate_id === opt.rate_id
-                const isLocal = opt.tags?.includes("local")
-                return (
-                  <button
-                    key={opt.rate_id}
-                    onClick={() => setSelectedOption(opt)}
-                    className={cn(
-                      "flex items-center gap-4 rounded-xl border p-4 text-left transition-all",
-                      isSelected ? "border-[#aa825e] bg-[#aa825e]/5 ring-1 ring-[#aa825e]" : "border-black/10 hover:border-black/30"
-                    )}
-                  >
-                    <div className={cn("rounded-full p-2.5", isSelected ? "bg-[#aa825e] text-white" : "bg-black/5 text-black/50")}>
-                      {isLocal ? <Truck className="h-5 w-5" /> : <Home className="h-5 w-5" />}
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-semibold text-[#0b0a07]">{opt.carrier_name}</p>
-                      <p className="text-sm text-black/50">{opt.estimated_delivery.min_days === opt.estimated_delivery.max_days ? `Llega en ${opt.estimated_delivery.min_days} días` : `Llega en ${opt.estimated_delivery.min_days} a ${opt.estimated_delivery.max_days} días`}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-bold text-[#aa825e]">${opt.amounts.price_incl_tax.toLocaleString("es-AR")}</p>
-                    </div>
-                  </button>
-                )
-              })}
+          <div className="mt-4 space-y-4 animate-in fade-in slide-in-from-top-2">
+            <div>
+              <h3 className={labelClass}>Método de envío</h3>
+              <div className="grid gap-3 sm:grid-cols-1">
+                {options.map(opt => {
+                  const isSelected = selectedOption?.rate_id === opt.rate_id
+                  return (
+                    <button
+                      key={opt.rate_id}
+                      onClick={() => setSelectedOption(opt)}
+                      className={cn(
+                        "flex items-center gap-4 rounded-xl border p-4 text-left transition-all",
+                        isSelected ? "border-[#aa825e] bg-[#aa825e]/5 ring-1 ring-[#aa825e]" : "border-black/10 hover:border-black/30"
+                      )}
+                    >
+                      <div className={cn("rounded-full p-2.5", isSelected ? "bg-[#aa825e] text-white" : "bg-black/5 text-black/50")}>
+                        <Truck className="h-5 w-5" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold text-[#0b0a07]">{opt.carrier_name}</p>
+                          <span className="rounded-full bg-[#aa825e]/15 px-2 py-0.5 text-[10px] font-bold text-[#aa825e] uppercase tracking-wide">
+                            Preventa
+                          </span>
+                        </div>
+                        <p className="text-sm text-black/60 mt-0.5">
+                          {opt.estimated_delivery.estimated_date ? `Llegaría en ${opt.estimated_delivery.estimated_date}` : "Llegaría en Octubre / Noviembre"}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-[#aa825e] text-base">${opt.amounts.price_incl_tax.toLocaleString("es-AR")}</p>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Cartel avisando que los envíos son en octubre/noviembre por preventa */}
+            <div className="flex items-start gap-3.5 rounded-xl border border-[#aa825e]/30 bg-[#aa825e]/10 p-4 text-[#0b0a07]">
+              <div className="rounded-full bg-[#aa825e] p-1.5 text-white shrink-0 mt-0.5">
+                <Truck className="h-4 w-4" />
+              </div>
+              <div className="text-xs sm:text-sm leading-relaxed">
+                <p className="font-bold text-[#aa825e] uppercase tracking-wider text-[11px] mb-0.5">
+                  📦 Aviso importante de preventa
+                </p>
+                <p className="text-[#0b0a07]/80">
+                  Tené en cuenta que esta compra corresponde a la preventa exclusiva del <strong>Lote 2</strong>. Los envíos a domicilio comenzarán a despacharse durante los meses de <strong>Octubre / Noviembre</strong>. Te avisaremos por email cuando tu pedido esté en camino con su número de seguimiento.
+                </p>
+              </div>
             </div>
           </div>
         )}
