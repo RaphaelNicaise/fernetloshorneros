@@ -344,7 +344,7 @@ export async function createPreference(req: Request, res: Response) {
                 external_reference: external_reference,
                 payment_methods: {
                     excluded_payment_types: [
-                        { id: "credit_card" },
+                        { id: "consumer_credits" },
                     ],
                     installments: 1,
                     default_installments: 1,
