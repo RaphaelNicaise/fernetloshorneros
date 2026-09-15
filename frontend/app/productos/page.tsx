@@ -6,6 +6,8 @@ import Link from "next/link"
 import { Footer } from "@/components/footer"
 import { useEffect, useState } from "react"
 import { fetchProducts, type Product } from "@/lib/api"
+import { useWaitlistModal } from "@/lib/waitlist-modal-context"
+import { useContactModal } from "@/lib/contact-modal-context"
 
 const FALLBACK_PRODUCTS: Product[] = [
   {
@@ -38,6 +40,8 @@ const FALLBACK_PRODUCTS: Product[] = [
 ]
 
 export default function ProductsPage() {
+  const { open: openWaitlist } = useWaitlistModal()
+  const { open: openContact } = useContactModal()
   const [items, setItems] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -96,19 +100,21 @@ export default function ProductsPage() {
               Nuestro fernet artesanal es perfecto para disfrutar solo con hielo o en tu cóctel favorito. La cristalería
               está diseñada específicamente para realzar la experiencia.
             </p>
-            <div className="flex items-center justify-center gap-4">
-              <Link
-                href="/lista-espera"
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <button
+                type="button"
+                onClick={openWaitlist}
                 className="inline-flex items-center justify-center rounded-full bg-[#aa825e] px-6 py-3 font-semibold text-white transition-all duration-200 transform-gpu hover:bg-[#b78d68] hover:shadow-md hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#aa825e]/40"
               >
                 Únete a la Lista de Espera
-              </Link>
-              <Link
-                href="/contactanos"
+              </button>
+              <button
+                type="button"
+                onClick={openContact}
                 className="inline-flex items-center justify-center rounded-full border border-white/20 px-6 py-3 font-semibold text-white transition-all duration-200 transform-gpu hover:border-[#aa825e] hover:bg-[#aa825e] hover:text-white hover:shadow-md hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#aa825e]/40"
               >
                 Contáctanos
-              </Link>
+              </button>
             </div>
           </div>
         </div>

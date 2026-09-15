@@ -3,9 +3,11 @@
 import Image from "next/image"
 import Link from "next/link"
 import { useWaitlistModal } from "@/lib/waitlist-modal-context"
+import { useContactModal } from "@/lib/contact-modal-context"
 
 export function Footer() {
-  const { open } = useWaitlistModal()
+  const { open: openWaitlist } = useWaitlistModal()
+  const { open: openContact } = useContactModal()
 
   return (
     <footer className="relative overflow-hidden border-t border-white/10 bg-[#0b0a07]">
@@ -32,7 +34,7 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <button type="button" onClick={open} className="transition-colors hover:text-[#AA6F3B]">
+                <button type="button" onClick={openWaitlist} className="transition-colors hover:text-[#AA6F3B]">
                   Lista de Espera
                 </button>
               </li>
@@ -42,9 +44,9 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/contactanos" className="transition-colors hover:text-[#AA6F3B]">
+                <button type="button" onClick={openContact} className="transition-colors hover:text-[#AA6F3B]">
                   Contáctanos
-                </Link>
+                </button>
               </li>
             </ul>
           </div>
