@@ -138,6 +138,14 @@ export async function createBrickPreference(req: Request, res: Response) {
                 },
                 auto_return: "approved",
                 external_reference: uuidv4(),
+                payment_methods: {
+                    excluded_payment_types: [
+                        { id: "consumer_credits" },
+                        { id: "ticket" },
+                    ],
+                    installments: 1,
+                    default_installments: 1,
+                },
                 notification_url: process.env.NODE_ENV === 'development'
                     ? 'https://zpxtnmn7-3001.brs.devtunnels.ms/payments/webhook'
                     : `${process.env.PUBLIC_BASE_URL}/api/payments/webhook`,
@@ -345,6 +353,7 @@ export async function createPreference(req: Request, res: Response) {
                 payment_methods: {
                     excluded_payment_types: [
                         { id: "consumer_credits" },
+                        { id: "ticket" },
                     ],
                     installments: 1,
                     default_installments: 1,

@@ -213,7 +213,6 @@ export function StepPayment({ items, shipping, coupon, total, onBack }: StepPaym
               initialization={initialization}
               customization={{
                 paymentMethods: {
-                  ticket: "all",
                   creditCard: "all",
                   debitCard: "all",
                   prepaidCard: "all",
