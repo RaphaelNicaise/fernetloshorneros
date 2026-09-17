@@ -13,13 +13,47 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 
+export function normalizeSearchText(text: string): string {
+  if (!text) return ''
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+}
+
+export function diacriticsAwareFilter(value: string, search: string, keywords?: string[]): number {
+  if (!search) return 1
+  const normSearch = normalizeSearchText(search)
+  if (!normSearch) return 1
+
+  const normValue = normalizeSearchText(value)
+  if (normValue.includes(normSearch)) {
+    if (normValue === normSearch) return 1
+    if (normValue.startsWith(normSearch)) return 0.9
+    return 0.75
+  }
+
+  if (keywords && keywords.length > 0) {
+    for (const kw of keywords) {
+      if (normalizeSearchText(kw).includes(normSearch)) {
+        return 0.5
+      }
+    }
+  }
+
+  return 0
+}
+
 function Command({
   className,
+  filter = diacriticsAwareFilter,
   ...props
 }: React.ComponentProps<typeof CommandPrimitive>) {
   return (
     <CommandPrimitive
       data-slot="command"
+      filter={filter}
       className={cn(
         'bg-popover text-popover-foreground flex h-full w-full flex-col overflow-hidden rounded-md',
         className,

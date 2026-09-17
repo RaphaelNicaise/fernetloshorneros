@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input"
 import { Search, Download, RefreshCw } from "lucide-react"
 import * as XLSX from "xlsx"
 
+import { normalizeSearchText } from "@/components/ui/command"
+
 type SortKey = keyof Pick<WaitlistUser, "id" | "nombre" | "email" | "provincia" | "fecha_registro">
 
 const PAGE_SIZE = 50
@@ -36,14 +38,14 @@ export default function AdminListaEsperaPage() {
 
   const originalTotal = sorted.length
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase()
+    const q = normalizeSearchText(query)
     if (!q) return sorted
     return sorted.filter((u) => {
       const idMatch = String(u.id).includes(q)
-      const nombreMatch = (u.nombre ?? "").toLowerCase().includes(q)
-      const emailMatch = (u.email ?? "").toLowerCase().includes(q)
-      const provinciaMatch = (u.provincia ?? "").toLowerCase().includes(q)
-      const fechaStr = new Date(u.fecha_registro).toLocaleString().toLowerCase()
+      const nombreMatch = normalizeSearchText(u.nombre ?? "").includes(q)
+      const emailMatch = normalizeSearchText(u.email ?? "").includes(q)
+      const provinciaMatch = normalizeSearchText(u.provincia ?? "").includes(q)
+      const fechaStr = normalizeSearchText(new Date(u.fecha_registro).toLocaleString())
       const fechaMatch = fechaStr.includes(q)
       return idMatch || nombreMatch || emailMatch || provinciaMatch || fechaMatch
     })

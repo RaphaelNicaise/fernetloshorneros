@@ -51,7 +51,13 @@ import {
 import ArgentinaMap from '@/components/ArgentinaMap';
 
 type BIStats = {
-  revenue: any[];
+  revenue: Array<{
+    date: string;
+    date_hour?: string;
+    hour?: number;
+    revenue: number;
+    orders: number;
+  }>;
   funnel: any[];
   avgTicket: number;
   topProducts: any[];
@@ -61,7 +67,11 @@ type BIStats = {
     methods: any[];
   };
   shipping: {
-    geoDistribution: any[];
+    geoDistribution: Array<{
+      provincia: string;
+      count: number;
+      bottles?: number;
+    }>;
     methods: any[];
     avgShippingCost: number;
     funnel: any[];
@@ -98,8 +108,15 @@ export default function AnalyticsPage() {
   const [lotes, setLotes] = useState<any[]>([]);
   const [filterLote, setFilterLote] = useState<string>('all');
 
-  // Filtros Locales
-  const [revenueGroup, setRevenueGroup] = useState('day');
+  // Filtros Flujo / Evolución de Ingresos
+  const [revenueGroup, setRevenueGroup] = useState<string>('day');
+  const [revenueStartDate, setRevenueStartDate] = useState('');
+  const [revenueEndDate, setRevenueEndDate] = useState('');
+  const [revenueStartHour, setRevenueStartHour] = useState<number>(0);
+  const [revenueEndHour, setRevenueEndHour] = useState<number>(23);
+
+  // Métrica Logística (Envíos vs Botellas)
+  const [geoMetric, setGeoMetric] = useState<'envios' | 'botellas'>('envios');
 
   // Filtros Lista de Espera
   const [waitlistGroup, setWaitlistGroup] = useState('day');
@@ -174,37 +191,100 @@ export default function AnalyticsPage() {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
+  const isSingleDay = useMemo(() => {
+    if (revenueStartDate && revenueEndDate && revenueStartDate === revenueEndDate) return true;
+    if (!stats?.revenue || stats.revenue.length === 0) return false;
+    const distinctDates = new Set(stats.revenue.map((r: any) => r.date));
+    return distinctDates.size === 1;
+  }, [revenueStartDate, revenueEndDate, stats?.revenue]);
+
+  const effectiveRevenueGroup = isSingleDay && revenueGroup === 'day' ? 'hour' : revenueGroup;
+
   // Agrupación local para el gráfico de evolución (Debe ir antes de los early returns por Reglas de Hooks)
   const groupedRevenue = useMemo(() => {
     if (!stats || !stats.revenue) return [];
-    if (revenueGroup === 'day') return stats.revenue;
 
-    const groups: Record<string, { date: string; revenue: number; orders: number }> = {};
+    // 1. Filtrar por rango de fechas y horas
+    const filtered = stats.revenue.filter((item: any) => {
+      const itemDate = item.date || (item.date_hour ? item.date_hour.substring(0, 10) : '');
+      const itemHour = item.hour !== undefined ? Number(item.hour) : (item.date_hour ? parseInt(item.date_hour.substring(11, 13), 10) : 0);
 
-    stats.revenue.forEach((item) => {
-      const parsedDate = parseISO(item.date);
-      let key = '';
-      let displayDate = '';
-
-      if (revenueGroup === 'week') {
-        const start = startOfWeek(parsedDate, { weekStartsOn: 1 }); // Lunes
-        key = format(start, 'yyyy-MM-dd');
-        displayDate = `Semana ${format(start, 'dd MMM', { locale: es })}`;
-      } else {
-        const start = startOfMonth(parsedDate);
-        key = format(start, 'yyyy-MM');
-        displayDate = format(start, 'MMMM yyyy', { locale: es });
-      }
-
-      if (!groups[key]) {
-        groups[key] = { date: displayDate, revenue: 0, orders: 0 };
-      }
-      groups[key].revenue += Number(item.revenue);
-      groups[key].orders += Number(item.orders);
+      if (revenueStartDate && itemDate < revenueStartDate) return false;
+      if (revenueEndDate && itemDate > revenueEndDate) return false;
+      if (itemHour < revenueStartHour || itemHour > revenueEndHour) return false;
+      return true;
     });
 
-    return Object.values(groups);
-  }, [stats?.revenue, revenueGroup]);
+    if (effectiveRevenueGroup === 'hour') {
+      const groups: Record<string, { date: string; revenue: number; orders: number }> = {};
+      filtered.forEach((item: any) => {
+        const itemHour = item.hour !== undefined ? Number(item.hour) : (item.date_hour ? parseInt(item.date_hour.substring(11, 13), 10) : 0);
+        const hourLabel = `${String(itemHour).padStart(2, '0')}:00 hs`;
+        const itemDate = item.date || (item.date_hour ? item.date_hour.substring(0, 10) : '');
+        const key = isSingleDay ? hourLabel : `${itemDate} ${hourLabel}`;
+
+        if (!groups[key]) {
+          groups[key] = { date: key, revenue: 0, orders: 0 };
+        }
+        groups[key].revenue += Number(item.revenue || 0);
+        groups[key].orders += Number(item.orders || 0);
+      });
+      return Object.values(groups);
+    }
+
+    if (effectiveRevenueGroup === 'day') {
+      const groups: Record<string, { date: string; revenue: number; orders: number }> = {};
+      filtered.forEach((item: any) => {
+        const key = item.date || (item.date_hour ? item.date_hour.substring(0, 10) : '');
+        if (!groups[key]) {
+          const parsedDate = parseISO(key);
+          const displayDate = !isNaN(parsedDate.getTime()) ? format(parsedDate, 'dd MMM', { locale: es }) : key;
+          groups[key] = { date: displayDate, revenue: 0, orders: 0 };
+        }
+        groups[key].revenue += Number(item.revenue || 0);
+        groups[key].orders += Number(item.orders || 0);
+      });
+      return Object.values(groups);
+    }
+
+    if (effectiveRevenueGroup === 'week') {
+      const groups: Record<string, { date: string; revenue: number; orders: number }> = {};
+      filtered.forEach((item: any) => {
+        const dateStr = item.date || (item.date_hour ? item.date_hour.substring(0, 10) : '');
+        const parsedDate = parseISO(dateStr);
+        if (isNaN(parsedDate.getTime())) return;
+        const start = startOfWeek(parsedDate, { weekStartsOn: 1 });
+        const key = format(start, 'yyyy-MM-dd');
+        const displayDate = `Semana ${format(start, 'dd MMM', { locale: es })}`;
+        if (!groups[key]) {
+          groups[key] = { date: displayDate, revenue: 0, orders: 0 };
+        }
+        groups[key].revenue += Number(item.revenue || 0);
+        groups[key].orders += Number(item.orders || 0);
+      });
+      return Object.values(groups);
+    }
+
+    if (effectiveRevenueGroup === 'month') {
+      const groups: Record<string, { date: string; revenue: number; orders: number }> = {};
+      filtered.forEach((item: any) => {
+        const dateStr = item.date || (item.date_hour ? item.date_hour.substring(0, 10) : '');
+        const parsedDate = parseISO(dateStr);
+        if (isNaN(parsedDate.getTime())) return;
+        const start = startOfMonth(parsedDate);
+        const key = format(start, 'yyyy-MM');
+        const displayDate = format(start, 'MMMM yyyy', { locale: es });
+        if (!groups[key]) {
+          groups[key] = { date: displayDate, revenue: 0, orders: 0 };
+        }
+        groups[key].revenue += Number(item.revenue || 0);
+        groups[key].orders += Number(item.orders || 0);
+      });
+      return Object.values(groups);
+    }
+
+    return filtered;
+  }, [stats?.revenue, effectiveRevenueGroup, revenueStartDate, revenueEndDate, revenueStartHour, revenueEndHour, isSingleDay]);
 
   const groupedWaitlist = useMemo(() => {
     if (!stats || !stats.clients?.waitlistEvolution) return [];
@@ -287,7 +367,16 @@ export default function AnalyticsPage() {
   // Mapas - datos para ArgentinaMap
   const mapData = stats.shipping.geoDistribution
     .filter((p: any) => p.provincia && p.provincia.trim() !== '')
-    .map((p: any) => ({ name: p.provincia.trim(), value: Number(p.count) }));
+    .map((p: any) => ({
+      name: p.provincia.trim(),
+      value: geoMetric === 'botellas' ? Number(p.bottles || 0) : Number(p.count || 0),
+    }));
+
+  const sortedGeoDistribution = [...stats.shipping.geoDistribution].sort((a, b) => {
+    const valA = geoMetric === 'botellas' ? Number(a.bottles || 0) : Number(a.count || 0);
+    const valB = geoMetric === 'botellas' ? Number(b.bottles || 0) : Number(b.count || 0);
+    return valB - valA;
+  });
 
   const waitlistMapData = (stats.clients?.waitlistGeoDistribution || [])
     .filter((p: any) => p.provincia && p.provincia.trim() !== '')
@@ -476,101 +565,206 @@ export default function AnalyticsPage() {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-3">
-            {/* Gráfico de Evolución */}
+            {/* Gráfico de Evolución y Flujo */}
             <div className="rounded-2xl border border-white/8 bg-[#0b0a07]/40 p-7 shadow-lg backdrop-blur-sm lg:col-span-2">
-              <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-                <p className="font-serif text-lg font-bold text-white">Evolución de Ingresos</p>
-                <div className="inline-flex w-full rounded-xl bg-[#1a1511] p-1 sm:w-auto">
-                  <button
-                    onClick={() => setRevenueGroup('day')}
-                    className={`flex-1 rounded-lg px-4 py-1.5 text-xs font-semibold transition-all sm:flex-none ${revenueGroup === 'day' ? 'bg-[#AA6F3B] text-white shadow-md' : 'text-white/40 hover:text-white'}`}
-                  >
-                    Días
-                  </button>
-                  <button
-                    onClick={() => setRevenueGroup('week')}
-                    className={`flex-1 rounded-lg px-4 py-1.5 text-xs font-semibold transition-all sm:flex-none ${revenueGroup === 'week' ? 'bg-[#AA6F3B] text-white shadow-md' : 'text-white/40 hover:text-white'}`}
-                  >
-                    Semanas
-                  </button>
-                  <button
-                    onClick={() => setRevenueGroup('month')}
-                    className={`flex-1 rounded-lg px-4 py-1.5 text-xs font-semibold transition-all sm:flex-none ${revenueGroup === 'month' ? 'bg-[#AA6F3B] text-white shadow-md' : 'text-white/40 hover:text-white'}`}
-                  >
-                    Meses
-                  </button>
+              <div className="mb-6 flex flex-col items-start justify-between gap-4 border-b border-white/10 pb-4 xl:flex-row xl:items-center">
+                <div>
+                  <p className="font-serif text-lg font-bold text-white">Flujo y Evolución de Ingresos</p>
+                  <p className="mt-0.5 text-xs text-white/40">
+                    {isSingleDay
+                      ? 'Desglose horario del día seleccionado (00:00 a 23:00 hs)'
+                      : 'Evolución cronológica de facturación y pedidos'}
+                  </p>
+                </div>
+
+                <div className="flex w-full flex-col flex-wrap items-stretch gap-3 sm:flex-row sm:items-center xl:w-auto">
+                  {/* Selectores de Rango de Fechas */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex items-center gap-1.5 text-xs text-white/60">
+                      <span>Desde:</span>
+                      <input
+                        type="date"
+                        value={revenueStartDate}
+                        onChange={(e) => setRevenueStartDate(e.target.value)}
+                        className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-white focus:border-[#AA6F3B] focus:outline-none"
+                      />
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs text-white/60">
+                      <span>Hasta:</span>
+                      <input
+                        type="date"
+                        value={revenueEndDate}
+                        onChange={(e) => setRevenueEndDate(e.target.value)}
+                        className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-white focus:border-[#AA6F3B] focus:outline-none"
+                      />
+                    </div>
+
+                    {/* Selector de Rango de Horas */}
+                    <div className="flex items-center gap-1 text-xs text-white/60">
+                      <span className="ml-1">Horas:</span>
+                      <select
+                        value={revenueStartHour}
+                        onChange={(e) => setRevenueStartHour(Number(e.target.value))}
+                        className="rounded-lg border border-white/10 bg-[#120e0b] px-2 py-1 text-xs text-white focus:border-[#AA6F3B] focus:outline-none"
+                      >
+                        {Array.from({ length: 24 }).map((_, h) => (
+                          <option key={h} value={h}>
+                            {String(h).padStart(2, '0')}:00
+                          </option>
+                        ))}
+                      </select>
+                      <span>a</span>
+                      <select
+                        value={revenueEndHour}
+                        onChange={(e) => setRevenueEndHour(Number(e.target.value))}
+                        className="rounded-lg border border-white/10 bg-[#120e0b] px-2 py-1 text-xs text-white focus:border-[#AA6F3B] focus:outline-none"
+                      >
+                        {Array.from({ length: 24 }).map((_, h) => (
+                          <option key={h} value={h}>
+                            {String(h).padStart(2, '0')}:00
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {(revenueStartDate || revenueEndDate || revenueStartHour !== 0 || revenueEndHour !== 23) && (
+                      <button
+                        onClick={() => {
+                          setRevenueStartDate('');
+                          setRevenueEndDate('');
+                          setRevenueStartHour(0);
+                          setRevenueEndHour(23);
+                        }}
+                        className="px-2 py-1 text-xs text-[#AA6F3B] hover:text-white transition-colors"
+                      >
+                        Limpiar
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Agrupación temporal */}
+                  <div className="inline-flex rounded-xl bg-[#1a1511] p-1">
+                    <button
+                      onClick={() => setRevenueGroup('hour')}
+                      className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                        effectiveRevenueGroup === 'hour'
+                          ? 'bg-[#AA6F3B] text-white shadow-md'
+                          : 'text-white/40 hover:text-white'
+                      }`}
+                    >
+                      Horas
+                    </button>
+                    <button
+                      onClick={() => setRevenueGroup('day')}
+                      className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                        effectiveRevenueGroup === 'day'
+                          ? 'bg-[#AA6F3B] text-white shadow-md'
+                          : 'text-white/40 hover:text-white'
+                      }`}
+                    >
+                      Días
+                    </button>
+                    <button
+                      onClick={() => setRevenueGroup('week')}
+                      className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                        effectiveRevenueGroup === 'week'
+                          ? 'bg-[#AA6F3B] text-white shadow-md'
+                          : 'text-white/40 hover:text-white'
+                      }`}
+                    >
+                      Semanas
+                    </button>
+                    <button
+                      onClick={() => setRevenueGroup('month')}
+                      className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                        effectiveRevenueGroup === 'month'
+                          ? 'bg-[#AA6F3B] text-white shadow-md'
+                          : 'text-white/40 hover:text-white'
+                      }`}
+                    >
+                      Meses
+                    </button>
+                  </div>
                 </div>
               </div>
+
               <div className="h-[300px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart
-                    data={groupedRevenue}
-                    margin={{ top: 10, right: 10, left: 10, bottom: 0 }}
-                  >
-                    <defs>
-                      <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#AA6F3B" stopOpacity={0.6} />
-                        <stop offset="95%" stopColor="#AA6F3B" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#ffffff0a" vertical={false} />
-                    <XAxis
-                      dataKey="date"
-                      stroke="#ffffff30"
-                      fontSize={11}
-                      tickLine={false}
-                      axisLine={false}
-                      dy={10}
-                    />
-                    <YAxis
-                      yAxisId="left"
-                      domain={[0, (dataMax: number) => Math.floor(dataMax * 1.15)]}
-                      stroke="#ffffff30"
-                      fontSize={11}
-                      tickLine={false}
-                      axisLine={false}
-                      tickFormatter={(v) => `$${v.toLocaleString()}`}
-                      width={80}
-                    />
-                    <YAxis
-                      yAxisId="right"
-                      orientation="right"
-                      stroke="#ffffff30"
-                      fontSize={11}
-                      tickLine={false}
-                      axisLine={false}
-                    />
-                    <RechartsTooltip
-                      contentStyle={{
-                        backgroundColor: '#120e0b',
-                        borderColor: '#AA6F3B30',
-                        borderRadius: '12px',
-                        boxShadow: '0 10px 30px -10px rgba(0,0,0,0.5)',
-                      }}
-                      itemStyle={{ color: '#AA6F3B', fontWeight: 'bold' }}
-                      labelStyle={{ color: '#ffffff80', marginBottom: '4px' }}
-                    />
-                    <Area
-                      yAxisId="left"
-                      type="monotoneX"
-                      dataKey="revenue"
-                      name="Ingresos"
-                      stroke="#AA6F3B"
-                      strokeWidth={3}
-                      fillOpacity={1}
-                      fill="url(#colorRev)"
-                    />
-                    <Area
-                      yAxisId="right"
-                      type="step"
-                      dataKey="orders"
-                      name="Pedidos"
-                      stroke="#ffffff20"
-                      strokeWidth={2}
-                      fillOpacity={0}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
+                {groupedRevenue.length === 0 ? (
+                  <div className="flex h-full flex-col items-center justify-center text-white/30">
+                    <Calendar size={32} className="mb-2 opacity-40" />
+                    <p className="text-sm">Sin movimientos en el rango de fechas/horas seleccionado</p>
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart
+                      data={groupedRevenue}
+                      margin={{ top: 10, right: 10, left: 10, bottom: 0 }}
+                    >
+                      <defs>
+                        <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#AA6F3B" stopOpacity={0.6} />
+                          <stop offset="95%" stopColor="#AA6F3B" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#ffffff0a" vertical={false} />
+                      <XAxis
+                        dataKey="date"
+                        stroke="#ffffff30"
+                        fontSize={11}
+                        tickLine={false}
+                        axisLine={false}
+                        dy={10}
+                      />
+                      <YAxis
+                        yAxisId="left"
+                        domain={[0, (dataMax: number) => Math.floor(dataMax * 1.15)]}
+                        stroke="#ffffff30"
+                        fontSize={11}
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={(v) => `$${v.toLocaleString('es-AR')}`}
+                        width={80}
+                      />
+                      <YAxis
+                        yAxisId="right"
+                        orientation="right"
+                        stroke="#ffffff30"
+                        fontSize={11}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <RechartsTooltip
+                        contentStyle={{
+                          backgroundColor: '#120e0b',
+                          borderColor: '#AA6F3B30',
+                          borderRadius: '12px',
+                          boxShadow: '0 10px 30px -10px rgba(0,0,0,0.5)',
+                        }}
+                        itemStyle={{ color: '#AA6F3B', fontWeight: 'bold' }}
+                        labelStyle={{ color: '#ffffff80', marginBottom: '4px' }}
+                      />
+                      <Area
+                        yAxisId="left"
+                        type="monotoneX"
+                        dataKey="revenue"
+                        name="Ingresos"
+                        stroke="#AA6F3B"
+                        strokeWidth={3}
+                        fillOpacity={1}
+                        fill="url(#colorRev)"
+                      />
+                      <Area
+                        yAxisId="right"
+                        type="step"
+                        dataKey="orders"
+                        name="Pedidos"
+                        stroke="#ffffff20"
+                        strokeWidth={2}
+                        fillOpacity={0}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                )}
               </div>
             </div>
 
@@ -939,11 +1133,33 @@ export default function AnalyticsPage() {
 
         {/* SECCIÓN 4: LOGÍSTICA Y ENVÍOS */}
         <section id="logistica" className="scroll-mt-36 space-y-6">
-          <div className="flex items-center gap-3 border-b border-white/10 pb-4">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/20">
-              <Truck size={16} className="text-indigo-400" />
+          <div className="flex flex-col justify-between gap-4 border-b border-white/10 pb-4 sm:flex-row sm:items-center">
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/20">
+                <Truck size={16} className="text-indigo-400" />
+              </div>
+              <h2 className="font-serif text-2xl font-bold text-white">Logística y Envíos</h2>
             </div>
-            <h2 className="font-serif text-2xl font-bold text-white">Logística y Envíos</h2>
+
+            {/* Selector de Métrica: Envíos vs Botellas */}
+            <div className="inline-flex self-start rounded-xl bg-[#1a1511] p-1 sm:self-auto">
+              <button
+                onClick={() => setGeoMetric('envios')}
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                  geoMetric === 'envios' ? 'bg-[#AA6F3B] text-white shadow-md' : 'text-white/40 hover:text-white'
+                }`}
+              >
+                📦 Por Envíos
+              </button>
+              <button
+                onClick={() => setGeoMetric('botellas')}
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                  geoMetric === 'botellas' ? 'bg-[#AA6F3B] text-white shadow-md' : 'text-white/40 hover:text-white'
+                }`}
+              >
+                🍾 Por Botellas
+              </button>
+            </div>
           </div>
 
           {/* Info Extra: Costos */}
@@ -976,19 +1192,25 @@ export default function AnalyticsPage() {
             {/* Lista Scrolleable de Provincias */}
             <div className="flex h-[500px] flex-col rounded-2xl border border-white/8 bg-[#0b0a07]/40 p-7 shadow-lg backdrop-blur-sm lg:col-span-1">
               <div className="mb-6">
-                <p className="font-serif text-lg font-bold text-white">Ranking por Provincia</p>
-                <p className="mt-1 text-xs text-white/40">Listado exacto de demanda</p>
+                <p className="font-serif text-lg font-bold text-white">
+                  {geoMetric === 'botellas' ? 'Ranking de Botellas por Provincia' : 'Ranking por Provincia'}
+                </p>
+                <p className="mt-1 text-xs text-white/40">
+                  {geoMetric === 'botellas'
+                    ? 'Provincia que compró más botellas en el tope'
+                    : 'Listado exacto de demanda por pedidos'}
+                </p>
               </div>
 
               <div className="custom-scrollbar flex-1 overflow-y-auto pr-2">
-                {stats.shipping.geoDistribution.length === 0 ? (
+                {sortedGeoDistribution.length === 0 ? (
                   <div className="flex h-full flex-col items-center justify-center text-white/30">
                     <MapPin size={32} className="mb-2 text-white/20" />
                     <p className="text-sm font-semibold tracking-wider uppercase">Sin datos</p>
                   </div>
                 ) : (
                   <ul className="space-y-3">
-                    {stats.shipping.geoDistribution.map((prov, i) => (
+                    {sortedGeoDistribution.map((prov, i) => (
                       <li
                         key={i}
                         onMouseEnter={() => setHoveredProvincia(prov.provincia)}
@@ -1004,9 +1226,9 @@ export default function AnalyticsPage() {
                           </span>
                         </div>
                         <span className="font-mono text-sm font-bold text-white/80">
-                          {prov.count}{' '}
+                          {geoMetric === 'botellas' ? prov.bottles || 0 : prov.count}{' '}
                           <span className="ml-1 text-[10px] font-normal text-white/40 uppercase">
-                            envíos
+                            {geoMetric === 'botellas' ? 'botellas' : 'envíos'}
                           </span>
                         </span>
                       </li>
@@ -1016,18 +1238,24 @@ export default function AnalyticsPage() {
               </div>
             </div>
 
-            {/* Mapa de Envíos */}
+            {/* Mapa de Envíos / Botellas */}
             <div className="relative flex h-[520px] flex-col overflow-hidden rounded-2xl border border-white/8 bg-[#0b0a07]/40 p-7 shadow-lg backdrop-blur-sm lg:col-span-1">
               <div className="z-10 mb-3">
-                <p className="font-serif text-lg font-bold text-white">Mapa de Envíos</p>
-                <p className="text-xs text-white/40">Concentración geográfica de envíos pagados</p>
+                <p className="font-serif text-lg font-bold text-white">
+                  {geoMetric === 'botellas' ? 'Mapa de Botellas Compradas' : 'Mapa de Envíos'}
+                </p>
+                <p className="text-xs text-white/40">
+                  {geoMetric === 'botellas'
+                    ? 'Concentración geográfica de botellas adquiridas'
+                    : 'Concentración geográfica de envíos pagados'}
+                </p>
               </div>
               <div className="min-h-0 flex-1 overflow-hidden rounded-xl bg-[#1a1713]">
                 <ArgentinaMap
                   data={mapData}
                   colorRange={['#5a4a35', '#d4a052']}
                   emptyColor="#2a2420"
-                  tooltipLabel="envíos"
+                  tooltipLabel={geoMetric === 'botellas' ? 'botellas' : 'envíos'}
                   hoveredFromOutside={hoveredProvincia}
                   onHoverChange={(n) => setHoveredProvincia(n)}
                 />

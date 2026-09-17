@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, normalizeSearchText } from '@/components/ui/command';
 import { useToast } from '@/hooks/use-toast';
 import { api, API_BASE_URL, fetchLocalidades, type Localidad } from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -738,7 +738,7 @@ export default function ConfigPage() {
                               key={c.id || c.nombre}
                               value={c.nombre}
                               onSelect={(currentValue) => {
-                                const match = availableCities.find(x => x.nombre.toLowerCase() === currentValue.toLowerCase());
+                                const match = availableCities.find(x => normalizeSearchText(x.nombre) === normalizeSearchText(currentValue));
                                 setSelectedCity(match ? match.nombre : currentValue);
                                 setOpenCityCombobox(false);
                               }}
@@ -747,7 +747,7 @@ export default function ConfigPage() {
                               <Check
                                 className={cn(
                                   "mr-2 h-4 w-4 text-[#AA6F3B]",
-                                  selectedCity.toLowerCase() === c.nombre.toLowerCase() ? "opacity-100" : "opacity-0"
+                                  normalizeSearchText(selectedCity) === normalizeSearchText(c.nombre) ? "opacity-100" : "opacity-0"
                                 )}
                               />
                               {c.nombre}

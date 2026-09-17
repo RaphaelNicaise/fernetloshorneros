@@ -61,16 +61,6 @@ export function HeroSection({ onOpenWaitlist }: HeroSectionProps) {
           <m.div style={{ opacity: heroContentOpacity, y: heroContentY }} className="w-full">
             {/* Mobile Layout */}
             <div className="flex w-full flex-col items-center text-center md:hidden">
-              <m.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2, duration: 0.6, ease: 'easeOut' }}
-                className="mb-8 inline-flex max-w-full items-center gap-3 rounded-full border border-white/12 bg-black/28 px-4 py-2.5 text-left text-[10px] tracking-[0.18em] text-white/78 uppercase backdrop-blur-md sm:text-xs"
-              >
-                <span className="h-2 w-2 rounded-full bg-[#aa825e]" />
-                Lote 1 sold out en 8 minutos
-              </m.div>
-
               <div className="mb-6 flex flex-col items-center">
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center gap-3 sm:gap-4">
@@ -85,19 +75,50 @@ export function HeroSection({ onOpenWaitlist }: HeroSectionProps) {
                   </div>
                 </div>
               </div>
-              <h1 className="mb-3 text-center font-serif text-3xl leading-[1.05] font-bold text-white sm:text-4xl">
-                Preventa <span className="text-[#aa825e]">Lote 2</span>
+
+              <h1 className="mb-4 text-center font-serif text-3xl leading-[1.05] font-bold text-white sm:text-4xl">
+                Fernet Artesanal <span className="text-[#aa825e]">Los Horneros</span>
               </h1>
 
-              <div className="mb-5 flex flex-col items-center gap-2">
+              {/* Lotes Agotados Badges */}
+              <div className="mb-6 flex w-full max-w-sm flex-col gap-2">
+                <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/40 px-4 py-2.5 backdrop-blur-md">
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-[#aa825e]" />
+                    <span className="font-serif font-bold text-white text-xs">Lote 1</span>
+                    <span className="rounded-full bg-red-500/15 border border-red-500/30 px-1.5 py-0.5 text-[9px] font-bold text-red-400 uppercase tracking-wider">
+                      Agotado
+                    </span>
+                  </div>
+                  <span className="font-mono text-[11px] text-white/80 font-medium">
+                    160 botellas en <span className="text-[#aa825e] font-bold">8 min</span>
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/40 px-4 py-2.5 backdrop-blur-md">
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-[#aa825e]" />
+                    <span className="font-serif font-bold text-white text-xs">Lote 2</span>
+                    <span className="rounded-full bg-red-500/15 border border-red-500/30 px-1.5 py-0.5 text-[9px] font-bold text-red-400 uppercase tracking-wider">
+                      Agotado
+                    </span>
+                  </div>
+                  <span className="font-mono text-[11px] text-white/80 font-medium">
+                    2.000 botellas en <span className="text-[#aa825e] font-bold">4 hs</span>
+                  </span>
+                </div>
+              </div>
+
+              {/* CountdownTimer reservado para futuros lanzamientos */}
+              {/* <div className="mb-5 flex flex-col items-center gap-2">
                 <span className="text-[11px] font-semibold tracking-[0.22em] text-[#aa825e] uppercase">
                   Disponible en:
                 </span>
                 <CountdownTimer />
-              </div>
+              </div> */}
 
               <p className="mb-8 max-w-[42ch] text-sm leading-[1.85] text-white/82 sm:text-lg">
-                Solo <span className="font-semibold text-white">2000 botellas</span>, no te las pierdas.
+                Sumate a la lista de espera para tener <span className="font-semibold text-white">acceso anticipado y descuentos</span> en el próximo lote.
               </p>
 
               <div className="flex w-full flex-col items-center gap-4 sm:w-auto sm:flex-row sm:gap-5">
@@ -152,18 +173,48 @@ export function HeroSection({ onOpenWaitlist }: HeroSectionProps) {
               </div>
 
               <h1 className="mb-4 text-left font-serif text-5xl leading-[1.05] font-bold text-white lg:text-6xl xl:text-7xl">
-                Preventa <span className="text-[#aa825e]">Lote 2</span>
+                Fernet Artesanal <span className="text-[#aa825e]">Los Horneros</span>
               </h1>
 
-              <div className="mb-6 flex flex-col items-start gap-2.5">
+              {/* Lotes Agotados Badges */}
+              <div className="mb-6 flex w-full max-w-lg flex-col gap-2.5">
+                <div className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-black/40 px-5 py-3 backdrop-blur-md">
+                  <div className="flex items-center gap-3">
+                    <span className="h-2 w-2 rounded-full bg-[#aa825e]" />
+                    <span className="font-serif font-bold text-white text-sm">Lote 1</span>
+                    <span className="rounded-full bg-red-500/15 border border-red-500/30 px-2 py-0.5 text-[10px] font-bold text-red-400 uppercase tracking-wider">
+                      Agotado
+                    </span>
+                  </div>
+                  <span className="font-mono text-xs text-white/80 font-medium">
+                    160 botellas en <span className="text-[#aa825e] font-bold">8 minutos</span>
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-black/40 px-5 py-3 backdrop-blur-md">
+                  <div className="flex items-center gap-3">
+                    <span className="h-2 w-2 rounded-full bg-[#aa825e]" />
+                    <span className="font-serif font-bold text-white text-sm">Lote 2</span>
+                    <span className="rounded-full bg-red-500/15 border border-red-500/30 px-2 py-0.5 text-[10px] font-bold text-red-400 uppercase tracking-wider">
+                      Agotado
+                    </span>
+                  </div>
+                  <span className="font-mono text-xs text-white/80 font-medium">
+                    2.000 botellas en <span className="text-[#aa825e] font-bold">4 horas</span>
+                  </span>
+                </div>
+              </div>
+
+              {/* CountdownTimer reservado para futuros lanzamientos */}
+              {/* <div className="mb-6 flex flex-col items-start gap-2.5">
                 <span className="text-xs font-semibold tracking-[0.25em] text-[#aa825e] uppercase">
                   Disponible en:
                 </span>
                 <CountdownTimer />
-              </div>
+              </div> */}
 
-              <p className="mb-8 max-w-[42ch] text-left text-base leading-[1.85] text-white/82 md:text-lg">
-                Solo <span className="font-semibold text-white">2000 botellas</span>, no te las pierdas.
+              <p className="mb-8 max-w-[44ch] text-left text-base leading-[1.85] text-white/82 md:text-lg">
+                Sumate a la lista de espera para tener <span className="font-semibold text-white">acceso anticipado y descuentos exclusivos</span> en el próximo lote.
               </p>
 
               <div className="flex w-auto flex-row items-center gap-5">
@@ -190,16 +241,6 @@ export function HeroSection({ onOpenWaitlist }: HeroSectionProps) {
                   </span>
                 </button>
               </div>
-
-              <m.div
-                initial={{ opacity: 0, y: 24 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.35, duration: 0.6, ease: 'easeOut' }}
-                className="mt-8 inline-flex max-w-full items-center gap-3 rounded-full border border-white/12 bg-black/28 px-5 py-3 text-left text-xs tracking-[0.18em] text-white/78 uppercase backdrop-blur-md"
-              >
-                <span className="h-2 w-2 rounded-full bg-[#aa825e]" />
-                Lote 1 sold out en 8 minutos
-              </m.div>
             </div>
           </m.div>
         </m.div>

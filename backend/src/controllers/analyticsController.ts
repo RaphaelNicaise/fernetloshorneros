@@ -25,13 +25,15 @@ export async function getBiAnalytics(req: Request, res: Response) {
     // ==========================================
     const revenueEvolution = await sequelize.query(
       `SELECT 
+                DATE_FORMAT(p.fecha, '%Y-%m-%d %H:00:00') as date_hour,
                 DATE(p.fecha) as date,
+                HOUR(p.fecha) as hour,
                 SUM(p.total) as revenue,
                 COUNT(p.id) as orders
              FROM pedidos p
              WHERE p.status = 'paid' AND p.fecha BETWEEN :start AND :end ${loteCond}
-             GROUP BY date
-             ORDER BY MIN(p.fecha) ASC`,
+             GROUP BY date_hour, date, hour
+             ORDER BY date_hour ASC`,
       { replacements: { start, end, loteIdNum }, type: QueryTypes.SELECT }
     );
 
@@ -109,12 +111,14 @@ export async function getBiAnalytics(req: Request, res: Response) {
     // ==========================================
     const geoDistribution = await sequelize.query(
       `SELECT 
-                provincia, 
-                COUNT(*) as count
+                e.provincia, 
+                COUNT(DISTINCT p.id) as count,
+                COALESCE(SUM(pi.cantidad), 0) as bottles
              FROM envios e
              JOIN pedidos p ON p.id = e.id_pedido
+             LEFT JOIN pedido_items pi ON pi.id_pedido = p.id
              WHERE p.status = 'paid' AND e.fecha BETWEEN :start AND :end ${loteCond}
-             GROUP BY provincia
+             GROUP BY e.provincia
              ORDER BY count DESC`,
       { replacements: { start, end, loteIdNum }, type: QueryTypes.SELECT }
     );

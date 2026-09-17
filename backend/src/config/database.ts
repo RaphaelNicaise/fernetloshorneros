@@ -39,6 +39,14 @@ export async function connectDB(options?: { sync?: boolean; force?: boolean; max
 			if (options?.sync) {
 				await sequelize.sync({ force: !!options.force });
 			}
+
+			// Asegurar que settings.value sea TEXT para admitir JSONs de múltiples ciudades/tarifas
+			try {
+				await sequelize.query('ALTER TABLE settings MODIFY COLUMN value TEXT NOT NULL;');
+			} catch {
+				// Ignorado si ya es TEXT o la tabla aún no existe
+			}
+
 			return sequelize;
 		} catch (error) {
 			console.error(`Sequelize: intento ${attempt} fallido:`, (error as Error).message ?? error);

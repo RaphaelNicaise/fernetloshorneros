@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, normalizeSearchText } from "@/components/ui/command"
 import { Check, ChevronsUpDown, Home, MapPin, Truck } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { fetchProvincias, fetchLocalidades, quoteShippingOptions, type Provincia, type Localidad, type ShippingOption } from "@/lib/api"
@@ -199,8 +199,8 @@ export function StepShipping({ items, initialData, onContinue, onBack }: StepShi
                           key={p.nombre}
                           value={p.nombre}
                           onSelect={(val) => {
-                            const selected = provincias.find(x => x.nombre.toLowerCase() === val.toLowerCase())
-                            setProvincia(selected?.nombre || "")
+                            const selected = provincias.find(x => normalizeSearchText(x.nombre) === normalizeSearchText(val))
+                            setProvincia(selected?.nombre || val)
                             setOpenProvincia(false)
                           }}
                         >
@@ -235,8 +235,8 @@ export function StepShipping({ items, initialData, onContinue, onBack }: StepShi
                           key={l.id}
                           value={l.nombre}
                           onSelect={(val) => {
-                            const selected = localidades.find(x => x.nombre.toLowerCase() === val.toLowerCase())
-                            setCiudad(selected?.nombre || "")
+                            const selected = localidades.find(x => normalizeSearchText(x.nombre) === normalizeSearchText(val))
+                            setCiudad(selected?.nombre || val)
                             setOpenCiudad(false)
                           }}
                         >

@@ -1,7 +1,7 @@
 "use client"
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, normalizeSearchText } from "@/components/ui/command"
 import { Check, ChevronsUpDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Provincia, Localidad } from "@/lib/api"
@@ -80,8 +80,8 @@ export function ShippingLocationStep({
                         key={p.id}
                         value={p.nombre}
                         onSelect={(currentValue) => {
-                          const selected = provincias.find(prov => prov.nombre.toLowerCase() === currentValue.toLowerCase())
-                          setProvincia(selected ? selected.nombre : "")
+                          const selected = provincias.find(prov => normalizeSearchText(prov.nombre) === normalizeSearchText(currentValue))
+                          setProvincia(selected ? selected.nombre : currentValue)
                           setOpenProvincia(false)
                         }}
                       >
@@ -138,8 +138,8 @@ export function ShippingLocationStep({
                         key={l.id}
                         value={l.nombre}
                         onSelect={(currentValue) => {
-                          const selected = localidades.find(loc => loc.nombre.toLowerCase() === currentValue.toLowerCase())
-                          setCiudad(selected ? selected.nombre : "")
+                          const selected = localidades.find(loc => normalizeSearchText(loc.nombre) === normalizeSearchText(currentValue))
+                          setCiudad(selected ? selected.nombre : currentValue)
                           setOpenCiudad(false)
                         }}
                       >
