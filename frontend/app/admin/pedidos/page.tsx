@@ -43,6 +43,7 @@ import {
 } from '@/components/ui/dialog';
 import * as XLSX from 'xlsx';
 import { generateShippingLabels, generateSingleLabel, LabelOrder } from '@/lib/label-generator';
+import { normalizeSearchText } from '@/components/ui/command';
 
 type OrderStatus = 'pending' | 'paid' | 'failed' | 'cancelled';
 
@@ -865,14 +866,16 @@ export default function AdminPedidosPage() {
       result = result.filter((order) => getEffectiveStatus(order) === filterStatus);
     }
 
-    const q = searchQuery.trim().toLowerCase();
-    if (q) {
+    const normQ = normalizeSearchText(searchQuery);
+    if (normQ) {
       result = result.filter((o) => {
-        const idMatch = String(o.id).includes(q);
-        const nameMatch = (o.nombre_cliente || '').toLowerCase().includes(q);
-        const emailMatch = (o.email_cliente || '').toLowerCase().includes(q);
-        const trackingMatch = (o.tracking_code || '').toLowerCase().includes(q);
-        return idMatch || nameMatch || emailMatch || trackingMatch;
+        const idMatch = String(o.id).includes(normQ);
+        const nameMatch = normalizeSearchText(o.nombre_cliente || '').includes(normQ);
+        const emailMatch = (o.email_cliente || '').toLowerCase().includes(normQ);
+        const trackingMatch = (o.tracking_code || '').toLowerCase().includes(normQ);
+        const provMatch = normalizeSearchText(o.provincia || '').includes(normQ);
+        const ciudadMatch = normalizeSearchText(o.ciudad || '').includes(normQ);
+        return idMatch || nameMatch || emailMatch || trackingMatch || provMatch || ciudadMatch;
       });
     }
 
@@ -1004,10 +1007,10 @@ export default function AdminPedidosPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <div className="relative w-full md:w-64">
+          <div className="relative w-full md:w-80">
             <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-white/40" />
             <Input
-              placeholder="Buscar por ID, Nombre, Email..."
+              placeholder="Buscar por ID, Cliente, Ciudad, Provincia..."
               className="h-10 border-white/10 bg-white/5 pl-9 text-white placeholder:text-white/40 focus:border-[#AA6F3B]/50"
               value={searchQuery}
               onChange={(e) => {
