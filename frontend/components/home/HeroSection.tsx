@@ -51,7 +51,7 @@ export function HeroSection({ onOpenWaitlist }: HeroSectionProps) {
         />
       </div>
 
-      <div className="relative z-10 mx-auto flex h-full w-full max-w-6xl items-start px-4 pt-[15vh] sm:items-center sm:pt-28 lg:pt-32">
+      <div className="relative z-10 mx-auto flex h-full w-full max-w-6xl items-center px-4 pt-16 sm:pt-20">
         <m.div
           className="w-full max-w-[520px] will-change-transform md:max-w-[620px]"
           initial={{ opacity: 0, x: -60 }}
@@ -61,27 +61,29 @@ export function HeroSection({ onOpenWaitlist }: HeroSectionProps) {
           <m.div style={{ opacity: heroContentOpacity, y: heroContentY }} className="w-full">
             {/* Mobile Layout */}
             <div className="flex w-full flex-col items-center text-center md:hidden">
-              <div className="mb-6 flex flex-col items-center">
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-3 sm:gap-4">
-                    <Image
-                      src="/logonuevo.webp"
-                      alt="Los Horneros"
-                      width={54}
-                      height={54}
-                      className="h-12 w-12 object-contain brightness-0 invert sm:h-[54px] sm:w-[54px]"
-                      priority
-                    />
-                  </div>
-                </div>
+              <h1 className="sr-only">Fernet Artesanal Los Horneros</h1>
+
+              <div className="mb-6 flex items-center justify-center gap-3">
+                <Image
+                  src="/logonuevo.webp"
+                  alt="Los Horneros"
+                  width={46}
+                  height={46}
+                  className="h-10 w-10 sm:h-12 sm:w-12 object-contain brightness-0 invert"
+                  priority
+                />
+                <Image
+                  src="/logo-fernet.webp"
+                  alt="Fernet Los Horneros"
+                  width={280}
+                  height={65}
+                  className="h-auto w-[230px] sm:w-[270px] object-contain brightness-0 invert"
+                  priority
+                />
               </div>
 
-              <h1 className="mb-4 text-center font-serif text-3xl leading-[1.05] font-bold text-white sm:text-4xl">
-                Fernet Artesanal <span className="text-[#aa825e]">Los Horneros</span>
-              </h1>
-
               {/* Lotes Agotados Badges */}
-              <div className="mb-6 flex w-full max-w-sm flex-col gap-2">
+              <div className="mb-5 flex w-full max-w-sm flex-col gap-2">
                 <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/40 px-4 py-2.5 backdrop-blur-md">
                   <div className="flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full bg-[#aa825e]" />
@@ -117,16 +119,16 @@ export function HeroSection({ onOpenWaitlist }: HeroSectionProps) {
                 <CountdownTimer />
               </div> */}
 
-              <p className="mb-8 max-w-[42ch] text-sm leading-[1.85] text-white/82 sm:text-lg">
+              <p className="mb-6 max-w-[42ch] text-sm leading-[1.85] text-white/82 sm:text-base">
                 Sumate a la lista de espera para tener <span className="font-semibold text-white">acceso anticipado y descuentos</span> en el próximo lote.
               </p>
 
-              <div className="flex w-full flex-col items-center gap-4 sm:w-auto sm:flex-row sm:gap-5">
+              <div className="flex w-full flex-col items-center gap-3 sm:w-auto sm:flex-row sm:gap-5">
                 <m.button
                   onClick={onOpenWaitlist}
                   whileHover={{ scale: 1.03, y: -1 }}
                   whileTap={{ scale: 0.98 }}
-                  className="inline-flex w-full items-center justify-center rounded-md border border-[#aa825e] bg-[#aa825e] px-8 py-4 text-base font-semibold text-white shadow-[0_20px_40px_rgba(170,130,94,0.22)] transition-all duration-200 hover:bg-[#b78d68] focus-visible:ring-2 focus-visible:ring-[#aa825e] focus-visible:outline-none sm:w-auto sm:rounded-full"
+                  className="inline-flex w-full items-center justify-center rounded-md border border-[#aa825e] bg-[#aa825e] px-8 py-3.5 text-base font-semibold text-white shadow-[0_20px_40px_rgba(170,130,94,0.22)] transition-all duration-200 hover:bg-[#b78d68] focus-visible:ring-2 focus-visible:ring-[#aa825e] focus-visible:outline-none sm:w-auto sm:rounded-full cursor-pointer"
                 >
                   Unirme a la lista de espera
                 </m.button>
@@ -134,7 +136,7 @@ export function HeroSection({ onOpenWaitlist }: HeroSectionProps) {
                   onClick={() =>
                     document.getElementById('productos')?.scrollIntoView({ behavior: 'smooth' })
                   }
-                  className="group inline-flex w-full items-center justify-center rounded-md border border-white/20 py-4 text-sm font-medium tracking-[0.2em] text-white/78 uppercase transition-colors hover:bg-white/10 hover:text-white sm:w-auto sm:justify-start sm:rounded-full sm:border-transparent sm:py-2 sm:hover:bg-transparent"
+                  className="group inline-flex w-full cursor-pointer items-center justify-center rounded-md border border-white/20 py-3 text-sm font-medium tracking-[0.2em] text-white/78 uppercase transition-colors hover:bg-white/10 hover:text-white sm:w-auto sm:justify-start sm:rounded-full sm:border-transparent sm:py-2 sm:hover:bg-transparent"
                 >
                   Ver productos
                   <span
@@ -149,7 +151,9 @@ export function HeroSection({ onOpenWaitlist }: HeroSectionProps) {
 
             {/* Desktop Layout */}
             <div className="hidden w-full flex-col items-start text-left md:flex">
-              <div className="mb-8 flex flex-col items-start text-left">
+              <h1 className="sr-only">Fernet Artesanal Los Horneros</h1>
+
+              <div className="mb-7 flex flex-col items-start text-left">
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center gap-4">
                     <Image
@@ -162,19 +166,15 @@ export function HeroSection({ onOpenWaitlist }: HeroSectionProps) {
                     />
                     <Image
                       src="/logo-fernet.webp"
-                      alt="Los Horneros Fernet"
+                      alt="Fernet Los Horneros"
                       width={420}
                       height={100}
-                      className="h-auto w-[420px] object-contain brightness-0 invert"
+                      className="h-auto w-[360px] lg:w-[420px] object-contain brightness-0 invert"
                       priority
                     />
                   </div>
                 </div>
               </div>
-
-              <h1 className="mb-4 text-left font-serif text-5xl leading-[1.05] font-bold text-white lg:text-6xl xl:text-7xl">
-                Fernet Artesanal <span className="text-[#aa825e]">Los Horneros</span>
-              </h1>
 
               {/* Lotes Agotados Badges */}
               <div className="mb-6 flex w-full max-w-lg flex-col gap-2.5">
@@ -222,7 +222,7 @@ export function HeroSection({ onOpenWaitlist }: HeroSectionProps) {
                   onClick={onOpenWaitlist}
                   whileHover={{ scale: 1.03, y: -1 }}
                   whileTap={{ scale: 0.98 }}
-                  className="inline-flex w-auto items-center justify-center rounded-full border border-[#aa825e] bg-[#aa825e] px-8 py-4 text-base font-semibold text-white shadow-[0_20px_40px_rgba(170,130,94,0.22)] transition-all duration-200 hover:bg-[#b78d68] focus-visible:ring-2 focus-visible:ring-[#aa825e] focus-visible:outline-none"
+                  className="inline-flex w-auto items-center justify-center rounded-full border border-[#aa825e] bg-[#aa825e] px-8 py-4 text-base font-semibold text-white shadow-[0_20px_40px_rgba(170,130,94,0.22)] transition-all duration-200 hover:bg-[#b78d68] focus-visible:ring-2 focus-visible:ring-[#aa825e] focus-visible:outline-none cursor-pointer"
                 >
                   Unirme a la lista de espera
                 </m.button>
