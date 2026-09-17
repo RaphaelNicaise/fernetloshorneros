@@ -20,6 +20,7 @@ import {
   AlertTriangle,
   ChevronDown,
   Info,
+  BarChart3,
 } from 'lucide-react';
 
 // Gráficos Recharts
@@ -417,42 +418,52 @@ export default function AnalyticsPage() {
 
   return (
     <div className="pb-20">
-      {/* HEADER & STICKY NAVBAR */}
-      <div className="sticky top-16 z-20 -mx-4 -mt-4 mb-8 flex flex-col justify-between gap-4 border-b border-white/5 bg-[#0b0a07]/95 px-4 py-4 shadow-2xl backdrop-blur-xl sm:-mx-6 sm:-mt-6 sm:px-6 lg:-mx-8 lg:-mt-8 lg:px-8 xl:flex-row xl:items-center">
-        <div>
-          <h1 className="font-serif text-3xl font-bold text-white">BI Dashboard</h1>
+      {/* HEADER & NAVBAR */}
+      <div className="mb-8 flex flex-col justify-between gap-4 border-b border-white/10 pb-6 xl:flex-row xl:items-center">
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#AA6F3B]/20">
+            <BarChart3 size={22} className="text-[#AA6F3B]" />
+          </div>
+          <div>
+            <h1 className="font-serif text-3xl font-bold tracking-tight text-white leading-normal pt-0.5">
+              BI Dashboard
+            </h1>
+            <p className="mt-0.5 text-xs text-white/40">
+              Métricas de ventas, producción, logística y conversión
+            </p>
+          </div>
         </div>
 
-        <div className="flex flex-col items-center gap-4 sm:flex-row">
+        <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
           {/* Scrollspy Menu */}
-          <div className="hide-scrollbar flex items-center gap-1 overflow-x-auto rounded-xl bg-white/5 p-1">
+          <div className="hide-scrollbar flex items-center gap-1 overflow-x-auto rounded-xl border border-white/5 bg-white/5 p-1">
             <button
               onClick={() => scrollTo('ventas')}
-              className="rounded-lg px-3 py-1.5 text-xs font-medium whitespace-nowrap text-white/60 transition-colors hover:text-white"
+              className="rounded-lg px-3 py-1.5 text-xs font-medium whitespace-nowrap text-white/60 transition-colors hover:bg-white/5 hover:text-white"
             >
               Ventas
             </button>
             <button
               onClick={() => scrollTo('productos')}
-              className="rounded-lg px-3 py-1.5 text-xs font-medium whitespace-nowrap text-white/60 transition-colors hover:text-white"
+              className="rounded-lg px-3 py-1.5 text-xs font-medium whitespace-nowrap text-white/60 transition-colors hover:bg-white/5 hover:text-white"
             >
               Productos
             </button>
             <button
               onClick={() => scrollTo('pagos')}
-              className="rounded-lg px-3 py-1.5 text-xs font-medium whitespace-nowrap text-white/60 transition-colors hover:text-white"
+              className="rounded-lg px-3 py-1.5 text-xs font-medium whitespace-nowrap text-white/60 transition-colors hover:bg-white/5 hover:text-white"
             >
               Pagos
             </button>
             <button
               onClick={() => scrollTo('logistica')}
-              className="rounded-lg px-3 py-1.5 text-xs font-medium whitespace-nowrap text-white/60 transition-colors hover:text-white"
+              className="rounded-lg px-3 py-1.5 text-xs font-medium whitespace-nowrap text-white/60 transition-colors hover:bg-white/5 hover:text-white"
             >
               Logística
             </button>
             <button
               onClick={() => scrollTo('clientes')}
-              className="rounded-lg px-3 py-1.5 text-xs font-medium whitespace-nowrap text-white/60 transition-colors hover:text-white"
+              className="rounded-lg px-3 py-1.5 text-xs font-medium whitespace-nowrap text-white/60 transition-colors hover:bg-white/5 hover:text-white"
             >
               Clientes
             </button>
@@ -466,10 +477,9 @@ export default function AnalyticsPage() {
               value={filterLote}
               onValueChange={(val) => {
                 setFilterLote(val);
-                // The useEffect will trigger load()
               }}
             >
-              <SelectTrigger className="h-8 w-40 border-white/10 bg-white/5 text-white focus:border-[#AA6F3B]/50">
+              <SelectTrigger className="h-9 w-44 border-white/10 bg-white/5 text-white focus:border-[#AA6F3B]/50">
                 <SelectValue placeholder="Todos los lotes" />
               </SelectTrigger>
               <SelectContent className="border border-white/10 bg-[#0b0a07] text-white">
@@ -485,7 +495,8 @@ export default function AnalyticsPage() {
             <button
               onClick={() => load(true)}
               disabled={refreshing}
-              className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#AA6F3B]/20 text-[#AA6F3B] transition-colors hover:bg-[#AA6F3B]/30"
+              className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#AA6F3B]/20 text-[#AA6F3B] transition-colors hover:bg-[#AA6F3B]/30"
+              title="Actualizar datos"
             >
               <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
             </button>

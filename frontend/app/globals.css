@@ -253,8 +253,10 @@
   background: rgba(170, 111, 59, 0.6);
 }
 
-/* Forzar que Cinzel Decorative se renderice con trazo fino/elegante */
+/* Forzar que Cinzel Decorative se renderice con trazo fino/elegante y sin cortes */
 .font-serif {
   font-weight: 400 !important;
+  line-height: 1.35;
+  overflow: visible;
 }
 
