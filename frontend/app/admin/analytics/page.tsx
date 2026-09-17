@@ -1184,7 +1184,7 @@ export default function AnalyticsPage() {
                 Visualización de distribución geográfica:
               </span>
               <span className="rounded-md bg-white/5 px-2 py-0.5 text-[11px] font-semibold text-[#AA6F3B]">
-                {geoMetric === 'botellas' ? '🍾 Total de Botellas Compradas' : '📦 Total de Envíos Realizados'}
+                {geoMetric === 'botellas' ? 'Total de Botellas Compradas' : 'Total de Envíos Realizados'}
               </span>
             </div>
 
@@ -1197,7 +1197,7 @@ export default function AnalyticsPage() {
                     : 'text-white/40 hover:text-white'
                 }`}
               >
-                📦 Por Envíos
+                Por Envíos
               </button>
               <button
                 onClick={() => setGeoMetric('botellas')}
@@ -1207,7 +1207,7 @@ export default function AnalyticsPage() {
                     : 'text-white/40 hover:text-white'
                 }`}
               >
-                🍾 Por Botellas
+                Por Botellas
               </button>
             </div>
           </div>
