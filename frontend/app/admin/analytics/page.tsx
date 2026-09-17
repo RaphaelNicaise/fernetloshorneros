@@ -1133,33 +1133,11 @@ export default function AnalyticsPage() {
 
         {/* SECCIÓN 4: LOGÍSTICA Y ENVÍOS */}
         <section id="logistica" className="scroll-mt-36 space-y-6">
-          <div className="flex flex-col justify-between gap-4 border-b border-white/10 pb-4 sm:flex-row sm:items-center">
-            <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/20">
-                <Truck size={16} className="text-indigo-400" />
-              </div>
-              <h2 className="font-serif text-2xl font-bold text-white">Logística y Envíos</h2>
+          <div className="flex items-center gap-3 border-b border-white/10 pb-4">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/20">
+              <Truck size={16} className="text-indigo-400" />
             </div>
-
-            {/* Selector de Métrica: Envíos vs Botellas */}
-            <div className="inline-flex self-start rounded-xl bg-[#1a1511] p-1 sm:self-auto">
-              <button
-                onClick={() => setGeoMetric('envios')}
-                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
-                  geoMetric === 'envios' ? 'bg-[#AA6F3B] text-white shadow-md' : 'text-white/40 hover:text-white'
-                }`}
-              >
-                📦 Por Envíos
-              </button>
-              <button
-                onClick={() => setGeoMetric('botellas')}
-                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
-                  geoMetric === 'botellas' ? 'bg-[#AA6F3B] text-white shadow-md' : 'text-white/40 hover:text-white'
-                }`}
-              >
-                🍾 Por Botellas
-              </button>
-            </div>
+            <h2 className="font-serif text-2xl font-bold text-white">Logística y Envíos</h2>
           </div>
 
           {/* Info Extra: Costos */}
@@ -1185,6 +1163,41 @@ export default function AnalyticsPage() {
                   : 0}
                 %
               </p>
+            </div>
+          </div>
+
+          {/* Selector de Métrica: Envíos vs Botellas (abajo del costo promedio envío) */}
+          <div className="flex flex-col gap-3 rounded-2xl border border-white/8 bg-[#0b0a07]/40 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-white/60">
+                Visualización de distribución geográfica:
+              </span>
+              <span className="rounded-md bg-white/5 px-2 py-0.5 text-[11px] font-semibold text-[#AA6F3B]">
+                {geoMetric === 'botellas' ? '🍾 Total de Botellas Compradas' : '📦 Total de Envíos Realizados'}
+              </span>
+            </div>
+
+            <div className="inline-flex self-start rounded-xl bg-[#1a1511] p-1 sm:self-auto">
+              <button
+                onClick={() => setGeoMetric('envios')}
+                className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all ${
+                  geoMetric === 'envios'
+                    ? 'bg-[#AA6F3B] text-white shadow-md'
+                    : 'text-white/40 hover:text-white'
+                }`}
+              >
+                📦 Por Envíos
+              </button>
+              <button
+                onClick={() => setGeoMetric('botellas')}
+                className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all ${
+                  geoMetric === 'botellas'
+                    ? 'bg-[#AA6F3B] text-white shadow-md'
+                    : 'text-white/40 hover:text-white'
+                }`}
+              >
+                🍾 Por Botellas
+              </button>
             </div>
           </div>
 
@@ -1239,7 +1252,7 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Mapa de Envíos / Botellas */}
-            <div className="relative flex h-[520px] flex-col overflow-hidden rounded-2xl border border-white/8 bg-[#0b0a07]/40 p-7 shadow-lg backdrop-blur-sm lg:col-span-1">
+            <div className="relative flex h-[500px] flex-col overflow-hidden rounded-2xl border border-white/8 bg-[#0b0a07]/40 p-7 shadow-lg backdrop-blur-sm lg:col-span-2">
               <div className="z-10 mb-3">
                 <p className="font-serif text-lg font-bold text-white">
                   {geoMetric === 'botellas' ? 'Mapa de Botellas Compradas' : 'Mapa de Envíos'}
