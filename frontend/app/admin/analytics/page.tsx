@@ -1031,62 +1031,96 @@ export default function AnalyticsPage() {
                 </div>
               </div>
 
-              <div className="relative flex h-[280px] w-full items-center justify-center">
-                {stats.payments.status.length > 0 && (
-                  <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center pb-6">
-                    <span className="text-4xl font-bold text-white">
-                      {(() => {
-                        const approved = Number(
-                          stats.payments.status.find((s) => s.status === 'approved')?.count || 0
-                        );
-                        const total = stats.payments.status.reduce(
-                          (a, c) => a + Number(c.count),
-                          0
-                        );
-                        return total > 0 ? Math.round((approved / total) * 100) : 0;
-                      })()}
-                      %
-                    </span>
-                    <span className="mt-1 text-[10px] font-semibold tracking-widest text-white/40 uppercase">
-                      Aprobado
-                    </span>
+              {stats.payments.status.length > 0 ? (
+                <>
+                  <div className="relative flex h-[280px] w-full items-center justify-center">
+                    <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center pb-6">
+                      <span className="text-4xl font-bold text-white">
+                        {(() => {
+                          const approved = Number(
+                            stats.payments.status.find((s) => s.status === 'approved')?.count || 0
+                          );
+                          const total = stats.payments.status.reduce(
+                            (a, c) => a + Number(c.count),
+                            0
+                          );
+                          return total > 0 ? Math.round((approved / total) * 100) : 0;
+                        })()}
+                        %
+                      </span>
+                      <span className="mt-1 text-[10px] font-semibold tracking-widest text-white/40 uppercase">
+                        Aprobado
+                      </span>
+                    </div>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={stats.payments.status}
+                          dataKey="count"
+                          nameKey="status"
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={80}
+                          outerRadius={110}
+                          paddingAngle={5}
+                        >
+                          {stats.payments.status.map((entry, index) => {
+                            const c =
+                              entry.status === 'approved'
+                                ? '#22c55e'
+                                : entry.status === 'rejected'
+                                  ? '#ef4444'
+                                  : '#eab308';
+                            return <Cell key={`cell-${index}`} fill={c} />;
+                          })}
+                        </Pie>
+                        <RechartsTooltip
+                          contentStyle={{
+                            backgroundColor: '#120e0b',
+                            borderColor: '#AA6F3B30',
+                            borderRadius: '12px',
+                            boxShadow: '0 10px 30px -10px rgba(0,0,0,0.5)',
+                          }}
+                          itemStyle={{ fontWeight: 'bold' }}
+                        />
+                        <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                      </PieChart>
+                    </ResponsiveContainer>
                   </div>
-                )}
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={stats.payments.status}
-                      dataKey="count"
-                      nameKey="status"
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={80}
-                      outerRadius={110}
-                      paddingAngle={5}
-                    >
-                      {stats.payments.status.map((entry, index) => {
-                        const c =
-                          entry.status === 'approved'
-                            ? '#22c55e'
-                            : entry.status === 'rejected'
-                              ? '#ef4444'
-                              : '#eab308';
-                        return <Cell key={`cell-${index}`} fill={c} />;
-                      })}
-                    </Pie>
-                    <RechartsTooltip
-                      contentStyle={{
-                        backgroundColor: '#120e0b',
-                        borderColor: '#AA6F3B30',
-                        borderRadius: '12px',
-                        boxShadow: '0 10px 30px -10px rgba(0,0,0,0.5)',
-                      }}
-                      itemStyle={{ fontWeight: 'bold' }}
-                    />
-                    <Legend verticalAlign="bottom" height={36} iconType="circle" />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
+
+                  <div className="mt-4 flex flex-wrap justify-center gap-4">
+                    {stats.payments.status.map((st, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <div
+                          className="h-3 w-3 rounded-full"
+                          style={{
+                            backgroundColor:
+                              st.status === 'approved'
+                                ? '#22c55e'
+                                : st.status === 'rejected'
+                                  ? '#ef4444'
+                                  : '#eab308',
+                          }}
+                        />
+                        <span className="text-xs text-white/60 capitalize">
+                          {st.status === 'approved'
+                            ? 'Aprobados'
+                            : st.status === 'rejected'
+                              ? 'Rechazados'
+                              : st.status}
+                          :
+                        </span>
+                        <span className="font-mono text-xs font-bold text-white">{st.count}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="flex h-[280px] w-full flex-col items-center justify-center text-white/30">
+                  <CreditCard size={32} className="mb-2 text-white/20" />
+                  <p className="text-sm font-semibold tracking-wider uppercase">Sin datos de pasarela para este lote</p>
+                </div>
+              )}
             </div>
 
             {/* Mix de Medios */}
