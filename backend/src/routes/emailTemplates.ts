@@ -3,6 +3,7 @@ import { adminAuth } from '../middleware/adminAuth';
 import { emailTemplateService } from '../services/emailTemplateService';
 import { transporter } from '../config/mail';
 import { getDefaultTemplate, getEmailWrapper } from '../services/mailService';
+import { audiencesService } from '../services/audiencesService';
 
 const router = Router();
 
@@ -195,84 +196,13 @@ router.post('/:key/send-blast', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Debes seleccionar al menos una audiencia o ingresar una lista manual.' });
     }
 
-    const queries: string[] = [];
-    const replacements: any[] = [];
-
-    if (audiences?.includes('waitlist')) {
-      let q = `SELECT email, nombre FROM usuario_lista_espera`;
-      if (provinces && provinces.length > 0) {
-        q += ` WHERE provincia IN (?)`;
-        replacements.push(provinces);
-      }
-      queries.push(q);
-    }
-
-    if (audiences?.includes('buyers')) {
-      let q = `
-        SELECT DISTINCT email_cliente as email, nombre_cliente as nombre 
-        FROM envios
-        WHERE status = 'shipped'
-      `;
-      if (provinces && provinces.length > 0) {
-        q += ` AND provincia IN (?)`;
-        replacements.push(provinces);
-      }
-      queries.push(q);
-    }
-
-    let dbRecipients: { email: string, nombre: string }[] = [];
-    if (queries.length > 0) {
-      const finalQuery = queries.join(' UNION ');
-      dbRecipients = await emailTemplateService.getAllTemplates().then(async () => {
-        // Usando sequelize desde cualquier lado o importado aquí
-        const { QueryTypes } = require('sequelize');
-        const sequelize = require('../config/database').default;
-        return await sequelize.query(finalQuery, {
-          replacements,
-          type: QueryTypes.SELECT
-        });
-      }) as { email: string, nombre: string }[];
-    }
-
-    // Procesar lista manual
-    const parseManualList = (text?: string) => {
-      if (!text) return [];
-      const lines = text.split('\n');
-      const results: { email: string, nombre: string }[] = [];
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed) continue;
-        const parts = trimmed.split(',');
-        const email = parts[0].trim().toLowerCase();
-        const nombre = parts.length > 1 ? parts[1].trim() : 'Amigo/a';
-        if (email.includes('@')) {
-          results.push({ email, nombre });
-        }
-      }
-      return results;
-    };
-
-    const manualParsed = parseManualList(manualList);
-
-    // Deduplicar
-    const finalRecipients: { email: string, nombre: string }[] = [];
-    const uniqueEmails = new Set<string>();
-
-    for (const r of dbRecipients) {
-      const e = r.email.toLowerCase();
-      if (!uniqueEmails.has(e)) {
-        uniqueEmails.add(e);
-        finalRecipients.push({ email: e, nombre: r.nombre });
-      }
-    }
-
-    for (const m of manualParsed) {
-      const e = m.email;
-      if (!uniqueEmails.has(e)) {
-        uniqueEmails.add(e);
-        finalRecipients.push({ email: e, nombre: m.nombre });
-      }
-    }
+    const finalRecipients = await audiencesService.getRecipients({
+      audiences,
+      provinces,
+      manualList,
+      buyerLoteId: req.body.buyerLoteId,
+      buyerStatuses: req.body.buyerStatuses,
+    });
 
     if (finalRecipients.length === 0) {
       return res.status(400).json({ error: 'No hay destinatarios que coincidan con los filtros o la lista provista.' });
