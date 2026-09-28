@@ -3,6 +3,13 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { API_BASE_URL } from "@/lib/api"
 import { Users, Loader2, Check } from "lucide-react"
 
@@ -11,8 +18,18 @@ interface SendBlastModalProps {
   onClose: () => void
 }
 
+interface Lote {
+  id: number
+  nombre: string
+  activo: boolean
+}
+
 export function SendBlastModal({ templateKey, onClose }: SendBlastModalProps) {
   const [audiences, setAudiences] = useState<string[]>([])
+  const [lotes, setLotes] = useState<Lote[]>([])
+  const [loadingLotes, setLoadingLotes] = useState(true)
+  const [buyerLoteId, setBuyerLoteId] = useState<string>("all")
+  const [buyerStatuses, setBuyerStatuses] = useState<string[]>(["para_despachar", "enviado"])
   const [provinces, setProvinces] = useState<string[]>([])
   const [selectedProvinces, setSelectedProvinces] = useState<string[]>([])
   const [manualList, setManualList] = useState("")
@@ -23,6 +40,30 @@ export function SendBlastModal({ templateKey, onClose }: SendBlastModalProps) {
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
+
+  useEffect(() => {
+    const fetchLotes = async () => {
+      try {
+        const token = localStorage.getItem("admin_token")
+        const res = await fetch(`${API_BASE_URL}/lotes`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setLotes(data)
+          const activeLote = data.find((l: Lote) => l.activo)
+          if (activeLote) {
+            setBuyerLoteId(String(activeLote.id))
+          }
+        }
+      } catch (e) {
+        console.error("Failed to fetch lotes", e)
+      } finally {
+        setLoadingLotes(false)
+      }
+    }
+    fetchLotes()
+  }, [])
 
   useEffect(() => {
     const fetchProvinces = async () => {
@@ -59,7 +100,13 @@ export function SendBlastModal({ templateKey, onClose }: SendBlastModalProps) {
             "Content-Type": "application/json",
             ...(token ? { Authorization: `Bearer ${token}` } : {})
           },
-          body: JSON.stringify({ audiences, provinces: selectedProvinces, manualList })
+          body: JSON.stringify({ 
+            audiences, 
+            provinces: selectedProvinces, 
+            manualList,
+            buyerLoteId,
+            buyerStatuses
+          })
         })
         if (res.ok) {
           const data = await res.json()
@@ -77,10 +124,14 @@ export function SendBlastModal({ templateKey, onClose }: SendBlastModalProps) {
     }, 500)
     
     return () => clearTimeout(timer)
-  }, [audiences, selectedProvinces, manualList])
+  }, [audiences, selectedProvinces, manualList, buyerLoteId, buyerStatuses])
 
   const handleAudienceToggle = (val: string) => {
     setAudiences(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val])
+  }
+
+  const handleBuyerStatusToggle = (val: string) => {
+    setBuyerStatuses(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val])
   }
 
   const handleProvinceToggle = (val: string) => {
@@ -88,7 +139,7 @@ export function SendBlastModal({ templateKey, onClose }: SendBlastModalProps) {
   }
 
   const handleSendRequest = () => {
-    if ((audiences.length === 0 && !manualList.trim()) || recipientCount === 0) return
+    if ((audiences.length === 0 && !manualList.trim()) || !recipientCount) return
     setShowConfirmModal(true)
   }
 
@@ -104,7 +155,13 @@ export function SendBlastModal({ templateKey, onClose }: SendBlastModalProps) {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {})
         },
-        body: JSON.stringify({ audiences, provinces: selectedProvinces, manualList })
+        body: JSON.stringify({ 
+          audiences, 
+          provinces: selectedProvinces, 
+          manualList,
+          buyerLoteId,
+          buyerStatuses
+        })
       })
       if (!res.ok) {
         const data = await res.json()
@@ -149,13 +206,77 @@ export function SendBlastModal({ templateKey, onClose }: SendBlastModalProps) {
           
           <div className="space-y-3">
             <h3 className="font-medium text-white/90">1. Seleccionar Audiencia</h3>
-            <label className="flex items-center gap-3 p-3 rounded-lg border border-white/10 hover:bg-white/5 cursor-pointer">
-              <Checkbox checked={audiences.includes("buyers")} onCheckedChange={() => handleAudienceToggle("buyers")} />
-              <div>
-                <div className="text-white">Compradores</div>
-                <div className="text-xs text-white/50">Clientes que tienen un pedido pagado o completado.</div>
-              </div>
-            </label>
+            
+            {/* Audiencia: Compradores */}
+            <div className="rounded-lg border border-white/10 p-3 space-y-3 bg-white/[0.02] transition-colors">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <Checkbox checked={audiences.includes("buyers")} onCheckedChange={() => handleAudienceToggle("buyers")} />
+                <div>
+                  <div className="text-white font-medium">Compradores</div>
+                  <div className="text-xs text-white/50">Clientes que tienen un pedido pagado o completado.</div>
+                </div>
+              </label>
+
+              {audiences.includes("buyers") && (
+                <div className="mt-3 pl-7 pt-3 border-t border-white/10 space-y-4">
+                  {/* Selector de Lote */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-white/70 uppercase tracking-wider block">
+                      Lote del pedido:
+                    </label>
+                    {loadingLotes ? (
+                      <div className="text-xs text-white/40">Cargando lotes...</div>
+                    ) : (
+                      <Select value={buyerLoteId} onValueChange={(val) => setBuyerLoteId(val)}>
+                        <SelectTrigger className="h-9 w-full border-white/10 bg-black/40 text-white focus:border-[#AA6F3B]/60">
+                          <SelectValue placeholder="Seleccionar lote" />
+                        </SelectTrigger>
+                        <SelectContent className="border border-white/10 bg-[#14120f] text-white">
+                          {lotes.map((lote) => (
+                            <SelectItem key={lote.id} value={String(lote.id)}>
+                              {lote.nombre} {lote.activo ? "(Actual)" : ""}
+                            </SelectItem>
+                          ))}
+                          <SelectItem value="all">Todos los lotes</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+
+                  {/* Selector de Estados de Entrega */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-white/70 uppercase tracking-wider block">
+                      Estado del pedido:
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <label className="flex items-center gap-2 p-2 rounded bg-black/30 border border-white/5 hover:border-white/10 cursor-pointer">
+                        <Checkbox 
+                          checked={buyerStatuses.includes("para_despachar")} 
+                          onCheckedChange={() => handleBuyerStatusToggle("para_despachar")} 
+                        />
+                        <span className="text-xs text-white/90">Para Despachar</span>
+                      </label>
+                      <label className="flex items-center gap-2 p-2 rounded bg-black/30 border border-white/5 hover:border-white/10 cursor-pointer">
+                        <Checkbox 
+                          checked={buyerStatuses.includes("enviado")} 
+                          onCheckedChange={() => handleBuyerStatusToggle("enviado")} 
+                        />
+                        <span className="text-xs text-white/90">Enviado</span>
+                      </label>
+                      <label className="flex items-center gap-2 p-2 rounded bg-black/30 border border-white/5 hover:border-white/10 cursor-pointer">
+                        <Checkbox 
+                          checked={buyerStatuses.includes("venta_local")} 
+                          onCheckedChange={() => handleBuyerStatusToggle("venta_local")} 
+                        />
+                        <span className="text-xs text-white/90">Venta Local</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Audiencia: Lista de Espera */}
             <label className="flex items-center gap-3 p-3 rounded-lg border border-white/10 hover:bg-white/5 cursor-pointer">
               <Checkbox checked={audiences.includes("waitlist")} onCheckedChange={() => handleAudienceToggle("waitlist")} />
               <div>
@@ -163,6 +284,8 @@ export function SendBlastModal({ templateKey, onClose }: SendBlastModalProps) {
                 <div className="text-xs text-white/50">Personas anotadas en la lista de espera (early access).</div>
               </div>
             </label>
+
+            {/* Audiencia: Manual */}
             <label className="flex items-center gap-3 p-3 rounded-lg border border-white/10 hover:bg-white/5 cursor-pointer">
               <Checkbox checked={audiences.includes("manual")} onCheckedChange={() => handleAudienceToggle("manual")} />
               <div>
@@ -217,7 +340,7 @@ export function SendBlastModal({ templateKey, onClose }: SendBlastModalProps) {
             <Button 
               className="bg-[#AA6F3B] hover:bg-[#AA6F3B]/90 text-white" 
               onClick={handleSendRequest}
-              disabled={sending || (audiences.length === 0 && !manualList.trim()) || recipientCount === 0}
+              disabled={sending || calculating || (audiences.length === 0 && !manualList.trim()) || !recipientCount}
             >
               {sending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
               Revisar Envío
