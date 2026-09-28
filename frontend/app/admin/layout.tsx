@@ -21,9 +21,11 @@ import {
   Mail,
   Ticket,
   Barrel,
+  LayoutDashboard,
 } from "lucide-react"
 
 const NAV_ITEMS = [
+  { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/productos", label: "Productos", icon: Package },
   { href: "/admin/pedidos", label: "Pedidos", icon: ShoppingBag },
   { href: "/admin/produccion", label: "Producción", icon: Barrel },
