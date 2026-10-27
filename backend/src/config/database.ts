@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 import { Sequelize } from "sequelize";
 import path from "path";
+import { logger } from "../utils/logger";
 
 dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
 
@@ -45,6 +46,48 @@ export async function connectDB(options?: { sync?: boolean; force?: boolean; max
 				await sequelize.query('ALTER TABLE settings MODIFY COLUMN value TEXT NOT NULL;');
 			} catch {
 				// Ignorado si ya es TEXT o la tabla aún no existe
+			}
+
+			// Safe startup table creation for email campaigns
+			try {
+				await sequelize.query(`
+					CREATE TABLE IF NOT EXISTS email_campanias (
+						id INT AUTO_INCREMENT PRIMARY KEY,
+						nombre VARCHAR(255) NOT NULL,
+						template_key VARCHAR(100) NOT NULL,
+						asunto VARCHAR(255) NOT NULL,
+						estado ENUM('en_cola', 'procesando', 'pausada', 'completada', 'cancelada') DEFAULT 'en_cola',
+						total_destinatarios INT DEFAULT 0,
+						enviados_count INT DEFAULT 0,
+						fallidos_count INT DEFAULT 0,
+						creado_por VARCHAR(100) DEFAULT 'admin',
+						fecha_inicio TIMESTAMP NULL DEFAULT NULL,
+						fecha_fin TIMESTAMP NULL DEFAULT NULL,
+						created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+						updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+						INDEX idx_campanias_estado (estado),
+						INDEX idx_campanias_created (created_at)
+					);
+				`);
+
+				await sequelize.query(`
+					CREATE TABLE IF NOT EXISTS email_campania_destinatarios (
+						id INT AUTO_INCREMENT PRIMARY KEY,
+						campania_id INT NOT NULL,
+						email VARCHAR(255) NOT NULL,
+						nombre VARCHAR(255) DEFAULT NULL,
+						estado ENUM('pendiente', 'enviando', 'enviado', 'fallido') DEFAULT 'pendiente',
+						error_mensaje TEXT DEFAULT NULL,
+						intentos INT DEFAULT 0,
+						enviado_at TIMESTAMP NULL DEFAULT NULL,
+						created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+						FOREIGN KEY (campania_id) REFERENCES email_campanias(id) ON DELETE CASCADE,
+						INDEX idx_destinatarios_campania_estado (campania_id, estado),
+						INDEX idx_destinatarios_estado (estado)
+					);
+				`);
+			} catch (e) {
+				logger.warn('Email campaigns tables migration check:', e);
 			}
 
 			return sequelize;
