@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Input } from "@/components/ui/input"
 import {
   Select,
   SelectContent,
@@ -16,6 +17,7 @@ import { Users, Loader2, Check } from "lucide-react"
 interface SendBlastModalProps {
   templateKey: string
   onClose: () => void
+  onCampaignCreated?: (campaignId: number) => void
 }
 
 interface Lote {
@@ -24,7 +26,9 @@ interface Lote {
   activo: boolean
 }
 
-export function SendBlastModal({ templateKey, onClose }: SendBlastModalProps) {
+export function SendBlastModal({ templateKey, onClose, onCampaignCreated }: SendBlastModalProps) {
+  const [campaignName, setCampaignName] = useState("")
+  const [createdCampaignId, setCreatedCampaignId] = useState<number | null>(null)
   const [audiences, setAudiences] = useState<string[]>([])
   const [lotes, setLotes] = useState<Lote[]>([])
   const [loadingLotes, setLoadingLotes] = useState(true)
@@ -160,12 +164,16 @@ export function SendBlastModal({ templateKey, onClose }: SendBlastModalProps) {
           provinces: selectedProvinces, 
           manualList,
           buyerLoteId,
-          buyerStatuses
+          buyerStatuses,
+          nombreCampania: campaignName
         })
       })
+      const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        const data = await res.json()
         throw new Error(data.error || "Error al enviar mails")
+      }
+      if (data.campaignId) {
+        setCreatedCampaignId(data.campaignId)
       }
       setSuccess(true)
     } catch (e: any) {
@@ -183,7 +191,26 @@ export function SendBlastModal({ templateKey, onClose }: SendBlastModalProps) {
           </div>
           <h2 className="text-xl font-bold text-white mb-2">¡Envíos Iniciados!</h2>
           <p className="text-white/60 mb-6">Los correos están siendo enviados en segundo plano. Esto puede tomar unos minutos dependiendo de la cantidad.</p>
-          <Button onClick={onClose} className="w-full bg-white text-black hover:bg-white/90">Cerrar</Button>
+          <div className="flex flex-col sm:flex-row gap-3 w-full">
+            <Button
+              onClick={() => {
+                if (createdCampaignId) {
+                  onCampaignCreated?.(createdCampaignId)
+                }
+                onClose()
+              }}
+              className="flex-1 bg-[#AA6F3B] hover:bg-[#AA6F3B]/90 text-white font-medium"
+            >
+              Ver Monitoreo en Vivo
+            </Button>
+            <Button
+              onClick={onClose}
+              variant="outline"
+              className="flex-1 border-white/10 text-white hover:bg-white/10"
+            >
+              Cerrar
+            </Button>
+          </div>
         </div>
       </div>
     )
@@ -204,6 +231,18 @@ export function SendBlastModal({ templateKey, onClose }: SendBlastModalProps) {
         <div className="p-6 overflow-y-auto space-y-6">
           {error && <div className="p-3 rounded bg-red-500/10 border border-red-500/20 text-red-400 text-sm">{error}</div>}
           
+          {/* Nombre de la Campaña */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-white/90">Nombre de la Campaña (Opcional)</label>
+            <Input
+              value={campaignName}
+              onChange={(e) => setCampaignName(e.target.value)}
+              placeholder="ej. Novedades Lote 3 - Lista de Espera"
+              className="bg-black/50 border-white/10 text-white placeholder-white/30 focus:border-[#AA6F3B]"
+            />
+            <p className="text-xs text-white/40">Si se deja vacío, se generará automáticamente con la fecha de hoy.</p>
+          </div>
+
           <div className="space-y-3">
             <h3 className="font-medium text-white/90">1. Seleccionar Audiencia</h3>
             
