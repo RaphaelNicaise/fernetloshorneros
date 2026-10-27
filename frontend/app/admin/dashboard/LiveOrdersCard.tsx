@@ -94,8 +94,23 @@ export function LiveOrdersCard() {
 
   useEffect(() => {
     fetchOrders()
-    const interval = setInterval(fetchOrders, 2000)
-    return () => clearInterval(interval)
+    let interval = setInterval(fetchOrders, 2000)
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        clearInterval(interval)
+      } else {
+        fetchOrders()
+        interval = setInterval(fetchOrders, 2000)
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
   }, [])
 
   return (
