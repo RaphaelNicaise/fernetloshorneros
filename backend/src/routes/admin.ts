@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import crypto from 'crypto';
 import { signToken, verifyToken, adminAuth } from '@/middleware/adminAuth';
 import { getBiAnalytics } from '@/controllers/analyticsController';
+import { getDashboardStats } from '@/controllers/dashboardController';
 
 const adminRouter = Router();
 
@@ -109,5 +110,6 @@ adminRouter.get('/verify', (req: Request, res: Response) => {
 });
 
 adminRouter.get('/analytics-bi', adminAuth, getBiAnalytics);
+adminRouter.get('/dashboard-stats', adminAuth, getDashboardStats);
 
 export default adminRouter;
