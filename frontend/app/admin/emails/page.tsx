@@ -1,12 +1,14 @@
 "use client"
 
-import { useState, useEffect, useRef, useMemo } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { API_BASE_URL } from "@/lib/api"
 import { Mail, Send, RotateCcw, Save, Copy, Check, Eye, Plus, Trash2, Monitor, Smartphone } from "lucide-react"
 import { SendBlastModal } from "./components/SendBlastModal"
+import { CampaignsList } from "./components/CampaignsList"
+import { CampaignMonitorModal } from "./components/CampaignMonitorModal"
 
 type EmailTemplateType = string
 
@@ -66,6 +68,8 @@ const DUMMY_DATA: Record<string, string> = {
 };
 
 export default function AdminEmailsPage() {
+  const [mainSection, setMainSection] = useState<'templates' | 'campaigns'>('templates')
+  const [monitoredCampaignId, setMonitoredCampaignId] = useState<number | null>(null)
   const [activeTab, setActiveTab] = useState<EmailTemplateType>("compra_confirmacion")
   const [templates, setTemplates] = useState<Record<string, EmailTemplate>>({})
   const [loading, setLoading] = useState(true)
@@ -272,11 +276,34 @@ export default function AdminEmailsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="font-serif text-3xl font-bold text-white flex items-center gap-2">
           <Mail className="w-8 h-8 text-[#AA6F3B]" />
-          Personalización de Emails
+          Emails y Campañas
         </h1>
+
+        <div className="flex items-center gap-1 bg-[#14120f] p-1 rounded-xl border border-white/10">
+          <button
+            onClick={() => setMainSection('templates')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              mainSection === 'templates'
+                ? 'bg-[#AA6F3B] text-white'
+                : 'text-white/60 hover:text-white'
+            }`}
+          >
+            Plantillas
+          </button>
+          <button
+            onClick={() => setMainSection('campaigns')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              mainSection === 'campaigns'
+                ? 'bg-[#AA6F3B] text-white'
+                : 'text-white/60 hover:text-white'
+            }`}
+          >
+            Campañas y Envíos
+          </button>
+        </div>
       </div>
 
       {error && <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-md mb-6">{error}</div>}
@@ -287,7 +314,8 @@ export default function AdminEmailsPage() {
         </div>
       )}
 
-      <div className="grid lg:grid-cols-[250px_1fr] gap-6">
+      {mainSection === 'templates' ? (
+        <div className="grid lg:grid-cols-[250px_1fr] gap-6">
         {/* Tabs Sidebar */}
         <div className="flex flex-col gap-2">
           {Object.keys(templates).map(key => (
@@ -463,9 +491,26 @@ export default function AdminEmailsPage() {
           )}
         </div>
       </div>
+    ) : (
+      <CampaignsList onSelectCampaign={(id) => setMonitoredCampaignId(id)} />
+    )}
       
       {showSendModal && (
-        <SendBlastModal templateKey={activeTab} onClose={() => setShowSendModal(false)} />
+        <SendBlastModal
+          templateKey={activeTab}
+          onClose={() => setShowSendModal(false)}
+          onCampaignCreated={(campaignId) => {
+            setMainSection('campaigns')
+            setMonitoredCampaignId(campaignId)
+          }}
+        />
+      )}
+
+      {monitoredCampaignId !== null && (
+        <CampaignMonitorModal
+          campaignId={monitoredCampaignId}
+          onClose={() => setMonitoredCampaignId(null)}
+        />
       )}
 
       {/* Delete Confirmation Modal */}
