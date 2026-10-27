@@ -67,7 +67,7 @@ export async function getAllOrderItems(): Promise<OrderItem[]> {
 /**
  * Obtiene todas las órdenes
  */
-export async function getAllOrders(lote_id?: number | null): Promise<Order[]> {
+export async function getAllOrders(lote_id?: number | null, limit?: number | null): Promise<Order[]> {
     let query = `SELECT 
             p.id, 
             p.total, 
@@ -77,6 +77,9 @@ export async function getAllOrders(lote_id?: number | null): Promise<Order[]> {
             p.cupon_codigo,
             p.cupon_descuento,
             p.lote_id,
+            (SELECT GROUP_CONCAT(CONCAT(pi.cantidad, 'x ', pi.title) SEPARATOR ', ')
+             FROM pedido_items pi
+             WHERE pi.id_pedido = p.id) AS items_summary,
             e.zipnova_shipment_id,
             e.tracking_code,
             e.status AS envio_status,
@@ -96,14 +99,22 @@ export async function getAllOrders(lote_id?: number | null): Promise<Order[]> {
              SELECT id FROM envios e2 WHERE e2.id_pedido = p.id ORDER BY e2.fecha DESC LIMIT 1
          )`;
 
+    const replacements: Record<string, any> = {};
+
     if (lote_id) {
         query += ` WHERE p.lote_id = :lote_id`;
+        replacements.lote_id = lote_id;
     }
 
     query += ` ORDER BY p.fecha DESC`;
 
+    if (limit && Number.isInteger(limit) && limit > 0) {
+        query += ` LIMIT :limit`;
+        replacements.limit = limit;
+    }
+
     const orders = await sequelize.query<Order>(query, {
-        replacements: lote_id ? { lote_id } : {},
+        replacements,
         type: QueryTypes.SELECT,
     });
 

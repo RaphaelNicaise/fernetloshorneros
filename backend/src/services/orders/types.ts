@@ -6,6 +6,7 @@ export type Order = {
     status: OrderStatus;
     fecha: string;
     external_reference: string;
+    items_summary?: string | null;
     zipnova_shipment_id?: string | null;
     tracking_code?: string | null;
     envio_status?: string | null;

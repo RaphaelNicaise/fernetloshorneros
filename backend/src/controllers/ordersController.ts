@@ -25,7 +25,8 @@ import { v4 as uuidv4 } from 'uuid';
 export async function listOrders(req: Request, res: Response) {
   try {
     const lote_id = req.query.lote_id ? Number(req.query.lote_id) : null;
-    const orders = await getAllOrders(lote_id);
+    const limit = req.query.limit ? Number(req.query.limit) : null;
+    const orders = await getAllOrders(lote_id, limit);
     return res.json(orders);
   } catch (error: any) {
     console.error('Error obteniendo pedidos:', error);
