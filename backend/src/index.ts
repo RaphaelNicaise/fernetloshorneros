@@ -20,6 +20,7 @@ import produccionRouter from '@/routes/produccion';
 import audiencesRouter from '@/routes/audiences';
 import { produccionService } from '@/services/produccionService';
 import backupsRouter from '@/routes/backups';
+import { campaignWorker } from '@/services/campaignWorker';
 import cron from 'node-cron';
 import { createAutoBackup } from '@/services/backupService';
 import { cleanupExpiredOrders } from '@/controllers/paymentsController';
@@ -86,6 +87,7 @@ app.use(errorHandler);
 const startServer = async () => {
   try {
     await connectDB({ sync: false });
+    campaignWorker.initCampaignWorker().catch((err) => logger.error('Error en initCampaignWorker:', err));
     app.listen(port, '0.0.0.0', () => {
       logger.info(`Servidor escuchando en el puerto ${port}`);
       
