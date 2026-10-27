@@ -33,11 +33,12 @@ export function CampaignMonitorModal({ campaignId, onClose }: CampaignMonitorMod
 
   useEffect(() => {
     fetchStatus()
+    const pollRate = campaign && ['completada', 'cancelada'].includes(campaign.estado) ? 10000 : 2500
     const interval = setInterval(() => {
       fetchStatus()
-    }, 2500)
+    }, pollRate)
     return () => clearInterval(interval)
-  }, [fetchStatus])
+  }, [fetchStatus, campaign?.estado])
 
   useEffect(() => {
     if (autoScroll && logsContainerRef.current) {

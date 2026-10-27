@@ -55,7 +55,7 @@ export const campaignWorker = {
 
       const fromEmail = process.env.MAIL_FROM || process.env.SMTP_USER || process.env.MAIL_USER;
       const batchSize = 10;
-      const pacingDelayMs = process.env.NODE_ENV === 'test' ? 0 : 200; // 5 emails/second max in prod
+      const pacingDelayMs = process.env.NODE_ENV === 'test' ? 0 : (Number(process.env.EMAIL_PACING_DELAY_MS) || 200); // 5 emails/second max by default in prod
 
       while (true) {
         // Check paused or cancelled
