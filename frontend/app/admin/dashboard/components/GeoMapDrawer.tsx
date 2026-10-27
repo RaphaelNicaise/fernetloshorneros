@@ -35,7 +35,7 @@ export function GeoMapDrawer({ open, onOpenChange, geoDistribution }: GeoMapDraw
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl border-white/10 bg-[#14120e] text-white">
+      <DialogContent className="max-w-5xl border-white/10 bg-[#14120e] text-white">
         <DialogHeader className="border-b border-white/8 pb-3">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#AA6F3B]/15 text-[#AA6F3B]">
@@ -52,9 +52,9 @@ export function GeoMapDrawer({ open, onOpenChange, geoDistribution }: GeoMapDraw
           </div>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 gap-6 pt-2 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 pt-2 md:grid-cols-12">
           {/* Map Column */}
-          <div className="flex h-[380px] w-full flex-col items-center justify-center rounded-xl border border-white/5 bg-black/20 p-2">
+          <div className="flex h-[380px] w-full flex-col items-center justify-center rounded-xl border border-white/5 bg-black/20 p-2 md:col-span-5">
             {mapData.length > 0 ? (
               <ArgentinaMap
                 data={mapData}
@@ -70,7 +70,7 @@ export function GeoMapDrawer({ open, onOpenChange, geoDistribution }: GeoMapDraw
           </div>
 
           {/* Ranking Column */}
-          <div className="flex flex-col">
+          <div className="flex flex-col md:col-span-7">
             <div className="mb-2 flex items-center justify-between border-b border-white/5 pb-2 text-xs font-semibold uppercase tracking-wider text-white/40">
               <span>Provincia</span>
               <span>Pedidos | Botellas</span>
@@ -100,10 +100,10 @@ export function GeoMapDrawer({ open, onOpenChange, geoDistribution }: GeoMapDraw
                           : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.04]'
                       }`}
                     >
-                      <div className="min-w-0 pr-2">
+                      <div className="min-w-0 flex-1 pr-3">
                         <div className="flex items-center gap-2">
-                          <span className="font-mono text-xs text-white/40">#{idx + 1}</span>
-                          <span className="truncate text-xs font-medium text-white/90">
+                          <span className="shrink-0 font-mono text-xs text-white/40">#{idx + 1}</span>
+                          <span className="text-xs font-medium text-white/95 leading-tight whitespace-normal">
                             {item.provincia}
                           </span>
                         </div>
