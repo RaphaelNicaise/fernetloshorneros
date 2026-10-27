@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react"
 import { API_BASE_URL } from "@/lib/api"
-import { ShoppingBag, Radio } from "lucide-react"
+import { ShoppingBag, Radio, MapPin, Package, Tag } from "lucide-react"
 
 type OrderStatus = 'pending' | 'paid' | 'failed' | 'cancelled'
 
@@ -15,6 +15,11 @@ type Order = {
   envio_status?: string | null
   nombre_cliente?: string | null
   email_cliente?: string | null
+  ciudad?: string | null
+  provincia?: string | null
+  cupon_codigo?: string | null
+  cupon_descuento?: number | null
+  items_summary?: string | null
 }
 
 type EffectiveStatus = 'pendiente' | 'para_despachar' | 'enviado' | 'cancelado' | 'venta_local'
@@ -74,7 +79,7 @@ export function LiveOrdersCard() {
   const fetchOrders = async () => {
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null
-      const res = await fetch(`${API_BASE_URL}/orders`, {
+      const res = await fetch(`${API_BASE_URL}/orders?limit=50`, {
         cache: 'no-store',
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       })
@@ -153,32 +158,62 @@ export function LiveOrdersCard() {
         ) : (
           orders.map((order) => {
             const effStatus = getEffectiveStatus(order)
+            const locationText = [order.ciudad?.trim(), order.provincia?.trim()]
+              .filter(Boolean)
+              .join(', ')
+
             return (
               <div
                 key={order.id}
-                className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] p-3.5 transition-colors hover:bg-white/[0.04]"
+                className="flex flex-col gap-1.5 rounded-xl border border-white/5 bg-white/[0.02] px-3.5 py-2.5 transition-colors hover:bg-white/[0.04]"
               >
-                <div className="min-w-0 pr-3">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-bold text-white/90">
+                {/* Micro-line 1: ID, Date, Client, Location, Total & Status */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-2 min-w-0">
+                    <span className="font-mono text-xs font-bold text-white/90 shrink-0">
                       #{order.id}
                     </span>
-                    <span className="text-[11px] text-white/35">
+                    <span className="text-[11px] text-white/35 shrink-0">
                       {formatDate(order.fecha)}
                     </span>
+                    <span className="text-white/20 shrink-0">•</span>
+                    <span className="truncate text-xs font-semibold text-white/90">
+                      {order.nombre_cliente?.trim() || 'Cliente no registrado'}
+                    </span>
+                    {locationText && (
+                      <span className="inline-flex items-center gap-1 text-[11px] text-white/50 shrink-0">
+                        <MapPin className="h-3 w-3 text-[#AA6F3B]/80" />
+                        {locationText}
+                      </span>
+                    )}
                   </div>
-                  <p className="truncate text-sm font-medium text-white/80">
-                    {order.nombre_cliente?.trim() || 'Cliente no registrado'}
-                  </p>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="font-mono text-xs font-bold text-white">
+                      {order.total.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 })}
+                    </span>
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${STATUS_STYLES[effStatus]}`}>
+                      {STATUS_LABELS[effStatus]}
+                    </span>
+                  </div>
                 </div>
 
-                <div className="flex flex-col items-end gap-1.5 shrink-0">
-                  <span className="font-mono text-sm font-semibold text-white">
-                    {order.total.toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })}
-                  </span>
-                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${STATUS_STYLES[effStatus]}`}>
-                    {STATUS_LABELS[effStatus]}
-                  </span>
+                {/* Micro-line 2: Products and Coupon */}
+                <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] border-t border-white/[0.03] pt-1">
+                  <div className="flex items-center gap-1.5 text-white/70 min-w-0">
+                    <Package className="h-3.5 w-3.5 text-[#AA6F3B] shrink-0" />
+                    <span className="truncate text-white/75">
+                      {order.items_summary?.trim() || 'Sin detalle de productos'}
+                    </span>
+                  </div>
+
+                  {order.cupon_codigo && (
+                    <span className="inline-flex items-center gap-1 rounded bg-[#AA6F3B]/15 border border-[#AA6F3B]/30 px-1.5 py-0.5 text-[10px] font-mono font-medium text-[#AA6F3B] shrink-0">
+                      <Tag className="h-2.5 w-2.5" />
+                      Cupón: {order.cupon_codigo}
+                      {order.cupon_descuento ? ` (-$${Number(order.cupon_descuento).toLocaleString('es-AR')})` : ''}
+                    </span>
+                  )}
                 </div>
               </div>
             )
