@@ -18,6 +18,7 @@ import couponsRouter from '@/routes/coupons';
 import lotesRouter from '@/routes/lotes';
 import produccionRouter from '@/routes/produccion';
 import audiencesRouter from '@/routes/audiences';
+import campaignsRouter from '@/routes/campaigns';
 import { produccionService } from '@/services/produccionService';
 import backupsRouter from '@/routes/backups';
 import { campaignWorker } from '@/services/campaignWorker';
@@ -79,6 +80,7 @@ app.use('/coupons', couponsRouter);
 app.use('/lotes', lotesRouter);
 app.use('/produccion', produccionRouter);
 app.use('/audiences', audiencesRouter);
+app.use('/campaigns', campaignsRouter);
 app.use('/backups', backupsRouter);
 
 // Global error handler

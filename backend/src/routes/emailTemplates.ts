@@ -4,6 +4,8 @@ import { emailTemplateService } from '../services/emailTemplateService';
 import { transporter } from '../config/mail';
 import { getDefaultTemplate, getEmailWrapper } from '../services/mailService';
 import { audiencesService } from '../services/audiencesService';
+import { campaignService } from '../services/campaignService';
+import { campaignWorker } from '../services/campaignWorker';
 
 const router = Router();
 
@@ -181,16 +183,15 @@ router.post('/:key/preview', async (req: Request, res: Response) => {
   }
 });
 
-// Enviar blast masivo
+// Enviar blast masivo (ahora persistido y encolado)
 router.post('/:key/send-blast', async (req: Request, res: Response) => {
   try {
     const { key } = req.params;
-    const { audiences, provinces, manualList } = req.body;
+    const { audiences, provinces, manualList, nombreCampania } = req.body;
 
     const template = await emailTemplateService.getTemplate(key);
-    if (!template) {
-      return res.status(404).json({ error: 'Template no encontrado' });
-    }
+    const defaultTpl = getDefaultTemplate(key);
+    const subject = template?.subject || defaultTpl?.subject || 'Novedades de Fernet Los Horneros';
 
     if ((!audiences || audiences.length === 0) && !manualList) {
       return res.status(400).json({ error: 'Debes seleccionar al menos una audiencia o ingresar una lista manual.' });
@@ -208,40 +209,27 @@ router.post('/:key/send-blast', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'No hay destinatarios que coincidan con los filtros o la lista provista.' });
     }
 
-    // Despachar en background para no bloquear la request
-    let enviosExitosos = 0;
-    
-    // Función asíncrona que envía uno por uno (o en lotes)
-    const sendBatch = async () => {
-      for (const recipient of finalRecipients) {
-        try {
-          let processedSubject = template.subject;
-          let processedHtml = template.html_content;
+    const campaignTitle = nombreCampania && nombreCampania.trim()
+      ? nombreCampania.trim()
+      : `Envío ${key} - ${new Date().toLocaleDateString('es-AR')}`;
 
-          // Reemplazar variables comunes
-          processedSubject = processedSubject.replace(/{{nombre}}/g, recipient.nombre || 'Cliente');
-          processedHtml = processedHtml.replace(/{{nombre}}/g, recipient.nombre || 'Cliente');
-          processedSubject = processedSubject.replace(/{{email}}/g, recipient.email);
-          processedHtml = processedHtml.replace(/{{email}}/g, recipient.email);
+    // Create campaign and persist all recipients in MySQL
+    const campaign = await campaignService.createCampaignWithRecipients({
+      nombre: campaignTitle,
+      template_key: key,
+      asunto: subject,
+      recipients: finalRecipients,
+      creado_por: (req as any).user?.email || (req as any).adminUser?.email || 'admin',
+    });
 
-          const fromEmail = process.env.MAIL_FROM || process.env.SMTP_USER || process.env.MAIL_USER;
-          await transporter.sendMail({
-            from: `"Fernet Los Horneros" <${fromEmail}>`,
-            to: recipient.email,
-            subject: processedSubject,
-            html: processedHtml
-          });
-          enviosExitosos++;
-        } catch (err) {
-          console.error(`Error enviando a ${recipient.email}:`, err);
-        }
-      }
-      console.log(`Blast completado: ${enviosExitosos}/${finalRecipients.length} enviados con éxito.`);
-    };
+    // Start background worker
+    campaignWorker.startCampaignWorker(campaign.id);
 
-    sendBatch(); // Lo ejecutamos sin await para que devuelva la response rapido
-
-    res.json({ message: 'Envío masivo iniciado.', total: finalRecipients.length });
+    res.json({
+      message: 'Campaña creada y encolada con éxito.',
+      campaignId: campaign.id,
+      total: campaign.total_destinatarios,
+    });
   } catch (error: any) {
     console.error('Error initiating email blast:', error);
     res.status(500).json({ error: error.message });
