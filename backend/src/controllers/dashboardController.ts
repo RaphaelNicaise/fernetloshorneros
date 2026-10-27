@@ -16,9 +16,13 @@ export async function getDashboardStats(req: Request, res: Response) {
     let whereClause = '';
     const replacements: Record<string, any> = {};
 
-    if (scope === 'lote' && targetLoteId) {
-      whereClause = 'WHERE p.lote_id = :loteId';
-      replacements.loteId = targetLoteId;
+    if (scope === 'lote') {
+      if (targetLoteId) {
+        whereClause = 'WHERE p.lote_id = :loteId';
+        replacements.loteId = targetLoteId;
+      } else {
+        whereClause = 'WHERE 1 = 0';
+      }
     } else if (scope === 'today') {
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
@@ -50,6 +54,7 @@ export async function getDashboardStats(req: Request, res: Response) {
     `;
 
     // 3. Distribución geográfica para el mapa
+    const geoWhere = whereClause ? `${whereClause} AND ` : 'WHERE ';
     const geoQuery = `
       SELECT 
         e.provincia, 
@@ -58,7 +63,10 @@ export async function getDashboardStats(req: Request, res: Response) {
       FROM envios e
       JOIN pedidos p ON p.id = e.id_pedido
       LEFT JOIN pedido_items pi ON pi.id_pedido = p.id
-      ${whereClause ? whereClause + " AND p.status = 'paid' AND e.provincia IS NOT NULL AND e.provincia != ''" : "WHERE p.status = 'paid' AND e.provincia IS NOT NULL AND e.provincia != ''"}
+      ${geoWhere} e.id = (
+        SELECT id FROM envios e2 WHERE e2.id_pedido = p.id ORDER BY e2.fecha DESC LIMIT 1
+      )
+      AND p.status = 'paid' AND e.provincia IS NOT NULL AND e.provincia != ''
       GROUP BY e.provincia
       ORDER BY count DESC
     `;

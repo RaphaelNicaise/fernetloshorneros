@@ -111,5 +111,6 @@ adminRouter.get('/verify', (req: Request, res: Response) => {
 
 adminRouter.get('/analytics-bi', adminAuth, getBiAnalytics);
 adminRouter.get('/dashboard-stats', adminAuth, getDashboardStats);
+adminRouter.get('/dashboard/stats', adminAuth, getDashboardStats);
 
 export default adminRouter;

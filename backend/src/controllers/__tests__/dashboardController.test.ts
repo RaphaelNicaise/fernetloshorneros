@@ -128,4 +128,40 @@ describe('dashboardController - getDashboardStats', () => {
       })
     );
   });
+
+  it('sets whereClause to WHERE 1 = 0 when scope=lote and no active lote exists', async () => {
+    mockRequest.query = { scope: 'lote' };
+    (lotesService.getLoteActual as jest.Mock).mockResolvedValue(null);
+
+    (sequelize.query as jest.Mock)
+      .mockResolvedValueOnce([
+        {
+          revenue: 0,
+          paidOrders: 0,
+          pendingPaymentOrders: 0,
+          pendingShipmentOrders: 0,
+          avgTicket: 0,
+        },
+      ])
+      .mockResolvedValueOnce([{ totalBottles: 0 }])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ criticalStockCount: 0 }]);
+
+    await getDashboardStats(mockRequest as Request, mockResponse as Response);
+
+    // Verify first query contains 'WHERE 1 = 0'
+    const firstCallQuery = (sequelize.query as jest.Mock).mock.calls[0][0];
+    expect(firstCallQuery).toContain('WHERE 1 = 0');
+
+    expect(responseJson).toHaveBeenCalledWith(
+      expect.objectContaining({
+        scope: 'lote',
+        activeLote: null,
+        kpis: expect.objectContaining({
+          revenue: 0,
+          paidOrders: 0,
+        }),
+      })
+    );
+  });
 });
