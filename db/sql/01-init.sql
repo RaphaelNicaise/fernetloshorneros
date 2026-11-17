@@ -125,6 +125,13 @@ CREATE TABLE IF NOT EXISTS lotes (
 -- Modificar tabla pedidos para asociarla a un lote
 ALTER TABLE pedidos 
   ADD COLUMN lote_id INT DEFAULT NULL;
+
+-- Índices para optimizar rendimiento de dashboard y consultas de pedidos
+CREATE INDEX IF NOT EXISTS idx_pedidos_fecha ON pedidos(fecha);
+CREATE INDEX IF NOT EXISTS idx_pedidos_lote_fecha ON pedidos(lote_id, fecha);
+CREATE INDEX IF NOT EXISTS idx_pedidos_status ON pedidos(status);
+CREATE INDEX IF NOT EXISTS idx_envios_pedido_fecha ON envios(id_pedido, fecha);
+CREATE INDEX IF NOT EXISTS idx_pedido_items_pedido ON pedido_items(id_pedido);
 ----------------------------------------
 
 -- Tabla de ingredientes para producción

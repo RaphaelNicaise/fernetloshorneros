@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { API_BASE_URL } from '@/lib/api';
 import { DashboardStatsResponse, ScopeType } from './types';
 import { DashboardHeader } from './components/DashboardHeader';
@@ -32,8 +32,12 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const isFetchingRef = useRef(false);
 
   const fetchStats = useCallback(async () => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
       const res = await fetch(`${API_BASE_URL}/admin/dashboard-stats?scope=${scope}`, {
@@ -49,21 +53,27 @@ export default function AdminDashboardPage() {
     } catch (err) {
       // Mantener los datos actuales si hay micro-corte
     } finally {
+      isFetchingRef.current = false;
       setLoading(false);
     }
   }, [scope]);
 
+  const handleManualRefresh = useCallback(() => {
+    fetchStats();
+    setRefreshTrigger((prev) => prev + 1);
+  }, [fetchStats]);
+
   useEffect(() => {
     fetchStats();
 
-    let interval = setInterval(fetchStats, 10000);
+    let interval = setInterval(fetchStats, 20000); // 20s para balancear actualización y rendimiento del VPS
 
     const handleVisibility = () => {
       if (document.hidden) {
         clearInterval(interval);
       } else {
         fetchStats();
-        interval = setInterval(fetchStats, 10000);
+        interval = setInterval(fetchStats, 20000);
       }
     };
 
@@ -83,7 +93,7 @@ export default function AdminDashboardPage() {
         onScopeChange={setScope}
         activeLote={stats.activeLote}
         onOpenMap={() => setMapOpen(true)}
-        onRefresh={fetchStats}
+        onRefresh={handleManualRefresh}
         loading={loading}
         lastUpdated={lastUpdated}
       />
@@ -94,10 +104,10 @@ export default function AdminDashboardPage() {
       {/* 3. Main Grid: 65% Live Orders (2 cols on lg) & 35% Compact Stock Monitor (1 col on lg) */}
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <LiveOrdersCard />
+          <LiveOrdersCard refreshTrigger={refreshTrigger} />
         </div>
         <div className="lg:col-span-1">
-          <StockMonitorCard />
+          <StockMonitorCard refreshTrigger={refreshTrigger} />
         </div>
       </div>
 

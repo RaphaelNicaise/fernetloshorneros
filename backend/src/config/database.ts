@@ -90,6 +90,23 @@ export async function connectDB(options?: { sync?: boolean; force?: boolean; max
 				logger.warn('Email campaigns tables migration check:', e);
 			}
 
+			// Safe startup indexes for dashboard performance
+			const performanceIndexes = [
+				{ table: 'pedidos', index: 'idx_pedidos_fecha', cols: 'fecha' },
+				{ table: 'pedidos', index: 'idx_pedidos_lote_fecha', cols: 'lote_id, fecha' },
+				{ table: 'pedidos', index: 'idx_pedidos_status', cols: 'status' },
+				{ table: 'envios', index: 'idx_envios_pedido_fecha', cols: 'id_pedido, fecha' },
+				{ table: 'pedido_items', index: 'idx_pedido_items_pedido', cols: 'id_pedido' },
+			];
+
+			for (const item of performanceIndexes) {
+				try {
+					await sequelize.query(`CREATE INDEX ${item.index} ON ${item.table} (${item.cols});`);
+				} catch {
+					// Ignorado si ya existe o la tabla no está creada aún
+				}
+			}
+
 			return sequelize;
 		} catch (error) {
 			console.error(`Sequelize: intento ${attempt} fallido:`, (error as Error).message ?? error);

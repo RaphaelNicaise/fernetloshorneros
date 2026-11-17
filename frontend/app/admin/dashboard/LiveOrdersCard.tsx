@@ -1,8 +1,9 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState, useRef, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import { API_BASE_URL } from "@/lib/api"
-import { ShoppingBag, Radio, MapPin, Package, Tag } from "lucide-react"
+import { ShoppingBag, Radio, MapPin, Package, Tag, ArrowUpRight } from "lucide-react"
 
 type OrderStatus = 'pending' | 'paid' | 'failed' | 'cancelled'
 
@@ -71,15 +72,23 @@ function formatDate(isoString: string): string {
   }
 }
 
-export function LiveOrdersCard() {
+interface LiveOrdersCardProps {
+  refreshTrigger?: number
+}
+
+export function LiveOrdersCard({ refreshTrigger }: LiveOrdersCardProps) {
+  const router = useRouter()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const isFirstLoad = useRef(true)
+  const isFetchingRef = useRef(false)
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
+    if (isFetchingRef.current) return
+    isFetchingRef.current = true
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null
-      const res = await fetch(`${API_BASE_URL}/orders?limit=50`, {
+      const res = await fetch(`${API_BASE_URL}/orders?limit=20`, {
         cache: 'no-store',
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       })
@@ -90,23 +99,31 @@ export function LiveOrdersCard() {
     } catch {
       // Mantener los datos actuales en caso de error transitorio
     } finally {
+      isFetchingRef.current = false
       if (isFirstLoad.current) {
         setLoading(false)
         isFirstLoad.current = false
       }
     }
-  }
+  }, [])
+
+  // Manual refresh trigger
+  useEffect(() => {
+    if (refreshTrigger !== undefined && refreshTrigger > 0) {
+      fetchOrders()
+    }
+  }, [refreshTrigger, fetchOrders])
 
   useEffect(() => {
     fetchOrders()
-    let interval = setInterval(fetchOrders, 2000)
+    let interval = setInterval(fetchOrders, 12000)
 
     const handleVisibilityChange = () => {
       if (document.hidden) {
         clearInterval(interval)
       } else {
         fetchOrders()
-        interval = setInterval(fetchOrders, 2000)
+        interval = setInterval(fetchOrders, 12000)
       }
     }
 
@@ -116,7 +133,7 @@ export function LiveOrdersCard() {
       clearInterval(interval)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
-  }, [])
+  }, [fetchOrders])
 
   return (
     <div className="flex flex-col rounded-2xl border border-white/8 bg-[#14120e] p-5 shadow-xl min-w-0">
@@ -128,7 +145,7 @@ export function LiveOrdersCard() {
           </div>
           <div>
             <h2 className="font-serif text-lg font-bold text-white">Pedidos en Vivo</h2>
-            <p className="text-xs text-white/40">Feed de órdenes en tiempo real</p>
+            <p className="text-xs text-white/40">Feed de órdenes en tiempo real (últimos 20)</p>
           </div>
         </div>
 
@@ -165,12 +182,14 @@ export function LiveOrdersCard() {
             return (
               <div
                 key={order.id}
-                className="flex flex-col gap-1.5 rounded-xl border border-white/5 bg-white/[0.02] px-3.5 py-2.5 transition-colors hover:bg-white/[0.04]"
+                onClick={() => router.push(`/admin/pedidos?id=${order.id}`)}
+                title="Hacé clic para ver el detalle en Pedidos"
+                className="group flex flex-col gap-1.5 rounded-xl border border-white/5 bg-white/[0.02] px-3.5 py-2.5 transition-all cursor-pointer hover:border-[#AA6F3B]/40 hover:bg-white/[0.05]"
               >
                 {/* Micro-line 1: ID, Date, Client, Location, Total & Status */}
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex flex-wrap items-center gap-2 min-w-0">
-                    <span className="font-mono text-xs font-bold text-white/90 shrink-0">
+                    <span className="font-mono text-xs font-bold text-white/90 shrink-0 group-hover:text-[#AA6F3B] transition-colors">
                       #{order.id}
                     </span>
                     <span className="text-[11px] text-white/35 shrink-0">
@@ -195,6 +214,7 @@ export function LiveOrdersCard() {
                     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${STATUS_STYLES[effStatus]}`}>
                       {STATUS_LABELS[effStatus]}
                     </span>
+                    <ArrowUpRight className="h-3.5 w-3.5 text-white/30 group-hover:text-[#AA6F3B] transition-colors shrink-0" />
                   </div>
                 </div>
 

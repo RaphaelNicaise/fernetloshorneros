@@ -3,6 +3,18 @@ import sequelize from '@/config/database';
 import { QueryTypes } from 'sequelize';
 import { lotesService } from '@/services/lotesService';
 
+interface StatsCacheEntry {
+  data: any;
+  timestamp: number;
+}
+
+const statsCache = new Map<string, StatsCacheEntry>();
+const CACHE_TTL_MS = 10_000; // 10s TTL para evitar sobrecarga en MySQL
+
+export function clearStatsCache() {
+  statsCache.clear();
+}
+
 export async function getDashboardStats(req: Request, res: Response) {
   try {
     const scopeParam = (req.query.scope as string) || 'lote';
@@ -12,6 +24,15 @@ export async function getDashboardStats(req: Request, res: Response) {
     const activeLote = await lotesService.getLoteActual();
     const explicitLoteId = req.query.lote_id ? Number(req.query.lote_id) : null;
     const targetLoteId = explicitLoteId || activeLote?.id || null;
+
+    const cacheKey = `${scope}_${targetLoteId ?? 'none'}`;
+    const isTest = process.env.NODE_ENV === 'test';
+    if (!isTest) {
+      const cached = statsCache.get(cacheKey);
+      if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+        return res.json(cached.data);
+      }
+    }
 
     let whereClause = '';
     const replacements: Record<string, any> = {};
@@ -89,7 +110,7 @@ export async function getDashboardStats(req: Request, res: Response) {
     const bottles = bottlesResult?.[0] || {};
     const stockAlerts = stockAlertsResult?.[0] || {};
 
-    return res.json({
+    const responsePayload = {
       scope,
       activeLote: activeLote
         ? {
@@ -114,7 +135,13 @@ export async function getDashboardStats(req: Request, res: Response) {
         count: Number(row.count || 0),
         bottles: Number(row.bottles || 0),
       })),
-    });
+    };
+
+    if (!isTest) {
+      statsCache.set(cacheKey, { data: responsePayload, timestamp: Date.now() });
+    }
+
+    return res.json(responsePayload);
   } catch (error: any) {
     console.error('Error al obtener estadísticas del dashboard:', error);
     return res.status(500).json({ error: error?.message || 'Error al obtener estadísticas' });

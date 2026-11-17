@@ -68,7 +68,33 @@ export async function getAllOrderItems(): Promise<OrderItem[]> {
  * Obtiene todas las órdenes
  */
 export async function getAllOrders(lote_id?: number | null, limit?: number | null): Promise<Order[]> {
-    let query = `SELECT 
+    const replacements: Record<string, any> = {};
+
+    let fromClause = 'pedidos p';
+    let whereClause = '';
+
+    if (limit && Number.isInteger(limit) && limit > 0) {
+        let innerWhere = '';
+        if (lote_id) {
+            innerWhere = ' WHERE p_sub.lote_id = :lote_id';
+            replacements.lote_id = lote_id;
+        }
+        fromClause = `(
+            SELECT p_sub.* 
+            FROM pedidos p_sub
+            ${innerWhere}
+            ORDER BY p_sub.fecha DESC
+            LIMIT :limit
+        ) p`;
+        replacements.limit = limit;
+    } else {
+        if (lote_id) {
+            whereClause = ' WHERE p.lote_id = :lote_id';
+            replacements.lote_id = lote_id;
+        }
+    }
+
+    const query = `SELECT 
             p.id, 
             p.total, 
             p.status, 
@@ -94,24 +120,12 @@ export async function getAllOrders(lote_id?: number | null, limit?: number | nul
             e.numero,
             e.extra,
             e.costo AS costo_envio
-         FROM pedidos p 
+         FROM ${fromClause}
          LEFT JOIN envios e ON e.id = (
              SELECT id FROM envios e2 WHERE e2.id_pedido = p.id ORDER BY e2.fecha DESC LIMIT 1
-         )`;
-
-    const replacements: Record<string, any> = {};
-
-    if (lote_id) {
-        query += ` WHERE p.lote_id = :lote_id`;
-        replacements.lote_id = lote_id;
-    }
-
-    query += ` ORDER BY p.fecha DESC`;
-
-    if (limit && Number.isInteger(limit) && limit > 0) {
-        query += ` LIMIT :limit`;
-        replacements.limit = limit;
-    }
+         )
+         ${whereClause}
+         ORDER BY p.fecha DESC`;
 
     const orders = await sequelize.query<Order>(query, {
         replacements,

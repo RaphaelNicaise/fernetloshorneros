@@ -1,10 +1,22 @@
 import sequelize from "@/config/database";
 import { QueryTypes } from "sequelize";
 
+let reservedStockCache: { data: Record<string, number>; timestamp: number } | null = null;
+const RESERVED_STOCK_TTL_MS = 15_000;
+
+export function clearReservedStockCache() {
+    reservedStockCache = null;
+}
+
 /**
  * Devuelve la cantidad de stock reservado por producto (pendientes de pago con stock reservado)
  */
 export async function getReservedStockByProduct(): Promise<Record<string, number>> {
+    const isTest = process.env.NODE_ENV === 'test';
+    if (!isTest && reservedStockCache && Date.now() - reservedStockCache.timestamp < RESERVED_STOCK_TTL_MS) {
+        return reservedStockCache.data;
+    }
+
     const rows = await sequelize.query<{ id_producto: string; reserved: string }>(
         `SELECT pi.id_producto, SUM(pi.cantidad) as reserved
          FROM pedido_items pi
@@ -17,6 +29,10 @@ export async function getReservedStockByProduct(): Promise<Record<string, number
     for (const row of rows) {
         map[row.id_producto] = Number(row.reserved) || 0;
     }
+
+    if (!isTest) {
+        reservedStockCache = { data: map, timestamp: Date.now() };
+    }
     return map;
 }
 
@@ -24,6 +40,7 @@ export async function getReservedStockByProduct(): Promise<Record<string, number
  * Marca una orden como que tiene stock reservado
  */
 export async function markOrderStockReserved(orderId: number): Promise<void> {
+    clearReservedStockCache();
     await sequelize.query(
         `UPDATE pedidos SET stock_reserved = 1, stock_reserved_at = NOW() WHERE id = :id`,
         {
@@ -37,6 +54,7 @@ export async function markOrderStockReserved(orderId: number): Promise<void> {
  * Marca una orden liberando su reserva de stock
  */
 export async function markOrderStockReleased(orderId: number): Promise<void> {
+    clearReservedStockCache();
     await sequelize.query(
         `UPDATE pedidos SET stock_reserved = 0 WHERE id = :id`,
         {

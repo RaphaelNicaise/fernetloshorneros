@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { API_BASE_URL } from '@/lib/api';
 import { Layers, Package, AlertTriangle } from 'lucide-react';
 
@@ -18,12 +18,19 @@ function getImageSrc(src?: string) {
   return src;
 }
 
-export function StockMonitorCard() {
+interface StockMonitorCardProps {
+  refreshTrigger?: number;
+}
+
+export function StockMonitorCard({ refreshTrigger }: StockMonitorCardProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [reservedStock, setReservedStock] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
+  const isFetchingRef = useRef(false);
 
-  const loadStockData = async () => {
+  const loadStockData = useCallback(async () => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
       const [resProd, resReserved] = await Promise.all([
@@ -48,21 +55,29 @@ export function StockMonitorCard() {
     } catch {
       // Ignorar errores transitorios
     } finally {
+      isFetchingRef.current = false;
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Manual refresh trigger from parent
+  useEffect(() => {
+    if (refreshTrigger !== undefined && refreshTrigger > 0) {
+      loadStockData();
+    }
+  }, [refreshTrigger, loadStockData]);
 
   useEffect(() => {
     loadStockData();
 
-    let interval = setInterval(loadStockData, 5000);
+    let interval = setInterval(loadStockData, 30000); // 30s para no sobrecargar el VPS
 
     const handleVisibilityChange = () => {
       if (document.hidden) {
         clearInterval(interval);
       } else {
         loadStockData();
-        interval = setInterval(loadStockData, 5000);
+        interval = setInterval(loadStockData, 30000);
       }
     };
 
@@ -72,7 +87,7 @@ export function StockMonitorCard() {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, []);
+  }, [loadStockData]);
 
   return (
     <div className="flex flex-col rounded-2xl border border-white/8 bg-[#14120e] p-5 shadow-xl min-w-0">
