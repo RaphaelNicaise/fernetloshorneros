@@ -38,7 +38,7 @@ const NAV_ITEMS = [
 
 const EXTERNAL_ITEMS = [
   { href: "/phpmyadmin", label: "phpMyAdmin", icon: Database },
-  { href: "/portainer", label: "Portainer", icon: Server },
+  { href: "https://portainer.fernetloshorneros.com/", label: "Portainer", icon: Server },
   { href: "https://umami.fernetloshorneros.com/", label: "Umami Analytics", icon: BarChart3 },
   { href: "https://resend.com/emails", label: "Resend", icon: Mail },
 ]

@@ -1,0 +1,22 @@
+services:
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    restart: always
+    ports:
+      - "9443:9443" # Puerto directo HTTPS de rescate por IP (ej: https://IP_VPS:9443)
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    networks:
+      - proxy_network
+
+volumes:
+  portainer_data:
+    # Si venís del compose anterior, el volumen original se llamaba fernetloshorneros_portainer_data.
+    # Usando este nombre conserva tus usuarios y configuraciones anteriores sin perder nada.
+    name: fernetloshorneros_portainer_data
+
+networks:
+  proxy_network:
+    external: true

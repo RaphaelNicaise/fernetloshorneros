@@ -98,9 +98,9 @@ services:
       - frontend
       - backend
       - phpmyadmin
-      - portainer
     networks:
       - app_network
+      - proxy_network
       
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
@@ -115,16 +115,6 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
-    networks:
-      - app_network
-
-  portainer:
-    image: portainer/portainer-ce:latest
-    container_name: portainer_prod
-    restart: unless-stopped
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - portainer_data:/data
     networks:
       - app_network
 
@@ -164,11 +154,11 @@ services:
 volumes:
   mysql_data:
     driver: local
-  portainer_data:
-    driver: local
   umami_data:
     driver: local
 
 networks:
   app_network:
     driver: bridge
+  proxy_network:
+    external: true
