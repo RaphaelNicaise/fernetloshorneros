@@ -1,3 +1,5 @@
+name: portainer-infra
+
 services:
   portainer:
     image: portainer/portainer-ce:latest
