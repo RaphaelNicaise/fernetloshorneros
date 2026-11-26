@@ -1,9 +1,11 @@
 User-agent: *
 Allow: /
 
-# No indexar rutas privadas o de proceso
+# Rutas privadas, administrativas y transaccionales
 Disallow: /admin/
 Disallow: /cart/
 Disallow: /payment/
+Disallow: /mantenimiento
+Disallow: /api/
 
 Sitemap: https://fernetloshorneros.com/sitemap.xml
